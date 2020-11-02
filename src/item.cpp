@@ -540,6 +540,7 @@ detached_ptr<item> item::make_corpse( const mtype_id &mt, time_point turn, const
 void item::convert( const itype_id &new_type )
 {
     type = &*new_type;
+    requires_tags_processing = true; // new type may have "active" flags
     relic_data = type->relic_data;
 }
 
@@ -1758,6 +1759,8 @@ void item::basic_info( std::vector<iteminfo> &info, const iteminfo_query *parts,
                 return f.str();
             }, enumeration_conjunction::none );
             info.emplace_back( "BASE", string_format( _( "tags: %s" ), tags_listed ) );
+            info.emplace_back( "BASE", string_format( _( "requires tags processing: %s" ),
+                               requires_tags_processing ? "true" : "false" ) );
             for( auto const &imap : item_vars ) {
                 info.emplace_back( "BASE",
                                    string_format( _( "item var: %s, %s" ), imap.first,
@@ -5327,6 +5330,7 @@ int item::reach_range( const Character &guy ) const
 void item::unset_flags()
 {
     item_tags.clear();
+    requires_tags_processing = true;
 }
 
 bool item::has_fault( const fault_id &fault ) const
@@ -5370,6 +5374,7 @@ void item::set_flag( const flag_id &flag )
 {
     if( flag.is_valid() ) {
         item_tags.insert( flag );
+        requires_tags_processing = true;
     } else {
         debugmsg( "Attempted to set invalid flag_id %s", flag.str() );
     }
@@ -5378,6 +5383,7 @@ void item::set_flag( const flag_id &flag )
 void item::unset_flag( const flag_id &flag )
 {
     item_tags.erase( flag );
+    requires_tags_processing = true;
 }
 
 void item::set_flag_recursive( const flag_id &flag )
@@ -9835,50 +9841,70 @@ detached_ptr<item> item::process_internal( detached_ptr<item> &&self, player *ca
         here.emit_field( pos, e );
     }
 
-    if( self->has_flag( flag_FAKE_SMOKE ) ) {
-        self = process_fake_smoke( std::move( self ), carrier, pos );
-        if( !self ) {
+    if( self->requires_tags_processing ) {
+        // `mark` becomes true if any of the flags that require processing are present
+        bool mark = false;
+
+        if( self->has_flag( flag_FAKE_SMOKE ) ) {
+            mark = true;
+            self = process_fake_smoke( std::move( self ), carrier, pos );
+            if( !self ) {
+                return std::move( self );
+            }
+        }
+        if( self->has_flag( flag_FAKE_MILL ) ) {
+            mark = true;
+            self = process_fake_mill( std::move( self ), carrier, pos );
+            if( !self ) {
+                return std::move( self );
+            }
+        }
+        if( self->is_corpse() ) {
+            mark = true;
+            self = process_corpse( std::move( self ), carrier, pos );
+            if( !self ) {
+                return std::move( self );
+            }
+        }
+        if( self->has_flag( flag_WET ) && self->process_wet( carrier, pos ) ) {
+            mark = true;
+            // Drying items are never destroyed, but we want to exit so they don't get processed as tools.
             return std::move( self );
         }
-    }
-    if( self->has_flag( flag_FAKE_MILL ) ) {
-        self = process_fake_mill( std::move( self ), carrier, pos );
-        if( !self ) {
-            return std::move( self );
+        if( self->has_flag( flag_LITCIG ) ) {
+            mark = true;
+            self = process_litcig( std::move( self ), carrier, pos );
+            if( !self ) {
+                return std::move( self );
+            }
         }
-    }
-    if( self->is_corpse() ) {
-        self = process_corpse( std::move( self ), carrier, pos );
-        if( !self ) {
-            return std::move( self );
+        if( ( self->has_flag( flag_WATER_EXTINGUISH ) || self->has_flag( flag_WIND_EXTINGUISH ) ) ) {
+            mark = true;
+            self = process_extinguish( std::move( self ), carrier, pos );
+            if( !self ) {
+                return std::move( self );
+            }
         }
-    }
-    if( self->has_flag( flag_WET ) && self->process_wet( carrier, pos ) ) {
-        // Drying items are never destroyed, but we want to exit so they don't get processed as tools.
-        return std::move( self );
-    }
-    if( self->has_flag( flag_LITCIG ) ) {
-        self = process_litcig( std::move( self ), carrier, pos );
-        if( !self ) {
-            return std::move( self );
+        if( self->has_flag( flag_CABLE_SPOOL ) ) {
+            mark = true;
+            // DO NOT process this as a tool! It really isn't!
+            return process_cable( std::move( self ), carrier, pos );
         }
-    }
-    if( ( self->has_flag( flag_WATER_EXTINGUISH ) || self->has_flag( flag_WIND_EXTINGUISH ) ) ) {
-        self = process_extinguish( std::move( self ), carrier, pos );
-        if( !self ) {
-            return std::move( self );
+        if( self->has_flag( flag_IS_UPS ) ) {
+            mark = true;
+            // DO NOT process this as a tool! It really isn't!
+            return process_UPS( std::move( self ), carrier, pos );
         }
-    }
-    if( self->has_flag( flag_CABLE_SPOOL ) ) {
-        // DO NOT process this as a tool! It really isn't!
-        return process_cable( std::move( self ), carrier, pos );
-    }
-    if( self->has_flag( flag_IS_UPS ) ) {
-        // DO NOT process this as a tool! It really isn't!
-        return process_UPS( std::move( self ), carrier, pos );
-    }
-    if( self->is_tool() ) {
-        return process_tool( std::move( self ), carrier, pos );
+        if( self->is_tool() ) {
+            mark = true;
+            return process_tool( std::move( self ), carrier, pos );
+        }
+
+        if( !mark ) {
+            // no flag checks above were successful and no additional processing logic
+            // that could've changed flags was executed
+            self->requires_tags_processing = false;
+        }
     }
     // All foods that go bad have temperature
     if( ( self->is_food() || self->is_corpse() ) ) {

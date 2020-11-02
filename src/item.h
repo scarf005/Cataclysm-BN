@@ -2324,6 +2324,9 @@ class item : public location_visitable<item>, public game_object<item>
         const location_vector<item> &get_components() const;
         location_vector<item> &get_components();
     private:
+        /// `true` if item has any of the flags that require processing in item::process_internal.
+        /// This flag is reset to `true` if item tags are changed.
+        bool requires_tags_processing = true;
         location_vector<item> components;
         const itype *curammo = nullptr;
         std::map<std::string, std::string> item_vars;
