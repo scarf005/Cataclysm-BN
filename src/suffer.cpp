@@ -414,6 +414,7 @@ void Character::suffer_from_chemimbalance()
             add_msg_if_player( m_bad, _( "You suddenly feel cold." ) );
             temp_cur.fill( BODYTEMP_COLD );
         }
+        temp_cur[bp_eyes] = BODYTEMP_NORM;
     }
     if( one_turn_in( 6_hours ) ) {
         if( one_in( 3 ) ) {
@@ -423,6 +424,7 @@ void Character::suffer_from_chemimbalance()
             add_msg_if_player( m_bad, _( "You suddenly feel hot." ) );
             temp_cur.fill( BODYTEMP_HOT );
         }
+        temp_cur[bp_eyes] = BODYTEMP_NORM;
     }
 }
 
@@ -1037,12 +1039,12 @@ void Character::suffer_from_other_mutations()
     }
     if( has_trait( trait_KILLER ) && !has_morale( MORALE_KILLER_HAS_KILLED ) &&
         calendar::once_every( 2_hours ) ) {
-        add_morale( MORALE_KILLER_NEED_TO_KILL, -1, -30, 24_hours, 24_hours );
-        if( calendar::once_every( 4_hours ) ) {
+        if( !has_morale( MORALE_KILLER_NEED_TO_KILL ) ) {
             const translation snip = SNIPPET.random_from_category( "killer_withdrawal" ).value_or(
                                          translation() );
             add_msg_if_player( m_bad, "%s", snip );
         }
+        add_morale( MORALE_KILLER_NEED_TO_KILL, -1, -30, 24_hours, 24_hours );
     }
 }
 
@@ -1460,10 +1462,6 @@ void Character::suffer_without_sleep( const int sleep_deprivation )
     }
 }
 
-void Character::suffer_from_pain()
-{
-}
-
 void Character::suffer()
 {
     const int current_stim = get_stim();
@@ -1520,7 +1518,6 @@ void Character::suffer()
     }
 
     suffer_without_sleep( sleep_deprivation );
-    suffer_from_pain();
     //Suffer from enchantments
     enchantment_cache->activate_passive( *this );
 

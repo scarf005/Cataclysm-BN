@@ -333,6 +333,16 @@ class item : public visitable<item>
          */
         nc_color color_in_inventory() const;
         /**
+         * Returns the color of the item depending on usefulness for the passed player,
+         * e.g. differently if it its an unread book or a spoiling food item etc.
+         * This should only be used for displaying data, it should not affect game play.
+         *
+         * @param for_player NPC or avatar which would read book.
+         */
+        // TODO: Start using this version in more places for interation with NPCs
+        // e.g. giving them unmatching food or allergic thing.
+        nc_color color_in_inventory( const player &p ) const;
+        /**
          * Return the (translated) item name.
          * @param quantity used for translation to the proper plural form of the name, e.g.
          * returns "rock" for quantity 1 and "rocks" for quantity > 0.
@@ -827,7 +837,7 @@ class item : public visitable<item>
          * 1 for other comestibles,
          * 0 otherwise.
          */
-        int spoilage_sort_order();
+        int spoilage_sort_order() const;
 
         /** an item is fresh if it is capable of rotting but still has a long shelf life remaining */
         bool is_fresh() const {
@@ -1198,7 +1208,10 @@ class item : public visitable<item>
          * @see player::can_reload()
          */
         bool is_reloadable() const;
-        /** Returns true if this item can be reloaded with specified ammo type, ignoring capacity. */
+        /**
+         * Returns true if this item can be reloaded with specified ammo type,
+         * ignoring currently loaded ammo.
+         */
         bool can_reload_with( const itype_id &ammo ) const;
         /** Returns true if this item can be reloaded with specified ammo type at this moment. */
         bool is_reloadable_with( const itype_id &ammo ) const;
@@ -1645,12 +1658,12 @@ class item : public visitable<item>
          * This is a per-character setting, different characters may have different number of
          * unread chapters.
          */
-        int get_remaining_chapters( const player &u ) const;
+        int get_remaining_chapters( const Character &ch ) const;
         /**
          * Mark one chapter of the book as read by the given player. May do nothing if the book has
          * no unread chapters. This is a per-character setting, see @ref get_remaining_chapters.
          */
-        void mark_chapter_as_read( const player &u );
+        void mark_chapter_as_read( const Character &ch );
         /**
          * Enumerates recipes available from this book and the skill level required to use them.
          */
@@ -2234,21 +2247,6 @@ class item : public visitable<item>
 
 bool item_compare_by_charges( const item &left, const item &right );
 bool item_ptr_compare_by_charges( const item *left, const item *right );
-
-/**
- *  Hint value used in a hack to decide text color.
- *
- *  This is assigned as a result of some legacy logic in @ref draw_item_info().  This
- *  will eventually be rewritten to eliminate the need for this hack.
- */
-enum class hint_rating : int {
-    /** Item should display as gray */
-    cant = 0,
-    /** Item should display as red */
-    iffy = 1,
-    /** Item should display as green */
-    good = -999
-};
 
 /**
  * Returns a reference to a null item (see @ref item::is_null). The reference is always valid

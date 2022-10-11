@@ -282,10 +282,6 @@ struct islot_armor {
     */
     units::mass weight_capacity_bonus = 0_gram;
     /**
-     * Whether this is a power armor item.
-     */
-    bool power_armor = false;
-    /**
      * Whitelisted clothing mods.
      * Restricted clothing mods must be listed here by id to be compatible.
      */
@@ -321,10 +317,6 @@ struct islot_pet_armor {
      * What animal bodytype can wear this armor
      */
     std::string bodytype = "none";
-    /**
-     * Whether this is a power armor item.
-     */
-    bool power_armor = false;
 };
 
 struct islot_book {
@@ -834,10 +826,19 @@ struct conditional_name {
     translation name;
 };
 
+class islot_milling
+{
+    public:
+        itype_id into_;
+        int conversion_rate_;
+};
+
 struct itype {
         friend class Item_factory;
 
         using FlagsSetType = std::set<std::string>;
+
+        std::vector<std::pair<itype_id, mod_id>> src;
 
         /**
          * Slots for various item type properties. Each slot may contain a valid pointer or null, check
@@ -864,6 +865,7 @@ struct itype {
         cata::value_ptr<islot_seed> seed;
         cata::value_ptr<islot_artifact> artifact;
         cata::value_ptr<relic> relic_data;
+        cata::value_ptr<islot_milling> milling_data;
         /*@}*/
 
     private:

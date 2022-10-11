@@ -64,6 +64,9 @@ extern int fov_3d_z_range;
 /** Using isometric tileset. */
 extern bool tile_iso;
 
+/** Static z level effect. */
+extern bool static_z_effect;
+
 /**
  * Whether to show the pixel minimap. Always false for ncurses build,
  * but can be toggled during game in sdl build.
@@ -75,5 +78,10 @@ extern bool pixel_minimap_option;
  * available for crafting, see inventory::form_from_map
 */
 extern int PICKUP_RANGE;
+
+/**
+ * If true, disables all debug messages. Only used for debugging "weird" saves.
+ */
+extern bool dont_debugmsg;
 
 #endif // CATA_SRC_CACHED_OPTIONS_H

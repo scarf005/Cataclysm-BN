@@ -18,6 +18,7 @@
 #include "cata_utility.h"
 #include "creature_tracker.h"
 #include "debug.h"
+#include "effect.h"
 #include "field.h"
 #include "field_type.h"
 #include "game.h"
@@ -60,6 +61,7 @@ static const efftype_id effect_operating( "operating" );
 static const efftype_id effect_pacified( "pacified" );
 static const efftype_id effect_pushed( "pushed" );
 static const efftype_id effect_stunned( "stunned" );
+static const efftype_id effect_led_by_leash( "led_by_leash" );
 
 static const itype_id itype_pressurized_tank( "pressurized_tank" );
 
@@ -246,6 +248,13 @@ bool monster::can_reach_to( const tripoint &p ) const
     return true;
 }
 
+bool monster::can_squeeze_to( const tripoint &p ) const
+{
+    map &m = get_map();
+
+    return !m.obstructed_by_vehicle_rotation( pos(), p );
+}
+
 bool monster::can_move_to( const tripoint &p ) const
 {
     return can_reach_to( p ) && will_move_to( p );
@@ -329,7 +338,7 @@ void monster::plan()
     auto mood = attitude();
 
     // If we can see the player, move toward them or flee, simpleminded animals are too dumb to follow the player.
-    if( friendly == 0 && sees( g->u ) && !has_flag( MF_PET_WONT_FOLLOW ) && !waiting ) {
+    if( friendly == 0 && sees( g->u ) && !waiting ) {
         dist = rate_target( g->u, dist, smart_planning );
         fleeing = fleeing || is_fleeing( g->u );
         target = &g->u;
@@ -572,7 +581,14 @@ void monster::plan()
     } else if( friendly > 0 && one_in( 3 ) ) {
         // Grow restless with no targets
         friendly--;
-    } else if( friendly < 0 && sees( g->u ) ) {
+    } else if( friendly != 0 && has_effect( effect_led_by_leash ) ) {
+        // visibility doesn't matter, we're getting pulled by a leash
+        if( rl_dist( pos(), g->u.pos() ) > 1 ) {
+            set_dest( g->u.pos() );
+        } else {
+            unset_dest();
+        }
+    } else if( friendly < 0 && sees( g->u ) && !has_flag( MF_PET_WONT_FOLLOW ) ) {
         if( rl_dist( pos(), g->u.pos() ) > 2 ) {
             set_dest( g->u.pos() );
         } else {
@@ -801,7 +817,7 @@ void monster::move()
     bool try_to_move = false;
     for( const tripoint &dest : g->m.points_in_radius( pos(), 1 ) ) {
         if( dest != pos() ) {
-            if( can_move_to( dest ) &&
+            if( can_move_to( dest ) && can_squeeze_to( dest ) &&
                 g->critter_at( dest, true ) == nullptr ) {
                 try_to_move = true;
                 break;
@@ -964,7 +980,7 @@ void monster::move()
             // Try to shove vehicle out of the way
             shove_vehicle( destination, candidate );
             // Bail out if we can't move there and we can't bash.
-            if( !pathed && !can_move_to( candidate ) ) {
+            if( !pathed && ( !can_move_to( candidate ) || !can_squeeze_to( candidate ) ) ) {
                 if( !can_bash ) {
                     continue;
                 }
@@ -1028,6 +1044,13 @@ void monster::move()
         moves -= 100;
         stumble();
         path.clear();
+        if( has_effect( effect_led_by_leash ) ) {
+            if( rl_dist( pos(), g->u.pos() ) > 6 ) {
+                // Either failed to keep up with the player or moved away
+                remove_effect( effect_led_by_leash );
+                add_msg( m_info, _( "You lose hold of a leash." ) );
+            }
+        }
     }
 }
 
@@ -1210,7 +1233,8 @@ tripoint monster::scent_move()
             continue;
         }
         if( g->m.valid_move( pos(), dest, can_bash, true ) &&
-            ( can_move_to( dest ) || ( dest == g->u.pos() ) ||
+            ( ( can_move_to( dest ) && !get_map().obstructed_by_vehicle_rotation( pos(), dest ) ) ||
+              ( dest == g->u.pos() ) ||
               ( can_bash && g->m.bash_rating( bash_estimate(), dest ) > 0 ) ) ) {
             if( ( !fleeing && smell > bestsmell ) || ( fleeing && smell < bestsmell ) ) {
                 smoves.clear();
@@ -1353,7 +1377,7 @@ bool monster::bash_at( const tripoint &p )
     }
 
     bool flat_ground = g->m.has_flag( "ROAD", p ) || g->m.has_flag( "FLAT", p );
-    if( flat_ground ) {
+    if( flat_ground && !g->m.is_bashable_furn( p ) ) {
         bool can_bash_ter = g->m.is_bashable_ter( p );
         bool try_bash_ter = one_in( 50 );
         if( !( can_bash_ter && try_bash_ter ) ) {
@@ -1540,6 +1564,10 @@ bool monster::move_to( const tripoint &p, bool force, bool step_on_critter,
         return false;
     }
 
+    if( !can_squeeze_to( destination ) ) {
+        return false;
+    }
+
     // Make sure that we can move there, unless force is true.
     if( !force && !can_move_to( destination ) ) {
         return false;
@@ -1643,6 +1671,9 @@ bool monster::move_to( const tripoint &p, bool force, bool step_on_critter,
                 break;
             case MS_HUGE:
                 factor = 1;
+                break;
+            default:
+                factor = 6;
                 break;
         }
         // TODO: make this take terrain type into account so diggers traveling under sand will create mounds of sand etc.
@@ -1752,7 +1783,7 @@ bool monster::push_to( const tripoint &p, const int boost, const size_t depth )
 
         // Pushing into cars/windows etc. is harder
         const int movecost_penalty = g->m.move_cost( dest ) - 2;
-        if( movecost_penalty <= -2 ) {
+        if( movecost_penalty <= -2 || get_map().obstructed_by_vehicle_rotation( p, dest ) ) {
             // Can't push into unpassable terrain
             continue;
         }

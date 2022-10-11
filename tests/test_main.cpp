@@ -12,6 +12,10 @@
 #endif // __GLIBCXX__
 #endif // _GLIBCXX_DEBUG
 
+#ifdef CATA_CATCH_PCH
+#undef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
+#define CATCH_CONFIG_IMPL_ONLY
+#endif
 #define CATCH_CONFIG_RUNNER
 #include <algorithm>
 #include <cassert>
@@ -41,6 +45,7 @@
 #include "options.h"
 #include "output.h"
 #include "overmap.h"
+#include "overmap_special.h"
 #include "overmapbuffer.h"
 #include "path_info.h"
 #include "pldata.h"
@@ -152,6 +157,7 @@ static void init_global_game_state( const std::vector<mod_id> &mods,
     g->u.create( character_type::NOW );
 
     g->m = map( get_option<bool>( "ZLEVELS" ) );
+    disable_mapgen = true;
 
     overmap_special_batch empty_specials( point_abs_om{} );
     overmap_buffer.create_custom_overmap( point_abs_om{}, empty_specials );

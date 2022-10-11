@@ -72,7 +72,6 @@ static const ammo_effect_str_id ammo_effect_FRAG( "FRAG" );
 static const ammo_effect_str_id ammo_effect_INCENDIARY( "INCENDIARY" );
 static const ammo_effect_str_id ammo_effect_NAPALM( "NAPALM" );
 static const ammo_effect_str_id ammo_effect_NAPALM_BIG( "NAPALM_BIG" );
-static const ammo_effect_str_id ammo_effect_NEVER_MISFIRES( "NEVER_MISFIRES" );
 static const ammo_effect_str_id ammo_effect_SMOKE( "SMOKE" );
 static const ammo_effect_str_id ammo_effect_SMOKE_BIG( "SMOKE_BIG" );
 static const ammo_effect_str_id ammo_effect_TOXICGAS( "TOXICGAS" );
@@ -292,6 +291,23 @@ void Item_factory::finalize_pre( itype &obj )
             }
         }
     }
+    const auto check_ammo_effects = []( const itype_id & id, std::set<ammo_effect_str_id> &effects ) {
+        for( auto iter = effects.begin(); iter != effects.end(); ) {
+            const ammo_effect_str_id &ae_id = *iter;
+            if( ae_id.is_valid() ) {
+                iter++;
+            } else {
+                debugmsg( "%s has unknown ammo_effect %s, removing", id, ae_id );
+                iter = effects.erase( iter );
+            }
+        }
+    };
+    if( obj.gun ) {
+        check_ammo_effects( obj.id, obj.gun->ammo_effects );
+    }
+    if( obj.gunmod ) {
+        check_ammo_effects( obj.id, obj.gunmod->ammo_effects );
+    }
 
     // Helper for ammo migration in following sections
     auto migrate_ammo_set = [&]( std::set<ammotype> &ammoset ) {
@@ -447,14 +463,6 @@ void Item_factory::finalize_pre( itype &obj )
         }
 
         obj.gun->reload_noise = _( obj.gun->reload_noise );
-
-        // TODO: Move to jsons?
-        if( obj.gun->skill_used == skill_id( "archery" ) ||
-            obj.gun->skill_used == skill_id( "throw" ) ) {
-            obj.item_tags.insert( "WATERPROOF_GUN" );
-            obj.item_tags.insert( "NEVER_JAMS" );
-            obj.gun->ammo_effects.insert( ammo_effect_NEVER_MISFIRES );
-        }
     }
 
     set_allergy_flags( obj );
@@ -917,7 +925,6 @@ void Item_factory::init()
     // Obsolete
     add_iuse( "FLUMED", &iuse::flumed );
     add_iuse( "FLUSLEEP", &iuse::flusleep );
-    add_iuse( "FLU_VACCINE", &iuse::flu_vaccine );
     add_iuse( "FOODPERSON", &iuse::foodperson );
     add_iuse( "FUNGICIDE", &iuse::fungicide );
     add_iuse( "GASMASK", &iuse::gasmask,
@@ -1040,6 +1047,8 @@ void Item_factory::init()
     add_actor( std::make_unique<cauterize_actor>() );
     add_actor( std::make_unique<consume_drug_iuse>() );
     add_actor( std::make_unique<delayed_transform_iuse>() );
+    add_actor( std::make_unique<set_transform_iuse>() );
+    add_actor( std::make_unique<set_transformed_iuse>() );
     add_actor( std::make_unique<enzlave_actor>() );
     add_actor( std::make_unique<explosion_iuse>() );
     add_actor( std::make_unique<firestarter_actor>() );
@@ -1061,7 +1070,6 @@ void Item_factory::init()
     add_actor( std::make_unique<reveal_map_actor>() );
     add_actor( std::make_unique<salvage_actor>() );
     add_actor( std::make_unique<unfold_vehicle_iuse>() );
-    add_actor( std::make_unique<ups_based_armor_actor>() );
     add_actor( std::make_unique<place_trap_actor>() );
     add_actor( std::make_unique<emit_actor>() );
     add_actor( std::make_unique<saw_barrel_actor>() );
@@ -1235,6 +1243,14 @@ void Item_factory::check_definitions() const
         }
         if( type->can_use( "MA_MANUAL" ) && !type->book ) {
             msg += "has use_action MA_MANUAL but is not a book\n";
+        }
+        if( type->milling_data ) {
+            if( !has_template( type->milling_data->into_ ) ) {
+                msg += "type to mill into is invalid: " + type->milling_data->into_.str() + "\n";
+            }
+            if( !type->milling_data->into_->count_by_charges() ) {
+                msg += "type to mill into must be counted by charges: " + type->milling_data->into_.str() + "\n";
+            }
         }
         if( type->ammo ) {
             if( !type->ammo->type && type->ammo->type != ammotype( "NULL" ) ) {
@@ -1645,6 +1661,12 @@ void Item_factory::load( islot_artifact &slot, const JsonObject &jo, const std::
     load_optional_enum_array( slot.effects_worn, jo, "effects_worn" );
 }
 
+void Item_factory::load( islot_milling &slot, const JsonObject &jo, const std::string & )
+{
+    assign( jo, "into", slot.into_ );
+    assign( jo, "conversion_rate", slot.conversion_rate_ );
+}
+
 void islot_ammo::load( const JsonObject &jo )
 {
     mandatory( jo, was_loaded, "ammo_type", type );
@@ -1838,7 +1860,6 @@ void Item_factory::load( islot_armor &slot, const JsonObject &jo, const std::str
     assign( jo, "storage", slot.storage, strict, 0_ml );
     assign( jo, "weight_capacity_modifier", slot.weight_capacity_modifier );
     assign( jo, "weight_capacity_bonus", slot.weight_capacity_bonus, strict, 0_gram );
-    assign( jo, "power_armor", slot.power_armor, strict );
     assign( jo, "valid_mods", slot.valid_mods, strict );
 
     assign_coverage_from_json( jo, "covers", slot.covers, slot.sided );
@@ -1855,7 +1876,6 @@ void Item_factory::load( islot_pet_armor &slot, const JsonObject &jo, const std:
     assign( jo, "environmental_protection", slot.env_resist, strict, 0 );
     assign( jo, "environmental_protection_with_filter", slot.env_resist_w_filter, strict, 0 );
     assign( jo, "storage", slot.storage, strict, 0_ml );
-    assign( jo, "power_armor", slot.power_armor, strict );
 }
 
 void Item_factory::load( islot_tool &slot, const JsonObject &jo, const std::string &src )
@@ -2590,6 +2610,7 @@ void Item_factory::load_basic_info( const JsonObject &jo, itype &def, const std:
     load_slot_optional( def.brewable, jo, "brewable", src );
     load_slot_optional( def.fuel, jo, "fuel", src );
     load_slot_optional( def.relic_data, jo, "relic_data", src );
+    load_slot_optional( def.milling_data, jo, "milling", src );
 
     // optional gunmod slot may also specify mod data
     if( jo.has_member( "gunmod_data" ) ) {
@@ -2605,6 +2626,11 @@ void Item_factory::load_basic_info( const JsonObject &jo, itype &def, const std:
     } else {
         jo.read( "id", def.id, true );
     }
+
+    if( !def.src.empty() && def.src.back().first != def.id ) {
+        def.src.clear();
+    }
+    def.src.emplace_back( def.id, mod_id( src ) );
 
     // snippet_category should be loaded after def.id is determined
     if( jo.has_array( "snippet_category" ) ) {

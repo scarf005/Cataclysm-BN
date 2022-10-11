@@ -52,12 +52,20 @@ struct dealt_projectile_attack;
 struct pathfinding_settings;
 struct trap;
 
+template<typename T> struct enum_traits;
+
 enum m_size : int {
-    MS_TINY = 1,    // Squirrel
+    MS_TINY = 0,    // Squirrel
     MS_SMALL,      // Dog
     MS_MEDIUM,    // Human
     MS_LARGE,    // Cow
-    MS_HUGE     // TAAAANK
+    MS_HUGE,    // TAAAANK
+    num_m_size // last
+};
+
+template<>
+struct enum_traits<m_size> {
+    static constexpr m_size last = m_size::num_m_size;
 };
 
 enum FacingDirection {
@@ -386,7 +394,7 @@ class Creature
         /** Returns the intensity of the matching effect. Returns 0 if effect doesn't exist. */
         int get_effect_int( const efftype_id &eff_id, body_part bp = num_bp ) const;
         /** Returns true if the creature resists an effect */
-        bool resists_effect( const effect &e );
+        bool resists_effect( const effect &e ) const;
 
         // Methods for setting/getting misc key/value pairs.
         void set_value( const std::string &key, const std::string &value );

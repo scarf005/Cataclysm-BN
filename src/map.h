@@ -92,6 +92,10 @@ template<typename T>
 struct weighted_int_list;
 struct rl_vec2d;
 
+
+/** Causes all generated maps to be empty grass and prevents saved maps from being loaded, used by the test suite */
+extern bool disable_mapgen;
+
 namespace cata
 {
 template <class T> class poly_serialized;
@@ -148,6 +152,11 @@ struct bash_params {
      * have a roof either.
     */
     bool bashing_from_above;
+    /**
+     * Hack to prevent infinite recursion.
+     * TODO: Remove, properly unwrap the calls instead
+     */
+    bool do_recurse = true;
 };
 
 struct bash_results {
@@ -283,6 +292,12 @@ struct drawsq_params {
         //@}
 };
 
+//This is included in the global namespace rather than within level_cache as c++ doesn't allow forward declarations within a namespace
+struct diagonal_blocks {
+    bool nw;
+    bool ne;
+};
+
 struct level_cache {
     // Zeros all relevant values
     level_cache();
@@ -315,6 +330,13 @@ struct level_cache {
     // stores cached transparency of the tiles
     // units: "transparency" (see LIGHT_TRANSPARENCY_OPEN_AIR)
     float transparency_cache[MAPSIZE_X][MAPSIZE_Y];
+
+    // true when light entering a tile diagonally is blocked by the walls of a turned vehicle. The direction is the direction that the light must be travelling.
+    // check the nw value of x+1, y+1 to find the se value of a tile and the ne of x-1, y+1 for sw
+    diagonal_blocks vehicle_obscured_cache[MAPSIZE_X][MAPSIZE_Y];
+
+    // same as above but for obstruction rather than light
+    diagonal_blocks vehicle_obstructed_cache[MAPSIZE_X][MAPSIZE_Y];
 
     // stores "adjusted transparency" of the tiles
     // initial values derived from transparency_cache, uses same units
@@ -578,7 +600,7 @@ class map
         void spread_gas( field_entry &cur, const tripoint &p, int percent_spread,
                          const time_duration &outdoor_age_speedup, scent_block &sblk );
         void create_hot_air( const tripoint &p, int intensity );
-        bool gas_can_spread_to( field_entry &cur, const maptile &dst );
+        bool gas_can_spread_to( field_entry &cur, const tripoint &src, const tripoint &dst );
         void gas_spread_to( field_entry &cur, maptile &dst, const tripoint &p );
         int burn_body_part( player &u, field_entry &cur, body_part bp, int scale );
     public:
@@ -687,6 +709,16 @@ class map
                          int cost_min, int cost_max ) const;
 
         /**
+         * Checks if a rotated vehicle is blocking diagonal movement, tripoints must be adjacent
+         */
+        bool obstructed_by_vehicle_rotation( const tripoint &from, const tripoint &to ) const;
+
+        /**
+         * Checks if a rotated vehicle is blocking diagonal vision, tripoints must be adjacent
+         */
+        bool obscured_by_vehicle_rotation( const tripoint &from, const tripoint &to ) const;
+
+        /**
          * Populates a vector of points that are reachable within a number of steps from a
          * point. It could be generalized to take advantage of z levels, but would need some
          * additional code to detect whether a valid transition was on a tile.
@@ -735,8 +767,8 @@ class map
         void add_vehicle_to_cache( vehicle * );
         void clear_vehicle_point_from_cache( vehicle *veh, const tripoint &pt );
         void update_vehicle_cache( vehicle *, int old_zlevel );
-        void reset_vehicle_cache( int zlev );
-        void clear_vehicle_cache( int zlev );
+        void reset_vehicle_cache( );
+        void clear_vehicle_cache( );
         void clear_vehicle_list( int zlev );
         void update_vehicle_list( const submap *to, int zlev );
         //Returns true if vehicle zones are dirty and need to be recached
@@ -773,12 +805,10 @@ class map
         void unboard_vehicle( const tripoint &p, bool dead_passenger = false );
         // Change vehicle coordinates and move vehicle's driver along.
         // WARNING: not checking collisions!
-        // optionally: include a list of parts to displace instead of the entire vehicle
-        bool displace_vehicle( vehicle &veh, const tripoint &dp, bool adjust_pos = true,
-                               const std::set<int> &parts_to_move = {} );
-        // make sure a vehicle that is split across z-levels is properly supported
-        // calls displace_vehicle() and shouldn't be called from displace_vehicle
-        void level_vehicle( vehicle &veh );
+        bool displace_vehicle( vehicle &veh, const tripoint &dp );
+
+        // Shift the vehicle's z-level without moving any parts
+        void shift_vehicle_z( vehicle &veh, int z_shift );
         // move water under wheels. true if moved
         bool displace_water( const tripoint &dp );
 
@@ -1488,8 +1518,7 @@ class map
          * Build the map of scent-resistant tiles.
          * Should be way faster than if done in `game.cpp` using public map functions.
          */
-        void scent_blockers( std::array<std::array<bool, MAPSIZE_X>, MAPSIZE_Y> &blocks_scent,
-                             std::array<std::array<bool, MAPSIZE_X>, MAPSIZE_Y> &reduces_scent,
+        void scent_blockers( std::array<std::array<char, MAPSIZE_X>, MAPSIZE_Y> &scent_transfer,
                              const point &min, const point &max );
 
         // Computers
@@ -1686,20 +1715,24 @@ class map
 
     protected:
         void saven( const tripoint &grid );
-        void loadn( const tripoint &grid, bool update_vehicles );
-        void loadn( const point &grid, bool update_vehicles ) {
+        bool loadn( const tripoint &grid, bool update_vehicles );
+        bool loadn( const point &grid, bool update_vehicles ) {
             if( zlevels ) {
+                bool generated = false;
                 for( int gridz = -OVERMAP_DEPTH; gridz <= OVERMAP_HEIGHT; gridz++ ) {
-                    loadn( tripoint( grid, gridz ), update_vehicles );
+                    generated |= loadn( tripoint( grid, gridz ), update_vehicles );
                 }
 
-                // Note: we want it in a separate loop! It is a post-load cleanup
-                // Since we're adding roofs, we want it to go up (from lowest to highest)
-                for( int gridz = -OVERMAP_DEPTH; gridz <= OVERMAP_HEIGHT; gridz++ ) {
-                    add_roofs( tripoint( grid, gridz ) );
+                if( generated ) {
+                    // Note: we want it in a separate loop! It is a post-load cleanup
+                    // Since we're adding roofs, we want it to go up (from lowest to highest)
+                    for( int gridz = -OVERMAP_DEPTH; gridz <= OVERMAP_HEIGHT; gridz++ ) {
+                        add_roofs( tripoint( grid, gridz ) );
+                    }
                 }
+                return generated;
             } else {
-                loadn( tripoint( grid, abs_sub.z ), update_vehicles );
+                return loadn( tripoint( grid, abs_sub.z ), update_vehicles );
             }
         }
         /**

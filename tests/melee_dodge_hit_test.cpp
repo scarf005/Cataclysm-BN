@@ -1,10 +1,11 @@
+#include "catch/catch.hpp"
+
 #include <list>
 #include <memory>
 #include <string>
 
 #include "avatar.h"
 #include "calendar.h"
-#include "catch/catch.hpp"
 #include "creature.h"
 #include "game.h"
 #include "item.h"
@@ -13,6 +14,7 @@
 #include "mtype.h"
 #include "player_helpers.h"
 #include "point.h"
+#include "state_helpers.h"
 #include "type_id.h"
 
 // The test cases below cover polymorphic functions related to melee hit and dodge rates
@@ -65,8 +67,7 @@ static float dodge_wearing_item( avatar &dummy, item &clothing )
 
 TEST_CASE( "monster::get_hit_base", "[monster][melee][hit]" )
 {
-    clear_map();
-
+    clear_all_state();
     SECTION( "monster get_hit_base is equal to melee skill level" ) {
         monster zed( mtype_id( "mon_zombie" ) );
         CHECK( zed.get_hit_base() == zed.type->melee_skill );
@@ -75,8 +76,7 @@ TEST_CASE( "monster::get_hit_base", "[monster][melee][hit]" )
 
 TEST_CASE( "Character::get_hit_base", "[character][melee][hit][dex]" )
 {
-    clear_map();
-
+    clear_all_state();
     avatar &dummy = g->u;
     clear_character( dummy );
 
@@ -93,8 +93,7 @@ TEST_CASE( "Character::get_hit_base", "[character][melee][hit][dex]" )
 
 TEST_CASE( "monster::get_dodge_base", "[monster][melee][dodge]" )
 {
-    clear_map();
-
+    clear_all_state();
     SECTION( "monster get_dodge_base is equal to dodge skill level" ) {
         monster smoker( mtype_id( "mon_zombie_smoker" ) );
         CHECK( smoker.get_dodge_base() == smoker.type->sk_dodge );
@@ -103,8 +102,7 @@ TEST_CASE( "monster::get_dodge_base", "[monster][melee][dodge]" )
 
 TEST_CASE( "Character::get_dodge_base", "[character][melee][dodge][dex][skill]" )
 {
-    clear_map();
-
+    clear_all_state();
     avatar &dummy = g->u;
     clear_character( dummy );
 
@@ -164,8 +162,7 @@ TEST_CASE( "Character::get_dodge_base", "[character][melee][dodge][dex][skill]" 
 
 TEST_CASE( "monster::get_dodge with effects", "[monster][melee][dodge][effect]" )
 {
-    clear_map();
-
+    clear_all_state();
     monster zombie( mtype_id( "mon_zombie_smoker" ) );
 
     const float base_dodge = zombie.get_dodge_base();
@@ -195,8 +192,7 @@ TEST_CASE( "monster::get_dodge with effects", "[monster][melee][dodge][effect]" 
 
 TEST_CASE( "Character::get_dodge", "[player][melee][dodge]" )
 {
-    clear_map();
-
+    clear_all_state();
     avatar &dummy = g->u;
     clear_character( dummy );
 
@@ -218,8 +214,7 @@ TEST_CASE( "Character::get_dodge", "[player][melee][dodge]" )
 
 TEST_CASE( "Character::get_dodge with effects", "[player][melee][dodge][effect]" )
 {
-    clear_map();
-
+    clear_all_state();
     avatar &dummy = g->u;
     clear_character( dummy );
 
@@ -276,8 +271,7 @@ TEST_CASE( "Character::get_dodge with effects", "[player][melee][dodge][effect]"
 
 TEST_CASE( "player::get_dodge while grabbed", "[player][melee][dodge][grab]" )
 {
-    clear_map();
-
+    clear_all_state();
     avatar &dummy = g->u;
     clear_character( dummy );
 

@@ -222,23 +222,27 @@ bool Creature::sees( const Creature &critter ) const
         return ch == nullptr || !ch->is_invisible();
     };
 
+    map &here = get_map();
     const Character *ch = critter.as_character();
     const int wanted_range = rl_dist( pos(), critter.pos() );
-    // Can always see adjacent monsters on the same level.
+    // Can always see adjacent monsters on the same level, unless they're through a vehicle wall.
     // We also bypass lighting for vertically adjacent monsters, but still check for floors.
-    if( wanted_range <= 1 && ( posz() == critter.posz() || g->m.sees( pos(), critter.pos(), 1 ) ) ) {
+    if( wanted_range <= 1 && ( posz() == critter.posz() || here.sees( pos(), critter.pos(), 1 ) ) ) {
+        if( here.obscured_by_vehicle_rotation( pos(), critter.pos() ) ) {
+            return false;
+        }
         return visible( ch );
     } else if( ( wanted_range > 1 && critter.digging() ) ||
-               ( critter.has_flag( MF_NIGHT_INVISIBILITY ) && g->m.light_at( critter.pos() ) <= lit_level::LOW ) ||
-               ( critter.is_underwater() && !is_underwater() && g->m.is_divable( critter.pos() ) ) ||
-               ( g->m.has_flag_ter_or_furn( TFLAG_HIDE_PLACE, critter.pos() ) &&
+               ( critter.has_flag( MF_NIGHT_INVISIBILITY ) && here.light_at( critter.pos() ) <= lit_level::LOW ) ||
+               ( critter.is_underwater() && !is_underwater() && here.is_divable( critter.pos() ) ) ||
+               ( here.has_flag_ter_or_furn( TFLAG_HIDE_PLACE, critter.pos() ) &&
                  !( std::abs( posx() - critter.posx() ) <= 1 && std::abs( posy() - critter.posy() ) <= 1 &&
                     std::abs( posz() - critter.posz() ) <= 1 ) ) ) {
         return false;
     }
     if( ch != nullptr ) {
         if( ch->movement_mode_is( CMM_CROUCH ) ) {
-            const int coverage = g->m.obstacle_coverage( pos(), critter.pos() );
+            const int coverage = here.obstacle_coverage( pos(), critter.pos() );
             if( coverage < 30 ) {
                 return sees( critter.pos(), critter.is_avatar() ) && visible( ch );
             }
@@ -258,6 +262,8 @@ bool Creature::sees( const Creature &critter ) const
                 case MS_HUGE:
                     size_modifier = 0.15;
                     break;
+                default:
+                    break;
             }
             const int vision_modifier = 30 - 0.5 * coverage * size_modifier;
             if( vision_modifier > 1 ) {
@@ -275,7 +281,8 @@ bool Creature::sees( const tripoint &t, bool is_avatar, int range_mod ) const
         return false;
     }
 
-    const int range_cur = sight_range( g->m.ambient_light_at( t ) );
+    map &here = get_map();
+    const int range_cur = sight_range( here.ambient_light_at( t ) );
     const int range_day = sight_range( default_daylight_level() );
     const int range_night = sight_range( 0 );
     const int range_max = std::max( range_day, range_night );
@@ -283,9 +290,9 @@ bool Creature::sees( const tripoint &t, bool is_avatar, int range_mod ) const
     const int wanted_range = rl_dist( pos(), t );
     if( wanted_range <= range_min ||
         ( wanted_range <= range_max &&
-          g->m.ambient_light_at( t ) > g->natural_light_level( t.z ) ) ) {
+          here.ambient_light_at( t ) > g->natural_light_level( t.z ) ) ) {
         int range = 0;
-        if( g->m.ambient_light_at( t ) > g->natural_light_level( t.z ) ) {
+        if( here.ambient_light_at( t ) > g->natural_light_level( t.z ) ) {
             range = MAX_VIEW_DISTANCE;
         } else {
             range = range_min;
@@ -301,9 +308,9 @@ bool Creature::sees( const tripoint &t, bool is_avatar, int range_mod ) const
             const float player_visibility_factor = g->u.visibility() / 100.0f;
             int adj_range = std::floor( range * player_visibility_factor );
             return adj_range >= wanted_range &&
-                   g->m.get_cache_ref( pos().z ).seen_cache[pos().x][pos().y] > LIGHT_TRANSPARENCY_SOLID;
+                   here.get_cache_ref( pos().z ).seen_cache[pos().x][pos().y] > LIGHT_TRANSPARENCY_SOLID;
         } else {
-            return g->m.sees( pos(), t, range );
+            return here.sees( pos(), t, range );
         }
     } else {
         return false;
@@ -340,13 +347,14 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
     bool area_iff = false;      // Need to check distance from target to player
     bool angle_iff = true;      // Need to check if player is in a cone between us and target
     int pldist = rl_dist( pos(), g->u.pos() );
-    vehicle *in_veh = is_fake() ? veh_pointer_or_null( g->m.veh_at( pos() ) ) : nullptr;
+    map &here = get_map();
+    vehicle *in_veh = is_fake() ? veh_pointer_or_null( here.veh_at( pos() ) ) : nullptr;
     if( pldist < iff_dist && sees( g->u ) ) {
         area_iff = area > 0;
         angle_iff = true;
         // Player inside vehicle won't be hit by shots from the roof,
         // so we can fire "through" them just fine.
-        const optional_vpart_position vp = g->m.veh_at( u.pos() );
+        const optional_vpart_position vp = here.veh_at( u.pos() );
         if( in_veh && veh_pointer_or_null( vp ) == in_veh && vp->is_inside() ) {
             angle_iff = false; // No angle IFF, but possibly area IFF
         } else if( pldist < 3 ) {
@@ -386,7 +394,7 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
                 // Getting point on vehicle boundaries and on line between target and turret
                 bool continueFlag = true;
                 do {
-                    const optional_vpart_position vp = g->m.veh_at( path_to_target.back() );
+                    const optional_vpart_position vp = here.veh_at( path_to_target.back() );
                     vehicle *const veh = vp ? &vp->vehicle() : nullptr;
                     if( in_veh == veh ) {
                         continueFlag = false;
@@ -419,7 +427,7 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
             continue;
         }
 
-        if( in_veh != nullptr && veh_pointer_or_null( g->m.veh_at( m->pos() ) ) == in_veh ) {
+        if( in_veh != nullptr && veh_pointer_or_null( here.veh_at( m->pos() ) ) == in_veh ) {
             // No shooting stuff on vehicle we're a part of
             continue;
         }
@@ -483,6 +491,8 @@ int Creature::size_melee_penalty() const
             return -10;
         case MS_HUGE:
             return -20;
+        default:
+            break;
     }
 
     debugmsg( "Invalid target size %d", get_size() );
@@ -610,7 +620,7 @@ dealt_damage_instance hit_with_aoe( Creature &target, Creature *source, const da
         return acc + pr.first->hit_size;
     } );
     dealt_damage_instance dealt_damage;
-    for( const std::pair<bodypart_str_id, bodypart> &pr : all_body_parts ) {
+    for( const std::pair<const bodypart_str_id, bodypart> &pr : all_body_parts ) {
         damage_instance impact = di;
         impact.mult_damage( pr.first->hit_size / hit_size_sum );
         dealt_damage_instance bp_damage = target.deal_damage( source, pr.first.id(), impact );
@@ -1297,7 +1307,7 @@ void Creature::process_effects()
     }
 }
 
-bool Creature::resists_effect( const effect &e )
+bool Creature::resists_effect( const effect &e ) const
 {
     for( auto &i : e.get_resist_effects() ) {
         if( has_effect( i ) ) {

@@ -157,6 +157,8 @@ struct bionic {
         unsigned int         ammo_count = 0;
         /* An amount of time during which this bionic has been rendered inoperative. */
         time_duration        incapacitated_time;
+        /* The amount of energy the Bionic has stored for it's function. [Currently only used for ADS]*/
+        units::energy        energy_stored = 0_kJ;
         bionic()
             : id( "bio_batteries" ), incapacitated_time( 0_turns ) {
         }
@@ -180,6 +182,7 @@ struct bionic {
         void set_auto_start_thresh( float val );
         float get_auto_start_thresh() const;
         bool is_auto_start_on() const;
+        bool is_auto_start_keep_full() const;
 
         void serialize( JsonOut &json ) const;
         void deserialize( JsonIn &jsin );

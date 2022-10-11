@@ -13,6 +13,7 @@
 #include "character.h"
 #include "color.h"
 #include "construction.h"
+#include "construction_partial.h"
 #include "crafting.h"
 #include "item.h"
 #include "itype.h"
@@ -131,9 +132,9 @@ static std::string craft_progress_message( const avatar &u, const player_activit
 
     const bench_location bench{bench_t, bench_pos};
 
-    const float light_mult = u.lighting_craft_speed_multiplier( rec );
+    const float light_mult = lighting_crafting_speed_multiplier( u, rec );
     const float bench_mult = workbench_crafting_speed_multiplier( *craft, bench );
-    const float morale_mult = u.morale_crafting_speed_multiplier( rec );
+    const float morale_mult = morale_crafting_speed_multiplier( u, rec );
     const int assistants = u.available_assistant_count( craft->get_making() );
     const float base_total_moves = std::max( 1, rec.batch_time( craft->charges, 1.0f, 0 ) );
     const float assist_total_moves = std::max( 1, rec.batch_time( craft->charges, 1.0f, assistants ) );
@@ -179,6 +180,19 @@ cata::optional<std::string> player_activity::get_progress_message( const avatar 
         return cata::optional<std::string>();
     }
 
+    if( actor ) {
+        act_progress_message msg = actor->get_progress_message( *this, u );
+        if( msg.implemented ) {
+            if( msg.msg_full ) {
+                return *msg.msg_full;
+            } else if( msg.msg_extra_info ) {
+                return string_format( _( "%s: %s" ), get_verb().translated(), *msg.msg_extra_info );
+            } else {
+                return cata::nullopt;
+            }
+        }
+    }
+
     if( type == activity_id( "ACT_ADV_INVENTORY" ) ||
         type == activity_id( "ACT_AIM" ) ||
         type == activity_id( "ACT_ARMOR_LAYERS" ) ||
@@ -214,7 +228,6 @@ cata::optional<std::string> player_activity::get_progress_message( const avatar 
             type == activity_id( "ACT_HACKSAW" ) ||
             type == activity_id( "ACT_JACKHAMMER" ) ||
             type == activity_id( "ACT_PICKAXE" ) ||
-            type == activity_id( "ACT_DISASSEMBLE" ) ||
             type == activity_id( "ACT_VEHICLE" ) ||
             type == activity_id( "ACT_FILL_PIT" ) ||
             type == activity_id( "ACT_DIG" ) ||

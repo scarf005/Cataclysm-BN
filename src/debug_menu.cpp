@@ -30,6 +30,7 @@
 #include "cata_utility.h"
 #include "catacharset.h"
 #include "character.h"
+#include "character_display.h"
 #include "character_id.h"
 #include "character_martial_arts.h"
 #include "color.h"
@@ -453,7 +454,7 @@ void spawn_nested_mapgen()
         ( *ptr )->nest( md, local_ms.xy() );
         target_map.save();
         g->load_npcs();
-        g->m.invalidate_map_cache( g->get_levz() );
+        here.invalidate_map_cache( g->get_levz() );
     }
 }
 
@@ -569,8 +570,8 @@ void character_edit_menu( Character &c )
 
     std::vector<uilist_entry> menu_entries = static_entries;
     if( !spell_type::get_all().empty() ) {
-        menu_entries.emplace_back( edit_character::learn_spells, true, 'S', _( "Learn all [S]pells" ) );
-        menu_entries.emplace_back( edit_character::level_spells, true, 'L', _( "[L]evel a spell" ) );
+        menu_entries.emplace_back( edit_character::learn_spells, true, 'L', _( "[L]earn all Spells" ) );
+        menu_entries.emplace_back( edit_character::level_spells, true, 'v', _( "Le[v]el a spell" ) );
     }
     if( p.is_npc() ) {
         menu_entries.emplace_back( edit_character::mission_add, true, 'm',  _( "Add [m]ission" ) );
@@ -929,7 +930,7 @@ void character_edit_menu( Character &c )
         }
         break;
         case edit_character::status:
-            p.disp_info();
+            character_display::disp_info( p );
             break;
         case edit_character::mission_add: {
             uilist types;
@@ -1506,10 +1507,14 @@ void debug()
                     veh_cond_menu.query();
 
                     if( veh_cond_menu.ret >= 0 && veh_cond_menu.ret < 3 ) {
-                        // TODO: Allow picking this when add_vehicle has 3d argument
-                        vehicle *veh = g->m.add_vehicle( selected_opt, dest, -90_degrees, 100, veh_cond_menu.ret - 1 );
-                        if( veh != nullptr ) {
-                            g->m.board_vehicle( dest, &u );
+                        int dir = 0;
+                        if( query_int( dir, -90, _( "Vehicle direction (in degrees): " ) ) ) {
+                            vehicle *veh = m.add_vehicle( selected_opt, dest,
+                                                          normalize( units::from_degrees( dir ) ),
+                                                          100, veh_cond_menu.ret - 1 );
+                            if( veh != nullptr ) {
+                                m.board_vehicle( dest, &u );
+                            }
                         }
                     }
                 }
@@ -1902,7 +1907,7 @@ void debug()
                     mx_map.load( where_sm.raw(), false );
                     MapExtras::apply_function( mx_str[mx_choice], mx_map, where_sm.raw() );
                     g->load_npcs();
-                    g->m.invalidate_map_cache( g->get_levz() );
+                    m.invalidate_map_cache( g->get_levz() );
                 }
             }
             break;
@@ -1960,34 +1965,9 @@ void debug()
         }
         break;
 
-        case DEBUG_SAVE_SCREENSHOT: {
-#if defined(TILES)
-            // check that the current '<world>/screenshots' directory exists
-            std::stringstream map_directory;
-            map_directory << g->get_world_base_save_path() << "/screenshots/";
-            assure_dir_exist( map_directory.str() );
-
-            // build file name: <map_dir>/screenshots/[<character_name>]_<date>.png
-            // Date format is a somewhat ISO-8601 compliant GMT time date (except for some characters that wouldn't pass on most file systems like ':').
-            std::time_t time = std::time( nullptr );
-            std::stringstream date_buffer;
-            date_buffer << std::put_time( std::gmtime( &time ), "%F_%H-%M-%S_%z" );
-            const auto tmp_file_name = string_format( "[%s]_%s.png", g->u.get_name(), date_buffer.str() );
-
-            std::string file_name = ensure_valid_file_name( tmp_file_name );
-            auto current_file_path = map_directory.str() + file_name;
-
-            // Take a screenshot of the viewport.
-            if( g->take_screenshot( current_file_path ) ) {
-                popup( _( "Successfully saved your screenshot to: %s" ), map_directory.str() );
-            } else {
-                popup( _( "An error occurred while trying to save the screenshot." ) );
-            }
-#else
-            popup( _( "This binary was not compiled with tiles support." ) );
-#endif
-        }
-        break;
+        case DEBUG_SAVE_SCREENSHOT:
+            g->queue_screenshot = true;
+            break;
 
         case DEBUG_GAME_REPORT: {
             // generate a game report, useful for bug reporting.
