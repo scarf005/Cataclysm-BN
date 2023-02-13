@@ -38,7 +38,6 @@ struct explosion_tile {
 
 struct point_with_value {
     point_with_value() = default;
-    point_with_value( const point_with_value & ) = default;
     point_with_value( const tripoint &pt, double val )
         : pt( pt ), val( val )
     {}
