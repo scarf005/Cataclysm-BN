@@ -471,7 +471,7 @@ std::string press_x( action_id act, const std::string &key_bound_pre,
     input_context ctxt = get_default_mode_input_context();
     return ctxt.press_x( action_ident( act ), key_bound_pre, key_bound_suf, key_unbound );
 }
-cata::optional<std::string> press_x_if_bound( action_id act )
+cata::optional<  std::string  > press_x_if_bound( action_id act )
 {
     input_context ctxt = get_default_mode_input_context();
     std::string description = action_ident( act );
