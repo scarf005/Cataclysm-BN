@@ -3,7 +3,7 @@
     "type": "GENERIC",
     "id": "cable_xlr",
     "name": { "str": "XLR cable" },
-    "description": "A balanced cable used for sending audio signal.  The connectors have three prongs.",
+          "description": "A balanced cable used for sending audio signal.  The connectors have three prongs.",
     "symbol": "o",
     "color": "dark_gray",
     "volume": "325 ml",
