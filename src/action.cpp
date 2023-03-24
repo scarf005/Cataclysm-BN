@@ -456,7 +456,7 @@ action_id look_up_action( const std::string &ident )
 // (Press X (or Y)|Try) to Z
 std::string press_x( action_id act )
 {
-    input_context ctxt = get_default_mode_input_context();
+       input_context ctxt = get_default_mode_input_context();
     return ctxt.press_x( action_ident( act ), _( "Press " ), "", _( "Try" ) );
 }
 std::string press_x( action_id act, const std::string &key_bound, const std::string &key_unbound )
