@@ -1,8 +1,8 @@
 [
-  {
-    "abstract": "book_magazine",
-    "type": "BOOK",
-    "name": { "str": "readable magazine" },
+      {
+  "abstract"  :   "book_magazine"  ,
+      "type":  "BOOK" ,
+ "name": { "str": "readable magazine" },
     "weight": "70 g",
     "volume": "250 ml",
     "material": "paper",
