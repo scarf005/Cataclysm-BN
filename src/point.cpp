@@ -7,6 +7,27 @@
 #include "cata_utility.h"
 
 
+point &point::operator+=( point rhs )
+{
+    x += rhs.x;
+    y += rhs.y;
+    return *this;
+}
+
+point &point::operator-=( point rhs )
+{
+    x -= rhs.x;
+    y -= rhs.y;
+    return *this;
+}
+
+point &point::operator*=( const int rhs )
+{
+    x *= rhs;
+    y *= rhs;
+    return *this;
+}
+
 point point::rotate( int turns, point dim ) const
 {
     assert( turns >= 0 );
@@ -29,6 +50,44 @@ std::string point::to_string() const
     std::ostringstream os;
     os << *this;
     return os.str();
+}
+
+tripoint &tripoint::operator+=( const tripoint &rhs )
+{
+    x += rhs.x;
+    y += rhs.y;
+    z += rhs.z;
+    return *this;
+}
+
+tripoint &tripoint::operator*=( const int rhs )
+{
+    x *= rhs;
+    y *= rhs;
+    z *= rhs;
+    return *this;
+}
+
+tripoint &tripoint::operator+=( point rhs )
+{
+    x += rhs.x;
+    y += rhs.y;
+    return *this;
+}
+
+tripoint &tripoint::operator-=( point rhs )
+{
+    x -= rhs.x;
+    y -= rhs.y;
+    return *this;
+}
+
+tripoint &tripoint::operator-=( const tripoint &rhs )
+{
+    x -= rhs.x;
+    y -= rhs.y;
+    z -= rhs.z;
+    return *this;
 }
 
 std::string tripoint::to_string() const
@@ -112,5 +171,25 @@ std::vector<point> closest_points_first( point center, int min_dist, int max_dis
         y += dy;
     }
 
+    return result;
+}
+
+std::size_t std::hash<point>::operator()( point k ) const noexcept
+{
+    constexpr uint64_t a = 2862933555777941757;
+    size_t result = k.y;
+    result *= a;
+    result += k.x;
+    return result;
+}
+
+std::size_t std::hash<tripoint>::operator()( const tripoint &k ) const noexcept
+{
+    constexpr uint64_t a = 2862933555777941757;
+    size_t result = k.z;
+    result *= a;
+    result += k.y;
+    result *= a;
+    result += k.x;
     return result;
 }
