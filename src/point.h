@@ -43,33 +43,21 @@ struct point {
     constexpr point operator+( point rhs ) const {
         return point( x + rhs.x, y + rhs.y );
     }
-    point &operator+=( point rhs ) {
-        x += rhs.x;
-        y += rhs.y;
-        return *this;
-    }
+    point &operator+=( point rhs );
     constexpr point operator-() const {
         return point( -x, -y );
     }
     constexpr point operator-( point rhs ) const {
         return point( x - rhs.x, y - rhs.y );
     }
-    point &operator-=( point rhs ) {
-        x -= rhs.x;
-        y -= rhs.y;
-        return *this;
-    }
+    point &operator-=( point rhs );
     constexpr point operator*( const int rhs ) const {
         return point( x * rhs, y * rhs );
     }
     friend constexpr point operator*( int lhs, point rhs ) {
         return rhs * lhs;
     }
-    point &operator*=( const int rhs ) {
-        x *= rhs;
-        y *= rhs;
-        return *this;
-    }
+    point &operator*=( const int rhs );
     constexpr point operator/( const int rhs ) const {
         return point( x / rhs, y / rhs );
     }
@@ -146,12 +134,8 @@ struct tripoint {
     constexpr tripoint operator-( const tripoint &rhs ) const {
         return tripoint( x - rhs.x, y - rhs.y, z - rhs.z );
     }
-    tripoint &operator+=( const tripoint &rhs ) {
-        x += rhs.x;
-        y += rhs.y;
-        z += rhs.z;
-        return *this;
-    }
+    tripoint &operator+=( const tripoint &rhs );
+
     constexpr tripoint operator-() const {
         return tripoint( -x, -y, -z );
     }
@@ -161,12 +145,8 @@ struct tripoint {
     friend constexpr tripoint operator*( int lhs, const tripoint &rhs ) {
         return rhs * lhs;
     }
-    tripoint &operator*=( const int rhs ) {
-        x *= rhs;
-        y *= rhs;
-        z *= rhs;
-        return *this;
-    }
+    tripoint &operator*=( const int rhs );
+
     constexpr tripoint operator/( const int rhs ) const {
         return tripoint( x / rhs, y / rhs, z / rhs );
     }
@@ -180,22 +160,9 @@ struct tripoint {
     constexpr tripoint operator-( point rhs ) const {
         return tripoint( x - rhs.x, y - rhs.y, z );
     }
-    tripoint &operator+=( point rhs ) {
-        x += rhs.x;
-        y += rhs.y;
-        return *this;
-    }
-    tripoint &operator-=( point rhs ) {
-        x -= rhs.x;
-        y -= rhs.y;
-        return *this;
-    }
-    tripoint &operator-=( const tripoint &rhs ) {
-        x -= rhs.x;
-        y -= rhs.y;
-        z -= rhs.z;
-        return *this;
-    }
+    tripoint &operator+=( point rhs );
+    tripoint &operator-=( point rhs );
+    tripoint &operator-=( const tripoint &rhs );
 
 #ifndef CATA_NO_STL
     inline tripoint abs() const {
@@ -313,13 +280,7 @@ namespace std
 {
 template <>
 struct hash<point> {
-    std::size_t operator()( point k ) const noexcept {
-        constexpr uint64_t a = 2862933555777941757;
-        size_t result = k.y;
-        result *= a;
-        result += k.x;
-        return result;
-    }
+    std::size_t operator()( point k ) const noexcept;
 };
 } // namespace std
 
@@ -329,15 +290,7 @@ namespace std
 {
 template <>
 struct hash<tripoint> {
-    std::size_t operator()( const tripoint &k ) const noexcept {
-        constexpr uint64_t a = 2862933555777941757;
-        size_t result = k.z;
-        result *= a;
-        result += k.y;
-        result *= a;
-        result += k.x;
-        return result;
-    }
+    std::size_t operator()( const tripoint &k ) const noexcept;
 };
 } // namespace std
 
