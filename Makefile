@@ -113,7 +113,7 @@ WARNINGS = \
   -Wpedantic \
   -Wsuggest-override \
   -Wunused-macros \
-  -Wzero-as-null-pointer-constant \
+  -Wno-zero-as-null-pointer-constant \
   -Wno-unknown-warning-option \
   -Wno-range-loop-analysis # TODO: Fix warnings instead of disabling
 # Uncomment below to disable warnings
