@@ -7,19 +7,22 @@
 #include "cata_utility.h"
 
 
-point &point::operator+=( point rhs ) {
+point &point::operator+=( point rhs )
+{
     x += rhs.x;
     y += rhs.y;
     return *this;
 }
 
-point &point::operator-=( point rhs ) {
+point &point::operator-=( point rhs )
+{
     x -= rhs.x;
     y -= rhs.y;
     return *this;
 }
 
-point &point::operator*=( const int rhs ) {
+point &point::operator*=( const int rhs )
+{
     x *= rhs;
     y *= rhs;
     return *this;
@@ -49,33 +52,38 @@ std::string point::to_string() const
     return os.str();
 }
 
-tripoint &tripoint::operator+=( const tripoint &rhs ) {
+tripoint &tripoint::operator+=( const tripoint &rhs )
+{
     x += rhs.x;
     y += rhs.y;
     z += rhs.z;
     return *this;
 }
 
-tripoint &tripoint::operator*=( const int rhs ) {
+tripoint &tripoint::operator*=( const int rhs )
+{
     x *= rhs;
     y *= rhs;
     z *= rhs;
     return *this;
 }
 
-tripoint &tripoint::operator+=( point rhs ) {
+tripoint &tripoint::operator+=( point rhs )
+{
     x += rhs.x;
     y += rhs.y;
     return *this;
 }
 
-tripoint &tripoint::operator-=( point rhs ) {
+tripoint &tripoint::operator-=( point rhs )
+{
     x -= rhs.x;
     y -= rhs.y;
     return *this;
 }
 
-tripoint &tripoint::operator-=( const tripoint &rhs ) {
+tripoint &tripoint::operator-=( const tripoint &rhs )
+{
     x -= rhs.x;
     y -= rhs.y;
     z -= rhs.z;
@@ -166,7 +174,8 @@ std::vector<point> closest_points_first( point center, int min_dist, int max_dis
     return result;
 }
 
-std::size_t std::hash<point>::operator()( point k ) const noexcept {
+std::size_t std::hash<point>::operator()( point k ) const noexcept
+{
     constexpr uint64_t a = 2862933555777941757;
     size_t result = k.y;
     result *= a;
@@ -174,7 +183,8 @@ std::size_t std::hash<point>::operator()( point k ) const noexcept {
     return result;
 }
 
-std::size_t std::hash<tripoint>::operator()( const tripoint &k ) const noexcept {
+std::size_t std::hash<tripoint>::operator()( const tripoint &k ) const noexcept
+{
     constexpr uint64_t a = 2862933555777941757;
     size_t result = k.z;
     result *= a;
