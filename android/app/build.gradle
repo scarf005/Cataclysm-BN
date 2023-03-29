@@ -164,6 +164,10 @@ unzipDeps.dependsOn makeLocalization
 preBuild.dependsOn unzipDeps
 
 android {
+    android {
+        ndkVersion "25.2.9519653"
+    }
+
     compileSdkVersion override_compileSdkVersion
 
     if (override_version.isEmpty()) {
