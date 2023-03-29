@@ -88,13 +88,13 @@ class quantity
         /**@{*/
         template<Arithmatic other_value_type>
         constexpr auto operator+( const quantity<other_value_type, unit_type> &rhs ) const
-        -> quantity<WiderType<value_type, other_value_type>, unit_type> {
+        -> quantity<std::common_type_t<value_type, other_value_type>, unit_type> {
             return { value_ + rhs.value(), unit_type{} };
         }
 
         template<Arithmatic other_value_type>
         constexpr auto operator-( const quantity<other_value_type, unit_type> &rhs ) const
-        -> quantity<WiderType<value_type, other_value_type>, unit_type>  {
+        -> quantity<std::common_type_t<value_type, other_value_type>, unit_type>  {
             return { value_ - rhs.value(), unit_type{} };
         }
 
