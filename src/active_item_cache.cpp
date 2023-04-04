@@ -6,7 +6,11 @@
 #include "item.h"
 #include "safe_reference.h"
 
-void active_item_cache::remove( const item *it )
+void 
+
+active_item_cache::remove( const 
+item* 
+it)
 {
     active_items[it->processing_speed()].remove_if( [it]( const item_reference & active_item ) {
         item *const target = active_item.item_ref.get();
