@@ -1,8 +1,6 @@
 name: Code Style Check
 
 on:
-  pull_request_target:
-    paths: ["**.json", "**.cpp", "**.hpp", "**.h", "**.c"]
   pull_request:
     paths: ["**.json", "**.cpp", "**.hpp", "**.h", "**.c"]
 
@@ -12,7 +10,6 @@ concurrency:
 
 jobs:
   lint:
-    if: ${{ github.event_name == 'pull_request_target' }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
