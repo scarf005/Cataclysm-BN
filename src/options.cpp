@@ -2089,15 +2089,25 @@ void options_manager::add_options_debug()
 
     add_empty_line();
 
-    add( "MOD_SOURCE", debug, translate_marker( "Display Mod Source" ),
-         translate_marker( "Displays what content pack a piece of furniture, terrain, item or monster comes from or is affected by.  Disable if it's annoying." ),
-         true
-       );
 
-    add( "SHOW_IDS", debug, translate_marker( "Display Object IDs" ),
-         translate_marker( "Displays internal IDs of game objects and creatures.  Warning: IDs may contain spoilers." ),
-         false
-       );
+    add_option_group( debug, Group( "debug_info", to_translation( "Debug Info" ),
+                                    to_translation( "Configure debug.log verbosity." ) ),
+    [&]( auto & page_id ) {
+        add( "MOD_SOURCE", page_id, translate_marker( "Display Mod Source" ),
+             translate_marker( "Displays what content pack a piece of furniture, terrain, item or monster comes from or is affected by.  Disable if it's annoying." ),
+             true
+           );
+
+        add( "SHOW_IDS", page_id, translate_marker( "Display Object IDs" ),
+             translate_marker( "Displays internal IDs of game objects and creatures.  Warning: IDs may contain spoilers." ),
+             false
+           );
+
+        add( "SHOW_FLAGS", page_id, translate_marker( "Display Object Flags" ),
+             translate_marker( "Displays internal flags of game objects and creatures.  Warning: flags may contain spoilers." ),
+             false
+           );
+    } );
 
     add_empty_line();
 

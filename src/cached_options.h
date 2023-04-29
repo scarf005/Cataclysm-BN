@@ -47,6 +47,8 @@ extern int message_cooldown;
 extern bool display_mod_source;
 /** Display internal IDs for items, furniture, terrain and monsters.*/
 extern bool display_object_ids;
+/** Display flags for items, furniture, terrain and monsters.*/
+extern bool display_object_flags;
 
 /**
  * Circular distances.
