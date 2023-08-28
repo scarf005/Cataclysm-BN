@@ -32,7 +32,7 @@ mod.remote_wireless_range = 24
 -- Range of remote, vertical
 mod.remote_wireless_range_z = 2
 
--- Get abs omt of remote's base 
+-- Get abs omt of remote's base
 mod.get_remote_base_omt = function( item )
     return item:get_var_tri( mod.var_base, Tripoint.new(0,0,0) )
 end
@@ -322,16 +322,16 @@ mod.iuse_function = function( who, item, pos )
     local user_pos = gapi.get_map():get_abs_ms( pos )
 
     -- Uncomment this so on activation the remote reconfigures itself to work in user's omt
-    --[[
-    mod.set_remote_base( item, coords.ms_to_omt( user_pos ) )
-    gapi.add_msg(locale.gettext("Remote reconfigured!"))
-    --if true then
-    --    return 0
-    --end
-    ]]
+    -- [[
+    -- mod.set_remote_base( item, coords.ms_to_omt( user_pos ) )
+    -- gapi.add_msg(locale.gettext("Remote reconfigured!"))
+    -- --if true then
+    -- --    return 0
+    -- --end
+    -- ]]
 
     local base_pos = mod.get_remote_base_abs_ms( item )
-    
+
     -- Check distance to wireless base the remote is bound to.
     -- The base does not physically exist in game world, but we imagine
     -- it's tucked away into a hoouse wall or something.
@@ -340,7 +340,7 @@ mod.iuse_function = function( who, item, pos )
         mod.show_no_signal_error()
         return 0
     end
-    
+
     local base_pos_omt = mod.get_remote_base_omt( item )
     local grid = gapi.get_distribution_grid_tracker():get_grid_at_abs_ms( base_pos );
     local power_available = grid:get_resource( true )
@@ -400,7 +400,7 @@ mod.iuse_function = function( who, item, pos )
         gapi.add_msg(locale.gettext("Nevermind."))
         return 0
     end
-    
+
     -- Activate desired block
     mod.show_msg_remote_working()
     return mod.invoke_block( sel_list[eidx].block, grid )

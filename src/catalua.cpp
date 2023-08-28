@@ -136,21 +136,31 @@ void startup_lua_test()
         debugmsg( "%s", e.what() );
     }
 }
+namespace
+{
+struct docs_info {
+    std::string script, output;
+};
+} // namespace
 
 bool generate_lua_docs()
 {
     sol::state lua = make_lua_state();
     lua.globals()["doc_gen_func"] = lua.create_table();
-    std::string lua_doc_script = PATH_INFO::datadir() + "raw/generate_docs.lua";
+    const auto doc = docs_info{PATH_INFO::datadir() + "raw/generate_docs.lua", PATH_INFO::lua_doc_output()};
+    const auto def = docs_info{PATH_INFO::datadir() + "raw/generate_definitions.lua", PATH_INFO::lua_definitions_output()};
+
     try {
-        run_lua_script( lua, lua_doc_script );
-        sol::protected_function doc_gen_func = lua["doc_gen_func"]["impl"];
-        sol::protected_function_result res = doc_gen_func();
-        check_func_result( res );
-        std::string ret = res;
-        write_to_file( PATH_INFO::lua_doc_output(), [&]( std::ostream & s ) {
-            s << ret;
-        } );
+        for( const auto &[script, output] : std::array{ doc, def } ) {
+            run_lua_script( lua, script );
+            sol::protected_function doc_gen_func = lua["doc_gen_func"]["impl"];
+            sol::protected_function_result res = doc_gen_func();
+            check_func_result( res );
+            std::string ret = res;
+            write_to_file( output, [&]( std::ostream & s ) {
+                s << ret;
+            } );
+        }
     } catch( std::runtime_error &e ) {
         cata_printf( "%s\n", e.what() );
         return false;
