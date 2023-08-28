@@ -5,6 +5,11 @@
     where a and b - tables of type {k=k, v=v}
     (the function must return whether a is less than b).
 ]]--
+---@generic A
+---@generic B
+---@param t table<A, B>
+---@param f fun(a: {k: A, v: B}, b: {k: A, v: B}): boolean
+---@return {k: A, v: B}[]
 local sorted_by = function(t, f)
     if not f then
         f = function(a,b) return (a.k < b.k) end
@@ -17,6 +22,7 @@ local sorted_by = function(t, f)
     return sorted
 end
 
+---@param arg_list string[]
 local remove_hidden_args = function(arg_list)
     local ret = {}
     for _, arg in pairs(arg_list) do
@@ -29,6 +35,18 @@ local remove_hidden_args = function(arg_list)
     return ret
 end
 
+local fmt_table = {
+    ["bool"] = "boolean",
+    ["int"] = "integer",
+    ["double"] = "number",
+    ["char"] = "string",
+}
+---@param type string
+local fmt_type = function(type)
+    return fmt_table[type] or type
+end
+
+---@param arg_list string[]
 local fmt_arg_list = function(arg_list)
     local ret = ""
     local arg_list = remove_hidden_args(arg_list)
@@ -46,42 +64,69 @@ local fmt_arg_list = function(arg_list)
     return ret.." "
 end
 
+---@param typename string
+---@param ctor string[]
 local fmt_one_constructor = function(typename, ctor)
-    return typename..".new("..fmt_arg_list(ctor)..")"
+    local fn = "function "..typename..":new("..fmt_arg_list(ctor)..") end"
+    if #ctor == 0 then
+        return fn
+    else
+        return "---@param" .. fmt_arg_list(ctor) .. "any \n" .. fn
+    end
 end
 
+---@generic A
+---@generic B
+---@param t A[]
+---@param f fun(v: A): B
+---@return B[]
+local map = function(t, f)
+    local ret = {}
+    for k, v in pairs(t) do
+        ret[k] = f(v)
+    end
+    return ret
+end
+
+---@param typename string
+---@param ctors table[]
 local fmt_constructors = function(typename, ctors)
     if #ctors == 0 then
-        return "  No constructors.\n"
+        return ""
     else
-        local ret = ""
+        local ret = "\n\n--[[constructors]]--\n"
         for k,v in pairs(ctors) do
-            ret=ret.."- `"..fmt_one_constructor(typename, v).."`\n"
+            ret=ret..fmt_one_constructor(typename, v).."\n\n"
         end
         return ret
     end
 end
 
-local fmt_one_member = function(typename, member)
-    local ret = "#### "..tostring(member.name).."\n";
 
+---@param typename string
+---@param member table
+local fmt_one_member = function(typename, member)
+    -- local ret = "#### "..tostring(member.name).."\n";
+    local ret = ""
     if member.comment then
-        ret=ret.."  // "..member.comment.."\n"
+        ret=ret.."---"..member.comment.."\n"
     end
 
     if member.type == "var" then
-        ret=ret.."  Variable of type `"..member.vartype.."`"
+        local vartype = fmt_type(member.vartype)
+        ret=ret.."---@field "..vartype.."\n"
         if member.hasval then
-            ret=ret.." value: `"..tostring(member.varval).."`"
+            ret=ret.." value = "..tostring(member.varval).."\n"
         end
         ret=ret.."\n"
     elseif member.type == "func" then
         for _,overload in pairs(member.overloads) do
-            ret=ret.."  Function `("..fmt_arg_list(overload.args)..")"
-            if overload.retval ~= "nil" then
-                ret=ret.." -> "..overload.retval
+            local retval = fmt_type(overload.retval)
+            if retval ~= "nil" then
+                ret=ret.."\n---@return "..retval.."\n"
             end
-            ret=ret.."`\n"
+            ret=ret.."function "..typename..":"..member.name .."("..fmt_arg_list(overload.args)..")"
+            ret=ret.." end\n"
         end
     else
         error("Unknown member type "..tostring(member.type))
@@ -90,11 +135,13 @@ local fmt_one_member = function(typename, member)
     return ret
 end
 
+---@param typename string?
+---@param members table[]
 local fmt_members = function(typename, members)
     if #members == 0 then
         return "\n"
     else
-        local ret = ""
+        local ret = "\n--[[members]]--\n"
 
         local members_sorted = sorted_by( members )
 
@@ -105,15 +152,13 @@ local fmt_members = function(typename, members)
     end
 end
 
+---@param typename string
+---@param bases string[]
 local fmt_bases = function(typename, bases)
     if #bases == 0 then
-        return "  No base classes.\n"
+        return ""
     else
-        local ret = ""
-        for k,v in pairs(bases) do
-            ret=ret.."- `"..v.."`\n"
-        end
-        return ret
+        return ": "..table.concat(bases, ", ")
     end
 end
 
@@ -133,7 +178,7 @@ local fmt_enum_entries = function(typename, entries)
 
         local entries_sorted = sorted_by(entries_filtered, function(a,b) return a.v < b.v end)
         for _,it in pairs(entries_sorted) do
-            ret=ret.."- `"..tostring(it.k).."` = `"..tostring(it.v).."`\n"
+            ret=ret.."  "..tostring(it.k).." = "..tostring(it.v)..",\n"
         end
         return ret
     end
@@ -151,30 +196,24 @@ doc_gen_func.impl = function()
         local typename = it.k
         local dt_type = it.v
         local type_comment = dt_type.type_comment
-        ret = ret.."---@class "..typename.."\n"
-
         if type_comment then
-            ret = ret.."// "..type_comment.."\n"
+            ret = ret .. "---" .. type_comment .. "\n"
         end
+        ret = ret.."---@class "..typename
+
 
         local bases = dt_type["#bases"]
         local ctors = dt_type["#construct"]
         local members = dt_type["#member"]
 
         ret = ret
-        .."### Bases\n"
         ..fmt_bases( typename, bases )
-        .."\n"
-        .."### Constructors\n"
+            .. "\n" .. typename .. " = {}\n\n"
         ..fmt_constructors( typename, ctors )
-        .."\n"
-        .."### Members\n"
         ..fmt_members( typename, members )
-        .."\n"
-        ..typename.." = {}\n\n"
     end
 
-    ret = ret.."# Enums\n\n"
+    ret = ret.."--[[Enums]]--\n\n"
 
     local enums_table = dt["#enums"]
 
@@ -182,17 +221,17 @@ doc_gen_func.impl = function()
     for _,it in pairs(enums_sorted) do
         local typename = it.k
         local dt_type = it.v
-        ret = ret.."## "..typename.."\n"
+        ret = ret.."---@enum "..typename.."\n"
 
         local entries = dt_type["entries"]
 
         ret = ret
-        .."### Entries\n"
+        .."local ".. typename .." = {\n"
         ..fmt_enum_entries( typename, entries )
-        .."\n"
+        .."}\n\n"
     end
 
-    ret = ret.."# Libraries\n\n"
+    ret = ret.."-- [[Libraries]]--\n\n"
 
     local libs_table = dt["#libs"]
 
@@ -201,18 +240,16 @@ doc_gen_func.impl = function()
         local typename = it.k
         local dt_lib = it.v
         local lib_comment = dt_lib.lib_comment
-        ret = ret.."## "..typename.."\n"
-
         if lib_comment then
-            ret = ret.."// "..lib_comment.."\n"
+            ret = ret.."---"..lib_comment.."\n"
         end
+        ret = ret.."---@class "..typename.."\n"
 
         local members = dt_lib["#member"]
 
         ret = ret
-        .."### Members\n"
-        ..fmt_members( nil, members )
-        .."\n"
+            .. "\n"..typename .. " = {}\n\n"
+            .. fmt_members(typename, members)
     end
 
     return ret
