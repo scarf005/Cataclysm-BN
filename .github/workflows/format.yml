@@ -1,0 +1,36 @@
+name: Format
+
+on:
+  pull_request_target:
+    paths: ["**.json", "**.cpp", "**.hpp", "**.h", "**.c"]
+
+jobs:
+  autofix:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Checkout the fork/head-repository and push changes to the fork.
+          # If you skip this, the base repository will be checked out and changes
+          # will be committed to the base repository!
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+          # Checkout the branch made in the fork. Will automatically push changes
+          # back to this branch.
+          ref: ${{ github.head_ref }}
+
+      - name: astyle
+        run: |
+          sudo apt-get install astyle
+          make astyle
+
+      - name: json formatting
+        run: make style-all-json-parallel RELEASE=1
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        if: ${{ always() }}
+        with:
+          commit_message: "style(autofix.ci): format code"
