@@ -14,12 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.head_ref }}
 
       - run: sudo apt-get install astyle
       - run: make astyle
       - run: make style-all-json-parallel RELEASE=1
 
       - uses: autofix-ci/action@8caa572fd27b0019a65e4c695447089c8d3138b9
+        if: ${{ always() }}
         with:
           commit-message: "style(autofix.ci): format code"
