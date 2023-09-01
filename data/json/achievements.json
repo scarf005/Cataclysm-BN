@@ -11,7 +11,8 @@
     "type": "achievement",
     "name": { "str": "[Combat] The Undertaker" },
     "hidden_by": [ "achievement_kill_zombie" ],
-    "kill_requirements": [ { "species": "ZOMBIE", "is": ">=", "count": 50 } ],
+    "kill_requirements": [ {
+      "species": "ZOMBIE", "is": ">=", "count": 50 } ],
     "requirements": [
       { 
       "event_statistic": "num_avatar_zombie_kills", "is": "anything" } ]
