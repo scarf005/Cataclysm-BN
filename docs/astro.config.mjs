@@ -6,6 +6,8 @@ const github = "https://github.com/cataclysmbnteam/Cataclysm-BN"
 
 // https://astro.build/config
 export default defineConfig({
+//   site: 'https://scarf005.github.io',
+//   base: '/Cataclysm-BN/',
   integrations: [
     starlight({
       title: "Cataclysm: Bright Nights",
