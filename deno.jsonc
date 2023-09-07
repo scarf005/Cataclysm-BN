@@ -9,6 +9,7 @@
   "test": { "include": ["./tools"] },
   "lint": { "include": ["./tools"] },
   "fmt": {
+    "exclude": ["./docs/dist"],
     "include": ["./tools", "./doc", "./docs", "*.md"],
     "semiColons": false,
     "lineWidth": 100
