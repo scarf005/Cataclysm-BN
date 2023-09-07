@@ -1,0 +1,39 @@
+---
+title: "Welcome to Cataclysm: Bright Nights reference"
+description: Get started building your docs site with Starlight.
+template: splash
+hero:
+  tagline: Learn how to contribute to the project!
+  image:
+    file: ../../../assets/icon.svg
+  actions:
+    - text: Read the Guide
+      link: ./guides/compiling/cmake
+      icon: right-arrow
+      variant: primary
+    - text: Join the official Discord
+      link: https://discord.gg/XW7XhXuZ89
+      icon: external
+    - text: Use the item browser
+      link: https://cbn-guide.mythoscraft.org
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components'
+
+## Next steps
+
+<CardGrid stagger>
+  <Card title="Update content" icon="pencil">
+    Edit `src/content/docs/index.mdx` to see this page change.
+  </Card>
+  <Card title="Add new content" icon="add-document">
+    Add Markdown or MDX files to `src/content/docs` to create new pages.
+  </Card>
+  <Card title="Configure your site" icon="setting">
+    Edit your `sidebar` and other config in `astro.config.mjs`.
+  </Card>
+  <Card title="Contribute to the docs" icon="open-book">
+    Learn more in [the Starlight Docs](https://starlight.astro.build/).
+  </Card>
+</CardGrid>
