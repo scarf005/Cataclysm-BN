@@ -1,4 +1,6 @@
-# Code Style Guide
+---
+title: C++ Code Style Guide
+---
 
 All of the C++ code in the project is styled, you should run any changes you make through astyle
 before pushing a pull request.
@@ -8,22 +10,26 @@ they disagree and require annotation.
 
 Blocks of code can be passed through astyle to ensure that their formatting is correct:
 
-    astyle --style=1tbs --attach-inlines --indent=spaces=4 --align-pointer=name --max-code-length=100 --break-after-logical --indent-classes --indent-preprocessor --indent-switches --indent-col1-comments --min-conditional-indent=0 --pad-oper --unpad-paren --pad-paren-in --add-brackets --convert-tabs
+```sh
+astyle --style=1tbs --attach-inlines --indent=spaces=4 --align-pointer=name --max-code-length=100 --break-after-logical --indent-classes --indent-preprocessor --indent-switches --indent-col1-comments --min-conditional-indent=0 --pad-oper --unpad-paren --pad-paren-in --add-brackets --convert-tabs
+```
 
 These options are mirrored in `.astylerc`, `doc/CODE_STYLE.txt` and
 `msvc-full-features/AStyleExtension-Cataclysm-BN.cfg`
 
 For example, from `vi`, set marks a and b around the block, then:
 
-    :'a,'b ! astyle  --style=1tbs --attach-inlines --indent=spaces=4 --align-pointer=name --max-code-length=100 --break-after-logical --indent-classes --indent-preprocessor --indent-switches --indent-col1-comments --min-conditional-indent=0 --pad-oper --unpad-paren --pad-paren-in --add-brackets --convert-tabs
+```sh
+:'a,'b ! astyle  --style=1tbs --attach-inlines --indent=spaces=4 --align-pointer=name --max-code-length=100 --break-after-logical --indent-classes --indent-preprocessor --indent-switches --indent-col1-comments --min-conditional-indent=0 --pad-oper --unpad-paren --pad-paren-in --add-brackets --convert-tabs
+```
 
-See [DEVELOPER_TOOLING.md](DEVELOPER_TOOLING.md) for other environments.
+See [DEVELOPER_TOOLING.md](../../../../../../doc/DEVELOPER_TOOLING.md) for other environments.
 
 ## Code Example
 
 Here's an example that illustrates the most common points of style:
 
-```c++
+```cpp
 int foo( int arg1, int *arg2 )
 {
     if( arg1 < 5 ) {
