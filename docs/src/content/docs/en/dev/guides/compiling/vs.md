@@ -1,4 +1,6 @@
-# Compilation guide for Windows (using Visual Studio and vcpkg)
+---
+title: Visual Studio + vcpkg
+---
 
 This guide contains steps required to allow compilation of Cataclysm-BN on Windows using Visual
 Studio and vcpkg.
@@ -118,7 +120,7 @@ If you have enough experience with C++ to know:
 Then you might want to use `Release` build all the time to speed up dev process, and disable
 optimizations on a file-by-file basis by adding
 
-```c++
+```cpp
 #pragma optimize("", off)
 ```
 

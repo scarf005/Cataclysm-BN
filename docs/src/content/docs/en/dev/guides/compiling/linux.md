@@ -1,57 +1,6 @@
-- [General Linux Guide](#general-linux-guide)
-  - [Compiler](#compiler)
-  - [Tools](#tools)
-  - [Dependencies](#dependencies)
-  - [Make flags](#make-flags)
-  - [Compiling localization files](#compiling-localization-files)
-- [Debian](#debian)
-  - [Linux (native) ncurses builds](#linux-native-ncurses-builds)
-    - [Building](#building)
-  - [Linux (native) SDL builds](#linux-native-sdl-builds)
-    - [Building](#building-1)
-  - [Cross-compiling to linux 32-bit from linux 64-bit](#cross-compiling-to-linux-32-bit-from-linux-64-bit)
-    - [Building](#building-2)
-  - [Cross-compile to Windows from Linux](#cross-compile-to-windows-from-linux)
-    - [Installing MXE from binary distribution](#installing-mxe-from-binary-distribution)
-    - [Installing MXE from source](#installing-mxe-from-source)
-    - [Building (SDL)](#building-sdl)
-  - [Cross-compile to Mac OS X from Linux](#cross-compile-to-mac-os-x-from-linux)
-    - [Dependencies](#dependencies-1)
-    - [Setup](#setup)
-    - [Building (SDL)](#building-sdl-1)
-    - [Building (ncurses)](#building-ncurses)
-  - [Cross-compile to Android from Linux](#cross-compile-to-android-from-linux)
-    - [Dependencies](#dependencies-2)
-    - [Setup](#setup-1)
-    - [Android device setup](#android-device-setup)
-    - [Building](#building-3)
-    - [Additional notes](#additional-notes)
-  - [Linux Troubleshooting](#linux-troubleshooting)
-- [Mac OS X](#mac-os-x)
-  - [Simple build using Homebrew](#simple-build-using-homebrew)
-  - [Advanced info for Developers](#advanced-info-for-developers)
-    - [SDL](#sdl)
-    - [ncurses](#ncurses)
-    - [gcc](#gcc)
-    - [Compiling](#compiling)
-    - [Make options](#make-options)
-    - [Make examples](#make-examples)
-    - [Running](#running)
-    - [Test suite](#test-suite)
-    - [dmg distribution](#dmg-distribution)
-  - [Mac OS X Troubleshooting](#mac-os-x-troubleshooting)
-    - [ISSUE: Colors don't show up correctly](#issue-colors-dont-show-up-correctly)
-- [Windows](#windows)
-  - [Building with MSYS2](#building-with-msys2)
-  - [Building with CYGWIN](#building-with-cygwin)
-  - [Building with Clang and MinGW64](#building-with-clang-and-mingw64)
-- [BSDs](#bsds)
-  - [Building on FreeBSD/amd64 10.1 with the system compiler](#building-on-freebsdamd64-101-with-the-system-compiler)
-  - [Building ncurses version on FreeBSD/amd64 9.3 with GCC 4.8.4 from ports](#building-ncurses-version-on-freebsdamd64-93-with-gcc-484-from-ports)
-  - [Building on OpenBSD/amd64 5.8 with GCC 4.9.2 from ports/packages](#building-on-openbsdamd64-58-with-gcc-492-from-portspackages)
-  - [Building on NetBSD/amd64 7.0RC1 with the system compiler](#building-on-netbsdamd64-70rc1-with-the-system-compiler)
-
-# General Linux Guide
+---
+title: Makefile
+---
 
 To build Cataclysm from source you will need at least a C++ compiler, some basic developer tools,
 and necessary build dependencies. The exact package names vary greatly from distro to distro, so
@@ -391,7 +340,8 @@ builds the SDL version with all features enabled, including tiles, sound and loc
 - SDL2_mixer (tested with 2.0.2)
 - SDL2_image (tested with 2.0.3)
 
-The Gradle build process automatically installs dependencies from [deps.zip](android/app/deps.zip).
+The Gradle build process automatically installs dependencies from
+[deps.zip](./android/app/deps.zip).
 
 ### Setup
 
@@ -676,7 +626,7 @@ Open Terminal's preferences, turn on "Use bright colors for bold text" in "Prefe
 
 # Windows
 
-See [COMPILING-VS-VCPKG.md](COMPILING-VS-VCPKG.md) for instructions on how to set up and use a build
+See [COMPILING-VS-VCPKG.md](./VS-VCPKG.md) for instructions on how to set up and use a build
 environment using Visual Studio on windows.
 
 This is probably the easiest solution for someone used to working with Visual Studio and similar
@@ -684,8 +634,8 @@ IDEs. -->
 
 ## Building with MSYS2
 
-See [COMPILING-MSYS.md](COMPILING-MSYS.md) for instructions on how to set up and use a build
-environment using MSYS2 on windows.
+See [COMPILING-MSYS.md](./msys.md) for instructions on how to set up and use a build environment
+using MSYS2 on windows.
 
 MSYS2 strikes a balance between a native Windows application and a UNIX-like environment. There's
 some command-line tools that our project uses (notably our JSON linter) that are harder to use
@@ -693,8 +643,8 @@ without a command-line environment such as what MSYS2 or CYGWIN provide.
 
 ## Building with CYGWIN
 
-See [COMPILING-CYGWIN.md](COMPILING-CYGWIN.md) for instructions on how to set up and use a build
-environment using CYGWIN on windows.
+See [COMPILING-CYGWIN.md](./cygwin.md) for instructions on how to set up and use a build environment
+using CYGWIN on windows.
 
 CYGWIN attempts to more fully emulate a POSIX environment, to be "more unix" than MSYS2. It is a
 little less modern in some respects, and lacks the convenience of the MSYS2 package manager.
