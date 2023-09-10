@@ -8,8 +8,9 @@ sidebar:
 
 :::caution
 
-Outdated (hasn't changed since forking), these are not the current guidelines and are subject to
-change.
+Current guideline is in favor of removing
+[in-repo mods](https://github.com/cataclysmbnteam/Cataclysm-BN/pull/3026). This page is kept for
+historical purposes.
 
 :::
 
