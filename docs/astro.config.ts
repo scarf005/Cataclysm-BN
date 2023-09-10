@@ -34,7 +34,7 @@ export default {
       navbar: {
         json: {
           label: "JSON Mods",
-          link: "/json/guides/modding",
+          link: "/json/explanation/json_style",
           translations: { "ko-KR": "JSON 모딩" },
           items: docModes("json"),
         },
