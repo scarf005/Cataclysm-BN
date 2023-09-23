@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <numeric>
 
 #include "assign.h"
@@ -13,31 +14,31 @@
 #include "output.h"
 #include "player.h"
 #include "rng.h"
+#include "type_id.h"
 
 static const skill_id skill_fabrication( "fabrication" );
 
 namespace
 {
 
-// Helper to visit instances of all the sub-materials of an item.
-auto visit_salvage_products( const item &it, std::function<void( const item & )> func ) -> void
+auto minimal_weight_to_cut( const std::vector<material_id> &xs ) -> units::mass
 {
-    for( const material_id &material : it.made_of() ) {
-        if( const std::optional<itype_id> id = material->salvaged_into() ) {
-            item exemplar( *id );
-            func( exemplar );
-        }
-    }
+    return std::accumulate( xs.cbegin(), xs.cend(), units::mass_max,
+    []( units::mass acc, auto &&mat_id ) -> units::mass {
+        const std::optional<itype_id> id = mat_id->salvaged_into();
+
+        return id ? std::min( acc, item( *id ).weight() ) : acc;
+    } );
 }
 
-// Helper to find smallest sub-component of an item.
-auto minimal_weight_to_cut( const item &it ) -> units::mass
+auto total_material_weight( const std::vector<material_id> &xs ) -> units::mass
 {
-    units::mass min_weight = units::mass_max;
-    visit_salvage_products( it, [&min_weight]( const item & exemplar ) {
-        min_weight = std::min( min_weight, exemplar.weight() );
+    return std::accumulate( xs.cbegin(), xs.cend(), 0_gram,
+    []( units::mass acc, auto &&mat_id ) -> units::mass {
+        const std::optional<itype_id> id = mat_id->salvaged_into();
+
+        return id ? acc + item( *id ).weight() : 0_gram;
     } );
-    return min_weight;
 }
 
 } // namespace
@@ -80,17 +81,13 @@ auto salvage_actor::use( player &p, item &it, bool t, const tripoint & ) const -
 
 auto salvage_actor::time_to_cut_up( const item &it ) const -> int
 {
-    units::mass total_material_weight;
-    int num_materials = 0;
-    visit_salvage_products( it, [&total_material_weight, &num_materials]( const item & exemplar ) {
-        total_material_weight += exemplar.weight();
-        num_materials += 1;
-    } );
-    if( num_materials == 0 ) {
+    const auto &made_of = it.made_of();
+    if( made_of.empty() ) {
         return 0;
     }
-    units::mass average_material_weight = total_material_weight / num_materials;
-    int count = it.weight() / average_material_weight;
+
+    const units::mass average_material_weight = total_material_weight( made_of ) / made_of.size();
+    const int count = it.weight() / average_material_weight;
     return moves_per_part * count;
 }
 
@@ -109,7 +106,7 @@ auto salvage_actor::valid_to_cut_up( const item &it ) const -> bool
     if( !it.contents.empty() ) {
         return false;
     }
-    if( it.weight() < minimal_weight_to_cut( it ) ) {
+    if( it.weight() < minimal_weight_to_cut( it.made_of() ) ) {
         return false;
     }
 
@@ -143,7 +140,7 @@ auto salvage_actor::try_to_cut_up( player &p, item &it ) const -> bool
         add_msg( m_info, _( "Please empty the %s before cutting it up." ), it.tname() );
         return false;
     }
-    if( it.weight() < minimal_weight_to_cut( it ) ) {
+    if( it.weight() < minimal_weight_to_cut( it.made_of() ) ) {
         add_msg( m_info, _( "The %s is too small to salvage material from." ), it.tname() );
         return false;
     }
