@@ -1,4 +1,5 @@
 #include <numeric>
+
 #include "assign.h"
 #include "crafting.h"
 #include "game_inventory.h"
@@ -15,7 +16,33 @@
 
 static const skill_id skill_fabrication( "fabrication" );
 
-void salvage_actor::load( const JsonObject &obj )
+namespace
+{
+
+// Helper to visit instances of all the sub-materials of an item.
+auto visit_salvage_products( const item &it, std::function<void( const item & )> func ) -> void
+{
+    for( const material_id &material : it.made_of() ) {
+        if( const std::optional<itype_id> id = material->salvaged_into() ) {
+            item exemplar( *id );
+            func( exemplar );
+        }
+    }
+}
+
+// Helper to find smallest sub-component of an item.
+auto minimal_weight_to_cut( const item &it ) -> units::mass
+{
+    units::mass min_weight = units::mass_max;
+    visit_salvage_products( it, [&min_weight]( const item & exemplar ) {
+        min_weight = std::min( min_weight, exemplar.weight() );
+    } );
+    return min_weight;
+}
+
+} // namespace
+
+auto salvage_actor::load( const JsonObject &obj ) -> void
 {
     assign( obj, "cost", cost );
     assign( obj, "moves_per_part", moves_per_part );
@@ -26,12 +53,12 @@ void salvage_actor::load( const JsonObject &obj )
     }
 }
 
-std::unique_ptr<iuse_actor> salvage_actor::clone() const
+auto salvage_actor::clone() const -> std::unique_ptr<iuse_actor>
 {
     return std::make_unique<salvage_actor>( *this );
 }
 
-int salvage_actor::use( player &p, item &it, bool t, const tripoint & ) const
+auto salvage_actor::use( player &p, item &it, bool t, const tripoint & ) const -> int
 {
     if( t ) {
         return 0;
@@ -51,28 +78,7 @@ int salvage_actor::use( player &p, item &it, bool t, const tripoint & ) const
     return cut_up( p, it, item_loc );
 }
 
-// Helper to visit instances of all the sub-materials of an item.
-static void visit_salvage_products( const item &it, std::function<void( const item & )> func )
-{
-    for( const material_id &material : it.made_of() ) {
-        if( const std::optional<itype_id> id = material->salvaged_into() ) {
-            item exemplar( *id );
-            func( exemplar );
-        }
-    }
-}
-
-// Helper to find smallest sub-component of an item.
-static units::mass minimal_weight_to_cut( const item &it )
-{
-    units::mass min_weight = units::mass_max;
-    visit_salvage_products( it, [&min_weight]( const item & exemplar ) {
-        min_weight = std::min( min_weight, exemplar.weight() );
-    } );
-    return min_weight;
-}
-
-int salvage_actor::time_to_cut_up( const item &it ) const
+auto salvage_actor::time_to_cut_up( const item &it ) const -> int
 {
     units::mass total_material_weight;
     int num_materials = 0;
@@ -88,7 +94,7 @@ int salvage_actor::time_to_cut_up( const item &it ) const
     return moves_per_part * count;
 }
 
-bool salvage_actor::valid_to_cut_up( const item &it ) const
+auto salvage_actor::valid_to_cut_up( const item &it ) const -> bool
 {
     if( it.is_null() ) {
         return false;
@@ -112,7 +118,7 @@ bool salvage_actor::valid_to_cut_up( const item &it ) const
 
 // it here is the item that is a candidate for being chopped up.
 // This is the former valid_to_cut_up with all the messages and queries
-bool salvage_actor::try_to_cut_up( player &p, item &it ) const
+auto salvage_actor::try_to_cut_up( player &p, item &it ) const -> bool
 {
     int pos = p.get_item_position( &it );
 
@@ -161,7 +167,7 @@ bool salvage_actor::try_to_cut_up( player &p, item &it ) const
 // function returns charges from it during the cutting process of the *cut.
 // it cuts
 // cut gets cut
-int salvage_actor::cut_up( player &p, item &it, item_location &cut ) const
+auto salvage_actor::cut_up( player &p, item &it, item_location &cut ) const -> int
 {
     const bool filthy = cut.get_item()->is_filthy();
     // This is the value that tracks progress, as we cut pieces off, we reduce this number.
