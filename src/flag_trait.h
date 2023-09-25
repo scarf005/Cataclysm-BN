@@ -22,17 +22,17 @@ class json_trait_flag
         json_trait_flag() = default;
 
         /** Fetches flag definition (or null flag if not found) */
-        static const json_trait_flag &get( const std::string &id );
+        static auto get( const std::string &id ) -> const json_trait_flag&;
 
         /** Is this a valid (non-null) flag */
         operator bool() const;
 
-        void check() const;
+        auto check() const -> void;
 
         /** true, if flags were loaded */
-        static bool is_ready();
+        static auto is_ready() -> bool;
 
-        static const std::vector<json_trait_flag> &get_all();
+        static auto get_all() -> const std::vector<json_trait_flag> &;
 
     private:
         std::set<trait_flag_str_id> conflicts_;
@@ -41,16 +41,16 @@ class json_trait_flag
         void load( const JsonObject &jo, const std::string &src );
 
         /** Load all flags from JSON */
-        static void load_all( const JsonObject &jo, const std::string &src );
+        static auto load_all( const JsonObject &jo, const std::string &src ) -> void;
 
         /** finalize */
-        static void finalize_all( );
+        static auto finalize_all() -> void;
 
         /** Check consistency of all loaded flags */
-        static void check_consistency();
+        static auto check_consistency() -> void;
 
         /** Clear all loaded flags (invalidating any pointers) */
-        static void reset();
+        static auto reset() -> void;
 };
 
 #endif // CATA_SRC_FLAG_TRAIT_H

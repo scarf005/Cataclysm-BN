@@ -64,7 +64,7 @@ json_trait_flag::operator bool() const
     return id.is_valid();
 }
 
-const json_trait_flag &json_trait_flag::get( const std::string &id )
+auto json_trait_flag::get( const std::string &id ) -> const json_trait_flag &
 {
     static const json_trait_flag null_value = json_trait_flag();
     const trait_flag_str_id f_id( id );
@@ -106,12 +106,12 @@ void json_trait_flag::finalize_all()
     json_trait_flags_all.finalize();
 }
 
-bool json_trait_flag::is_ready()
+auto json_trait_flag::is_ready() -> bool
 {
     return !json_trait_flags_all.empty();
 }
 
-const std::vector<json_trait_flag> &json_trait_flag::get_all()
+auto json_trait_flag::get_all() -> const std::vector<json_trait_flag> &
 {
     return json_trait_flags_all.get_all();
 }
