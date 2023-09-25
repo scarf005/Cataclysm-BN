@@ -1235,6 +1235,12 @@
     "context": [  ]
   },
   {
+    "id": "CASELESS_AMMUNITION",
+    "type": "json_flag",
+    "context": [  ],
+    "info": "Being <info>caseless rounds</info>, <bad>these cannot be disassembled or reloaded.</bad>"
+  },
+  {
     "id": "CATTLE",
     "type": "json_flag",
     "context": [  ]
