@@ -7,8 +7,34 @@
 #include "rng.h"
 #include "skill.h"
 
+namespace
+{
+
 static const trait_id trait_SAVANT( "SAVANT" );
 static const trait_id trait_PACIFIST( "PACIFIST" );
+static const trait_flag_str_id flag_PRED1( "PRED1" );
+static const trait_flag_str_id flag_PRED2( "PRED2" );
+static const trait_flag_str_id flag_PRED3( "PRED3" );
+static const trait_flag_str_id flag_PRED4( "PRED4" );
+
+auto combat_skill_multiplier( const Character &c ) -> std::optional<int>
+{
+    if( c.has_trait( trait_PACIFIST ) && !one_in( 3 ) ) {
+        return 0;
+    }
+    if( c.has_trait_flag( flag_PRED2 ) && one_in( 3 ) ) {
+        return 2;
+    }
+    if( c.has_trait_flag( flag_PRED3 ) ) {
+        return 2;
+    }
+    if( c.has_trait_flag( flag_PRED4 ) ) {
+        return 3;
+    }
+    return {};
+}
+
+} // namespace
 
 void Character::practice( const skill_id &id, int amount, int cap, bool suppress_warning )
 {
@@ -38,24 +64,14 @@ void Character::practice( const skill_id &id, int amount, int cap, bool suppress
 
     amount = adjust_for_focus( amount );
 
-    if( has_trait( trait_PACIFIST ) && skill.is_combat_skill() ) {
-        if( !one_in( 3 ) ) {
-            amount = 0;
+    const bool is_combat_skill = skill.is_combat_skill();
+    if( is_combat_skill ) {
+        const auto multiplier = combat_skill_multiplier( *this );
+        if (multiplier) {
+            amount *= *multiplier;
         }
     }
-    if( has_trait_flag( trait_flag_str_id( "PRED2" ) ) && skill.is_combat_skill() ) {
-        if( one_in( 3 ) ) {
-            amount *= 2;
-        }
-    }
-    if( has_trait_flag( trait_flag_str_id( "PRED3" ) ) && skill.is_combat_skill() ) {
-        amount *= 2;
-    }
-
-    if( has_trait_flag( trait_flag_str_id( "PRED4" ) ) && skill.is_combat_skill() ) {
-        amount *= 3;
-    }
-
+    
     if( isSavant && id != savantSkill ) {
         amount /= 2;
     }

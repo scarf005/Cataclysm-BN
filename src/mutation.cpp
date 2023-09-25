@@ -39,6 +39,7 @@
 #include "rng.h"
 #include "string_id.h"
 #include "translations.h"
+#include "type_id.h"
 #include "units.h"
 #include "weighted_list.h"
 
@@ -98,26 +99,23 @@ std::string enum_to_string<mutagen_technique>( mutagen_technique data )
 
 } // namespace io
 
-bool Character::has_trait( const trait_id &b ) const
+auto Character::has_trait( const trait_id &b ) const -> bool
 {
     return my_mutations.count( b ) || enchantment_cache->get_mutations().count( b );
 }
 
-bool Character::has_trait_flag( const trait_flag_str_id &b ) const
+auto Character::has_trait_flag( const trait_flag_str_id &b ) const -> bool
 {
-    for( const mutation_branch *mut : cached_mutations ) {
-        if( mut->flags.count( b ) > 0 ) {
-            return true;
-        }
-    }
-
-    return false;
+    const auto has_flag = [&b]( const mutation_branch * mut ) -> bool {
+        return mut->flags.count( b );
+    };
+    return std::any_of( cached_mutations.begin(), cached_mutations.end(), has_flag );
 }
 
-bool Character::has_base_trait( const trait_id &b ) const
+auto Character::has_base_trait( const trait_id &b ) const -> bool
 {
     // Look only at base traits
-    return my_traits.find( b ) != my_traits.end();
+    return my_traits.count( b );
 }
 
 void Character::toggle_trait( const trait_id &trait_ )
