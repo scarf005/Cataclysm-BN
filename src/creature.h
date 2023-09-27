@@ -530,7 +530,7 @@ class Creature
         void mod_part_healed_total( const bodypart_id &id, int mod );
 
 
-        void set_all_parts_hp_cur( int set );
+        virtual void set_all_parts_hp_cur( int set );
         void set_all_parts_hp_to_max();
 
         virtual int get_speed_base() const;
