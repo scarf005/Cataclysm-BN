@@ -1,6 +1,8 @@
 name: "Experimental Release"
 concurrency: release
 on:
+  schedule:
+    - cron: "0 0 * * *"
   push:
     branches:
       - upload
@@ -10,8 +12,22 @@ on:
 
 env:
   VCPKG_BINARY_SOURCES: "default"
+
 jobs:
+  commits:
+    runs-on: ubuntu-latest
+    outputs:
+      count: ${{ steps.yesterday.outputs.count }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: yesterday
+        run: |
+          COMMITS=$(git log --oneline --since=$(date -u --iso-8601 --date='1 day ago') | wc -l)
+          echo "count=$COMMITS" >> $GITHUB_ENV
+
   release:
+    needs: commits
+    if: fromJSON(needs.commits.outputs.count) > 0
     name: Create Release
     runs-on: ubuntu-22.04
     outputs:
