@@ -18,13 +18,14 @@ jobs:
       - id: yesterday
         run: |
           COMMITS=$(git log --oneline --since=$(date -u --iso-8601 --date='1 day ago') | wc -l)
-          echo "count=$COMMITS" >> $GITHUB_ENV
+          echo "commits yesterday: $COMMITS" >> "$GITHUB_STEP_SUMMARY"
+          echo "count=$COMMITS" >> "$GITHUB_OUTPUT"
 
   release:
     needs: commits
-    if: fromJSON(needs.commits.outputs.count) > 0
     name: Create Release
     runs-on: ubuntu-22.04
+    if: fromJson(needs.commits.outputs.count) > 0
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       timestamp: ${{ steps.get-timestamp.outputs.time }}
