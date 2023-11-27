@@ -1,0 +1,147 @@
+[
+  {
+    "subject": "fix: floor under counters in Luna park (#4020)",
+    "author": "0Monet",
+    "date": "2023-12-30 12:01:27 +0100"
+  },
+  {
+    "subject": "fix: adds  \"SHALLOW_WATER\" flag where appropriate (#4019)",
+    "author": "RoyalFox",
+    "date": "2023-12-30 03:21:40 -0500"
+  },
+  {
+    "subject": "fix(content): Fix holsters holding multiple items (#4013)",
+    "author": "Relgar",
+    "date": "2023-12-30 15:30:09 +1100"
+  },
+  {
+    "subject": "feat(i18n): routine i18n updates on 2023-12-30 (#4016)",
+    "author": "Coolthulhu",
+    "date": "2023-12-30 04:40:04 +0100"
+  },
+  {
+    "subject": "fix: hospital roof (#4014)",
+    "author": "0Monet",
+    "date": "2023-12-29 16:36:04 +0100"
+  },
+  {
+    "subject": "fix: bike rack merging vehicle merging after loading from save (#4011)",
+    "author": "scarf",
+    "date": "2023-12-29 18:11:35 +0900"
+  },
+  {
+    "subject": "fix: prevent debugmsg while refilling liquid container with another one (#4010)",
+    "author": "scarf",
+    "date": "2023-12-29 11:27:58 +0900"
+  },
+  {
+    "subject": "fix: prevent full ownership transfer when trading with partial charges of item (#4008)",
+    "author": "scarf",
+    "date": "2023-12-29 10:49:05 +0900"
+  },
+  {
+    "subject": "revert: \"refactor: use `std::clamp`\" (#4007)",
+    "author": "scarf",
+    "date": "2023-12-29 10:34:55 +0900"
+  },
+  {
+    "subject": "fix: community garden (#4003)",
+    "author": "0Monet",
+    "date": "2023-12-29 01:55:15 +0100"
+  },
+  {
+    "subject": "feat(balance): further use of  `resized_large` (#4004)",
+    "author": "Chaosvolt",
+    "date": "2023-12-28 18:36:08 -0600"
+  },
+  {
+    "subject": "fix: make item action name of gun cleaning a bit more distinct (#4002)",
+    "author": "Chaosvolt",
+    "date": "2023-12-28 16:19:44 -0600"
+  },
+  {
+    "subject": "chore!: migrate leftover legacy units (#3999)",
+    "author": "scarf",
+    "date": "2023-12-29 07:17:41 +0900"
+  },
+  {
+    "subject": "chore!: migrate legacy gutters (#3998)",
+    "author": "scarf",
+    "date": "2023-12-29 07:16:26 +0900"
+  },
+  {
+    "subject": "fix: jewelry store mapgen (#4001)",
+    "author": "0Monet",
+    "date": "2023-12-28 15:49:47 +0100"
+  },
+  {
+    "subject": "feat(balance): adjust effective CBM chance of lower-tier profession zeds (#3992)",
+    "author": "Chaosvolt",
+    "date": "2023-12-28 02:08:09 -0600"
+  },
+  {
+    "subject": "feat(content): add display vehicle to VFW and military base (#3994)",
+    "author": "Chaosvolt",
+    "date": "2023-12-28 02:07:16 -0600"
+  },
+  {
+    "subject": "ci: improve autofix comment (#3997)",
+    "author": "scarf",
+    "date": "2023-12-28 13:40:11 +0900"
+  },
+  {
+    "subject": "ci: cache deno dependencies (#3996)",
+    "author": "scarf",
+    "date": "2023-12-28 13:39:47 +0900"
+  },
+  {
+    "subject": "fix: id used for jewelry in regional_map_settings (#3991)",
+    "author": "0Monet",
+    "date": "2023-12-27 17:13:04 +0100"
+  },
+  {
+    "subject": "feat(content): shoulder holsters (#3981)",
+    "author": "Relgar",
+    "date": "2023-12-27 17:46:49 +1100"
+  },
+  {
+    "subject": "fix: don't un-XL clothes you're wearing if you're Huge (#3979)",
+    "author": "Chaosvolt",
+    "date": "2023-12-26 18:43:22 -0600"
+  },
+  {
+    "subject": "feat(content): add vehicle-mounted shoddy laser rifle (#3987)",
+    "author": "Chaosvolt",
+    "date": "2023-12-26 17:52:13 -0600"
+  },
+  {
+    "subject": "ci: simplify tag and release name (#3905)",
+    "author": "scarf",
+    "date": "2023-12-27 08:46:14 +0900"
+  },
+  {
+    "subject": "fix: fire lookout tower mapgen (#3986)",
+    "author": "0Monet",
+    "date": "2023-12-27 00:23:31 +0100"
+  },
+  {
+    "subject": "feat(content): make fire lookout tower higher (#3984)",
+    "author": "0Monet",
+    "date": "2023-12-26 17:52:28 +0100"
+  },
+  {
+    "subject": "fix: room_8x8_junk_W nested mapgen (#3983)",
+    "author": "0Monet",
+    "date": "2023-12-26 17:29:31 +0100"
+  },
+  {
+    "subject": "feat(content): more superalloy armor options (#3956)",
+    "author": "Chaosvolt",
+    "date": "2023-12-26 02:02:30 -0600"
+  },
+  {
+    "subject": "fix(UI): more improvements to visibility of bionic scanning (#3977)",
+    "author": "Chaosvolt",
+    "date": "2023-12-25 17:59:15 -0600"
+  }
+]
