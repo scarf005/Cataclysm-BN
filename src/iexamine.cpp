@@ -4761,7 +4761,7 @@ static item *cyborg_on_couch( const tripoint &couch_pos )
         }
     }
     // if we're in a autodoc couch on a vehicle, go through the items in it, and return the item if's a cyborg
-    if( const std::optional<vpart_reference> vp = get_map().veh_at( couch_pos ).part_with_feature(
+    if( const std::optional<vpart_reference> vp = get_map().veh_at( couch_pos )->part_with_feature(
                 flag_AUTODOC_COUCH, false ) ) {
         auto dest_veh = &vp->vehicle();
         int dest_part = vp->part_index();
@@ -4940,7 +4940,7 @@ void iexamine::autodoc( player &p, const tripoint &examp )
         }
     }
     // find splints in vehicle
-    if( const std::optional<vpart_reference> vp = get_map().veh_at( examp ).part_with_feature(
+    if( const std::optional<vpart_reference> vp = get_map().veh_at( examp )->part_with_feature(
                 flag_AUTODOC, false ) ) {
         auto dest_veh = &vp->vehicle();
         int dest_part = vp->part_index();

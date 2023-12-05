@@ -406,9 +406,9 @@ TEST_CASE( "npc-movement" )
                 REQUIRE( !here.has_flag( "UNSTABLE", p ) );
             }
             if( type == 'V' || type == 'W' || type == 'M' ) {
-                REQUIRE( here.veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, true ).has_value() );
+                REQUIRE( here.veh_at( p )->part_with_feature( VPFLAG_BOARDABLE, true ).has_value() );
             } else {
-                REQUIRE( !here.veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, true ).has_value() );
+                REQUIRE( !here.veh_at( p )->part_with_feature( VPFLAG_BOARDABLE, true ).has_value() );
             }
             npc *guy = g->critter_at<npc>( p );
             if( type == 'A' || type == 'R' || type == 'W' || type == 'M'

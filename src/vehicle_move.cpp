@@ -1054,9 +1054,9 @@ bool vehicle::check_heli_ascend( player &p )
         }
         bool has_ceiling = !here.has_flag_ter( TFLAG_NO_FLOOR, above );
         bool has_blocking_ter_furn = here.impassable_ter_furn( above );
-        bool has_veh = here.veh_at( above ).has_value();
         bool has_critter = g->critter_at( above );
-        if( has_ceiling || has_blocking_ter_furn || has_veh || has_critter ) {
+        auto vp = here.veh_at( above );
+        if( has_ceiling || has_blocking_ter_furn || vp || has_critter ) {
             direction obstacle_direction = direction_from( ( pt - p.pos() ).xy() );
             const std::string direction_string = direction_name( obstacle_direction );
             std::string blocker_string;
@@ -1064,8 +1064,8 @@ bool vehicle::check_heli_ascend( player &p )
                 blocker_string = _( "ceiling" );
             } else if( has_blocking_ter_furn ) {
                 blocker_string = here.ter( above )->movecost == 0 ? here.tername( above ) : here.furnname( above );
-            } else if( has_veh ) {
-                blocker_string = here.veh_at( above )->vehicle().disp_name();
+            } else if( vp ) {
+                blocker_string = vp->vehicle().disp_name();
             } else if( has_critter ) {
                 blocker_string = g->critter_at( above )->disp_name();
             } else {

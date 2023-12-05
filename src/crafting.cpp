@@ -229,7 +229,7 @@ float workbench_crafting_speed_multiplier( const item &craft, const bench_locati
             break;
         case bench_type::vehicle:
             if( const std::optional<vpart_reference> vp = here.veh_at(
-                        bench.position ).part_with_feature( "WORKBENCH", true ) ) {
+                        bench.position )->part_with_feature( "WORKBENCH", true ) ) {
                 // Vehicle workbench
                 const vpart_info &vp_info = vp->part().info();
                 if( const std::optional<vpslot_workbench> &wb_info = vp_info.get_workbench_info() ) {
@@ -505,7 +505,7 @@ std::vector<const item *> player::get_eligible_containers_for_crafting() const
             }
         }
 
-        if( const std::optional<vpart_reference> vp = here.veh_at( loc ).part_with_feature( "CARGO",
+        if( const std::optional<vpart_reference> vp = here.veh_at( loc )->part_with_feature( "CARGO",
                 true ) ) {
             for( const auto &it : vp->vehicle().get_items( vp->part_index() ) ) {
                 if( is_container_eligible_for_crafting( *it, false ) ) {
@@ -669,7 +669,7 @@ static void set_item_map_or_vehicle( const player &p, const tripoint &loc,
         return;
     }
     map &here = get_map();
-    if( const std::optional<vpart_reference> vp = here.veh_at( loc ).part_with_feature( "CARGO",
+    if( const std::optional<vpart_reference> vp = here.veh_at( loc )->part_with_feature( "CARGO",
             false ) ) {
 
         item &obj = *newit;
@@ -2348,7 +2348,7 @@ static std::pair<bench_type, float> best_bench_here( const item &craft, const tr
     }
 
     if( const std::optional<vpart_reference> vp = g->m.veh_at(
-                loc ).part_with_feature( "WORKBENCH", true ) ) {
+                loc )->part_with_feature( "WORKBENCH", true ) ) {
         float veh_mult = workbench_crafting_speed_multiplier( craft, bench_location{bench_type::vehicle, loc} );
         if( veh_mult > best_mult ) {
             best_type = bench_type::vehicle;
@@ -2377,7 +2377,7 @@ bench_location find_best_bench( const player &p, const item &craft )
         }
 
         if( const std::optional<vpart_reference> vp = g->m.veh_at(
-                    adj ).part_with_feature( "WORKBENCH", true ) ) {
+                    adj )->part_with_feature( "WORKBENCH", true ) ) {
             if( const std::optional<vpslot_workbench> &wb_info = vp->part().info().get_workbench_info() ) {
                 if( wb_info->multiplier > best_bench_multi ) {
                     best_type = bench_type::vehicle;

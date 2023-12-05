@@ -2619,7 +2619,7 @@ bool game::load( const save_t &name )
         // The vehicle stores the IDs of the boarded players, so update it, too.
         if( u.in_vehicle ) {
             if( const std::optional<vpart_reference> vp = m.veh_at(
-                        u.pos() ).part_with_feature( "BOARDABLE", true ) ) {
+                        u.pos() )->part_with_feature( "BOARDABLE", true ) ) {
                 vp->part().passenger_id = u.getID();
             }
         }
@@ -4849,12 +4849,12 @@ bool game::swap_critters( Creature &a, Creature &b )
         walk_move( temp );
     } else {
         first.setpos( temp );
-        if( m.veh_at( u_or_npc->pos() ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
+        if( m.veh_at( u_or_npc->pos() )->part_with_feature( VPFLAG_BOARDABLE, true ) ) {
             m.board_vehicle( u_or_npc->pos(), u_or_npc );
         }
     }
 
-    if( other_npc && m.veh_at( other_npc->pos() ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
+    if( other_npc && m.veh_at( other_npc->pos() )->part_with_feature( VPFLAG_BOARDABLE, true ) ) {
         m.board_vehicle( other_npc->pos(), other_npc );
     }
     return true;
@@ -4919,7 +4919,7 @@ bool game::revive_corpse( const tripoint &p, item &it )
 void static delete_cyborg_item( map &m, const tripoint &couch_pos, item *cyborg )
 {
     // if this tile has an autodoc on a vehicle, delete the cyborg item from here
-    if( const std::optional<vpart_reference> vp = get_map().veh_at( couch_pos ).part_with_feature(
+    if( const std::optional<vpart_reference> vp = get_map().veh_at( couch_pos )->part_with_feature(
                 flag_AUTODOC_COUCH, false ) ) {
         auto dest_veh = &vp->vehicle();
         int dest_part = vp->part_index();
@@ -8770,7 +8770,7 @@ std::vector<std::string> game::get_dangerous_tile( const tripoint &dest_loc ) co
 
     if( !u.is_blind() ) {
         const trap &tr = m.tr_at( dest_loc );
-        const bool boardable = static_cast<bool>( m.veh_at( dest_loc ).part_with_feature( "BOARDABLE",
+        const bool boardable = static_cast<bool>( m.veh_at( dest_loc )->part_with_feature( "BOARDABLE",
                                true ) );
         // HACK: Hack for now, later ledge should stop being a trap
         // Note: in non-z-level mode, ledges obey different rules and so should be handled as regular traps
@@ -9012,7 +9012,7 @@ bool game::walk_move( const tripoint &dest_loc, const bool via_ramp )
     if( slowed && !u.is_mounted() ) {
         // Unless u.pos() has a higher movecost than dest_loc, state that dest_loc is the cause
         if( mcost_to >= mcost_from ) {
-            if( auto displayed_part = vp_there.part_displayed() ) {
+            if( auto displayed_part = vp_there->part_displayed() ) {
                 add_msg( m_warning, _( "Moving onto this %s is slow!" ),
                          displayed_part->part().name() );
                 sfx::do_obstacle( displayed_part->part().info().get_id().str() );
@@ -9021,7 +9021,7 @@ bool game::walk_move( const tripoint &dest_loc, const bool via_ramp )
                 sfx::do_obstacle( m.ter( dest_loc ).id().str() );
             }
         } else {
-            if( auto displayed_part = vp_here.part_displayed() ) {
+            if( auto displayed_part = vp_here->part_displayed() ) {
                 add_msg( m_warning, _( "Moving off of this %s is slow!" ),
                          displayed_part->part().name() );
                 sfx::do_obstacle( displayed_part->part().info().get_id().str() );
@@ -9133,7 +9133,7 @@ bool game::walk_move( const tripoint &dest_loc, const bool via_ramp )
 point game::place_player( const tripoint &dest_loc )
 {
     const auto vp1 = m.veh_at( dest_loc );
-    if( const std::optional<std::string> label = vp1.get_label() ) {
+    if( const std::optional<std::string> label = vp1->get_label() ) {
         add_msg( m_info, _( "Label here: %s" ), *label );
     }
     std::string signage = m.get_signage( dest_loc );
@@ -9346,7 +9346,7 @@ point game::place_player( const tripoint &dest_loc )
     }
 
     // If the new tile is a boardable part, board it
-    if( vp1.part_with_feature( "BOARDABLE", true ) && !u.is_mounted() ) {
+    if( vp1->part_with_feature( "BOARDABLE", true ) && !u.is_mounted() ) {
         m.board_vehicle( u.pos(), &u );
     }
 
@@ -9441,13 +9441,13 @@ point game::place_player( const tripoint &dest_loc )
         }
     }
 
-    if( ( vp1.part_with_feature( "CONTROL_ANIMAL", true ) ||
-          vp1.part_with_feature( "CONTROLS", true ) ) && u.in_vehicle && !u.is_mounted() ) {
+    if( ( vp1->part_with_feature( "CONTROL_ANIMAL", true ) ||
+          vp1->part_with_feature( "CONTROLS", true ) ) && u.in_vehicle && !u.is_mounted() ) {
         add_msg( _( "There are vehicle controls here." ) );
         if( !u.has_trait( trait_id( "WAYFARER" ) ) ) {
             add_msg( m_info, _( "%s to drive." ), press_x( ACTION_CONTROL_VEHICLE ) );
         }
-    } else if( vp1.part_with_feature( "CONTROLS", true ) && u.in_vehicle &&
+    } else if( vp1->part_with_feature( "CONTROLS", true ) && u.in_vehicle &&
                u.is_mounted() ) {
         add_msg( _( "There are vehicle controls here but you cannot reach them whilst mounted." ) );
     }
@@ -9551,7 +9551,7 @@ bool game::phasing_move( const tripoint &dest_loc, const bool via_ramp )
         u.moves -= ( 50 + ( tunneldist * 50 ) );
         u.setpos( dest );
 
-        if( m.veh_at( u.pos() ).part_with_feature( "BOARDABLE", true ) ) {
+        if( m.veh_at( u.pos() )->part_with_feature( "BOARDABLE", true ) ) {
             m.board_vehicle( u.pos(), &u );
         }
 
@@ -9880,7 +9880,7 @@ void game::fling_creature( Creature *c, const units::angle &dir, float flvel, bo
                 thru = false;
             }
         } else if( m.impassable( pt ) ) {
-            if( !m.veh_at( pt ).obstacle_at_part() ) {
+            if( !m.veh_at( pt )->obstacle_at_part() ) {
                 force = std::min<float>( m.bash_strength( pt ), flvel );
             } else {
                 // No good way of limiting force here

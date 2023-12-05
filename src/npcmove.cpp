@@ -2390,7 +2390,7 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
         const auto ovp = here.veh_at( p );
         if( vp->vehicle().is_moving() &&
             ( veh_pointer_or_null( ovp ) != veh_pointer_or_null( vp ) ||
-              !ovp.part_with_feature( VPFLAG_BOARDABLE, true ) ) ) {
+              !ovp->part_with_feature( VPFLAG_BOARDABLE, true ) ) ) {
             move_pause();
             return;
         }
@@ -2494,7 +2494,7 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
             doors::close_door( here, *this, old_pos );
         }
 
-        if( here.veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
+        if( here.veh_at( p )->part_with_feature( VPFLAG_BOARDABLE, true ) ) {
             here.board_vehicle( p, this );
         }
 
@@ -2938,7 +2938,7 @@ void npc::find_item()
         int num_items = m_stack.size();
         const auto vp = here.veh_at( p );
         if( vp ) {
-            const std::optional<vpart_reference> cargo = vp.part_with_feature( VPFLAG_CARGO, true );
+            const std::optional<vpart_reference> cargo = vp->part_with_feature( VPFLAG_CARGO, true );
             if( cargo ) {
                 vehicle_stack v_stack = cargo->vehicle().get_items( cargo->part_index() );
                 num_items += v_stack.size();
@@ -2970,7 +2970,7 @@ void npc::find_item()
             cache_tile();
             continue;
         }
-        const std::optional<vpart_reference> cargo = vp.part_with_feature( VPFLAG_CARGO, true );
+        const std::optional<vpart_reference> cargo = vp->part_with_feature( VPFLAG_CARGO, true );
         static const std::string locked_string( "LOCKED" );
         // TODO: Let player know what parts are safe from NPC thieves
         if( !cargo || cargo->has_feature( locked_string ) ) {
@@ -2979,7 +2979,7 @@ void npc::find_item()
         }
 
         static const std::string cargo_locking_string( "CARGO_LOCKING" );
-        if( vp.part_with_feature( cargo_locking_string, true ) ) {
+        if( vp->part_with_feature( cargo_locking_string, true ) ) {
             cache_tile();
             continue;
         }
@@ -3031,7 +3031,7 @@ void npc::pick_up_item()
     }
 
     map &here = get_map();
-    const std::optional<vpart_reference> vp = here.veh_at( wanted_item_pos ).part_with_feature(
+    const std::optional<vpart_reference> vp = here.veh_at( wanted_item_pos )->part_with_feature(
                 VPFLAG_CARGO, false );
     const bool has_cargo = vp && !vp->has_feature( "LOCKED" );
 

@@ -13,6 +13,7 @@
 #include "avatar.h"
 #include "basecamp.h"
 #include "bodypart.h"
+#include "cata_algo.h"
 #include "character.h"
 #include "character_id.h"
 #include "character_functions.h"
@@ -2792,13 +2793,20 @@ void npc::on_load()
     has_new_items = true;
 
     // for spawned npcs
-    if( g->m.has_flag( "UNSTABLE", pos() ) ) {
+    auto &here = get_map();
+    if( here.has_flag( "UNSTABLE", pos() ) ) {
         add_effect( effect_bouldering, 1_turns, num_bp );
     } else if( has_effect( effect_bouldering ) ) {
         remove_effect( effect_bouldering );
     }
-    if( g->m.veh_at( pos() ).part_with_feature( VPFLAG_BOARDABLE, true ) && !in_vehicle ) {
-        g->m.board_vehicle( pos(), this );
+
+    const bool boardable = cata::and_then( here.veh_at( pos() ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( VPFLAG_BOARDABLE, true );
+    } ).has_value();
+
+    if( boardable && !in_vehicle ) {
+        here.board_vehicle( pos(), this );
     }
     if( has_effect( effect_riding ) && !mounted_creature ) {
         if( const monster *const mon = g->critter_at<monster>( pos() ) ) {

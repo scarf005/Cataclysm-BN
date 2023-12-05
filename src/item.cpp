@@ -9387,7 +9387,7 @@ std::optional<tripoint> item::get_cable_target( Character *p, const tripoint &po
     map &here = get_map();
     const auto vp_pos = here.veh_at( pos );
     if( vp_pos ) {
-        const std::optional<vpart_reference> seat = vp_pos.part_with_feature( "BOARDABLE", true );
+        const std::optional<vpart_reference> seat = vp_pos->part_with_feature( "BOARDABLE", true );
         if( seat && p == seat->vehicle().get_passenger( seat->part_index() ) ) {
             return pos;
         }

@@ -2570,7 +2570,7 @@ std::vector<int> vehicle::parts_at_relative( point dp,
     }
 }
 
-std::optional<vpart_reference> vpart_position::obstacle_at_part() const
+auto vpart_position::obstacle_at_part() const -> std::optional<vpart_reference>
 {
     const std::optional<vpart_reference> part = part_with_feature( VPFLAG_OBSTACLE, true );
     if( !part ) {
@@ -2584,7 +2584,7 @@ std::optional<vpart_reference> vpart_position::obstacle_at_part() const
     return part;
 }
 
-std::optional<vpart_reference> vpart_position::part_displayed() const
+auto vpart_position::part_displayed() const -> std::optional<vpart_reference>
 {
     int part_id = vehicle().part_displayed_at( mount() );
     if( part_id == -1 ) {
@@ -2593,8 +2593,8 @@ std::optional<vpart_reference> vpart_position::part_displayed() const
     return vpart_reference( vehicle(), part_id );
 }
 
-std::optional<vpart_reference> vpart_position::part_with_feature( const std::string &f,
-        const bool unbroken ) const
+auto vpart_position::part_with_feature( const std::string &f,
+                                        const bool unbroken ) const -> std::optional<vpart_reference>
 {
     const int i = vehicle().part_with_feature( part_index(), f, unbroken );
     if( i < 0 ) {
@@ -2603,36 +2603,14 @@ std::optional<vpart_reference> vpart_position::part_with_feature( const std::str
     return vpart_reference( vehicle(), i );
 }
 
-std::optional<vpart_reference> vpart_position::part_with_feature( const vpart_bitflags f,
-        const bool unbroken ) const
+auto vpart_position::part_with_feature( const vpart_bitflags f,
+                                        const bool unbroken ) const -> std::optional<vpart_reference>
 {
     const int i = vehicle().part_with_feature( part_index(), f, unbroken );
     if( i < 0 ) {
         return std::nullopt;
     }
     return vpart_reference( vehicle(), i );
-}
-
-std::optional<vpart_reference> auto::part_with_feature( const std::string &f,
-        const bool unbroken ) const
-{
-    return has_value() ? value().part_with_feature( f, unbroken ) : std::nullopt;
-}
-
-std::optional<vpart_reference> auto::part_with_feature( const vpart_bitflags f,
-        const bool unbroken ) const
-{
-    return has_value() ? value().part_with_feature( f, unbroken ) : std::nullopt;
-}
-
-std::optional<vpart_reference> auto::obstacle_at_part() const
-{
-    return has_value() ? value().obstacle_at_part() : std::nullopt;
-}
-
-std::optional<vpart_reference> auto::part_displayed() const
-{
-    return has_value() ? value().part_displayed() : std::nullopt;
 }
 
 int vehicle::part_with_feature( int part, vpart_bitflags const flag, bool unbroken ) const

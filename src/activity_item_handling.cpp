@@ -452,7 +452,7 @@ void put_into_vehicle_or_drop( Character &c, item_drop_reason reason,
                                const tripoint &where, bool force_ground )
 {
     map &here = get_map();
-    const std::optional<vpart_reference> vp = here.veh_at( where ).part_with_feature( "CARGO", false );
+    const std::optional<vpart_reference> vp = here.veh_at( where )->part_with_feature( "CARGO", false );
     if( vp && !force_ground ) {
         put_into_vehicle( c, reason, items, vp->vehicle(), vp->part_index() );
         return;
@@ -912,7 +912,7 @@ static int move_cost( const item &it, const tripoint &src, const tripoint &dest 
         tripoint cart_position = g->u.pos() + g->u.grab_point;
 
         if( const std::optional<vpart_reference> vp = get_map().veh_at(
-                    cart_position ).part_with_feature( "CARGO", false ) ) {
+                    cart_position )->part_with_feature( "CARGO", false ) ) {
             const vehicle &veh = vp->vehicle();
             size_t vstor = vp->part_index();
             units::volume capacity = veh.free_volume( vstor );
@@ -1312,7 +1312,7 @@ static bool are_requirements_nearby( const std::vector<tripoint> &loot_spots,
             temp_inv += *elem2;
         }
         if( !in_loot_zones ) {
-            if( const std::optional<vpart_reference> vp = here.veh_at( elem ).part_with_feature( "CARGO",
+            if( const std::optional<vpart_reference> vp = here.veh_at( elem )->part_with_feature( "CARGO",
                     false ) ) {
                 vehicle &src_veh = vp->vehicle();
                 int src_part = vp->part_index();
@@ -1328,7 +1328,7 @@ static bool are_requirements_nearby( const std::vector<tripoint> &loot_spots,
             const auto vp = here.veh_at( elem );
             if( vp ) {
                 vehicle &veh = vp->vehicle();
-                const std::optional<vpart_reference> weldpart = vp.part_with_feature( "WELDRIG", true );
+                const std::optional<vpart_reference> weldpart = vp->part_with_feature( "WELDRIG", true );
                 if( weldpart ) {
                     item *welder = item::spawn_temporary( itype_welder, calendar::start_of_cataclysm );
                     welder->charges = veh.fuel_left( itype_battery, true );
@@ -2070,7 +2070,7 @@ static bool fetch_activity( player &p, const tripoint &src_loc,
     auto items_there = here.i_at( src_loc );
     vehicle *src_veh = nullptr;
     int src_part = 0;
-    if( const std::optional<vpart_reference> vp = here.veh_at( src_loc ).part_with_feature( "CARGO",
+    if( const std::optional<vpart_reference> vp = here.veh_at( src_loc )->part_with_feature( "CARGO",
             false ) ) {
         src_veh = &vp->vehicle();
         src_part = vp->part_index();
@@ -2258,7 +2258,7 @@ void activity_on_turn_move_loot( player_activity &act, player &p )
             }
 
             //nothing to sort?
-            const std::optional<vpart_reference> vp = here.veh_at( src_loc ).part_with_feature( "CARGO",
+            const std::optional<vpart_reference> vp = here.veh_at( src_loc )->part_with_feature( "CARGO",
                     false );
             if( ( !vp || vp->vehicle().get_items( vp->part_index() ).empty() )
                 && here.i_at( src_loc ).empty() ) {
@@ -2328,7 +2328,7 @@ void activity_on_turn_move_loot( player_activity &act, player &p )
         //Check source for cargo part
         //map_stack and vehicle_stack are different types but inherit from item_stack
         // TODO: use one for loop
-        if( const std::optional<vpart_reference> vp = here.veh_at( src_loc ).part_with_feature( "CARGO",
+        if( const std::optional<vpart_reference> vp = here.veh_at( src_loc )->part_with_feature( "CARGO",
                 false ) ) {
             src_veh = &vp->vehicle();
             src_part = vp->part_index();
@@ -2382,7 +2382,7 @@ void activity_on_turn_move_loot( player_activity &act, player &p )
                 const tripoint &dest_loc = here.getlocal( dest );
 
                 //Check destination for cargo part
-                if( const std::optional<vpart_reference> vp = here.veh_at( dest_loc ).part_with_feature( "CARGO",
+                if( const std::optional<vpart_reference> vp = here.veh_at( dest_loc )->part_with_feature( "CARGO",
                         false ) ) {
                     dest_veh = &vp->vehicle();
                     dest_part = vp->part_index();

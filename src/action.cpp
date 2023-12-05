@@ -1,7 +1,6 @@
 #include "action.h"
 
 #include <algorithm>
-#include <cata_algo.h>
 #include <climits>
 #include <istream>
 #include <iterator>
@@ -10,6 +9,7 @@
 #include <utility>
 
 #include "avatar.h"
+#include "cata_algo.h"
 #include "cata_utility.h"
 #include "catacharset.h"
 #include "character.h"

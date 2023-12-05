@@ -14,6 +14,7 @@
 
 #include "avatar.h"
 #include "bodypart.h"
+#include "cata_algo.h"
 #include "cached_options.h"
 #include "calendar.h"
 #include "coordinate_conversions.h"
@@ -1492,7 +1493,11 @@ void sfx::do_footstep()
             start_sfx_timestamp = std::chrono::high_resolution_clock::now();
         };
 
-        auto veh_displayed_part = g->m.veh_at( g->u.pos() ).part_displayed();
+        auto veh_displayed_part = cata::and_then(
+                                      get_map().veh_at( g->u.pos() ),
+        []( const vpart_position & vp ) {
+            return vp.part_displayed();
+        } );
 
         if( !veh_displayed_part && ( water.count( terrain ) > 0 ) ) {
             play_plmove_sound_variant( "walk_water" );

@@ -75,7 +75,7 @@ void advanced_inv_area::init()
         case AIM_WORN:
             canputitemsloc = true;
             break;
-        case AIM_DRAGGED:
+        case AIM_DRAGGED: {
             if( g->u.get_grab_type() != OBJECT_VEHICLE ) {
                 canputitemsloc = false;
                 desc[0] = _( "Not dragging any vehicle!" );
@@ -103,6 +103,7 @@ void advanced_inv_area::init()
                 desc[0] = _( "No dragged vehicle!" );
             }
             break;
+        }
         case AIM_CONTAINER:
             // set container position based on location
             set_container_position();
@@ -134,7 +135,7 @@ void advanced_inv_area::init()
         case AIM_NORTH:
         case AIM_NORTHEAST: {
             const std::optional<vpart_reference> vp =
-                here.veh_at( pos ).part_with_feature( "CARGO", false );
+                here.veh_at( pos )->part_with_feature( "CARGO", false );
             if( vp ) {
                 veh = &vp->vehicle();
                 vstor = vp->part_index();
@@ -414,7 +415,7 @@ void advanced_inv_area::set_container_position()
     // update the absolute position
     pos = g->u.pos() + off;
     // update vehicle information
-    if( const std::optional<vpart_reference> vp = get_map().veh_at( pos ).part_with_feature( "CARGO",
+    if( const std::optional<vpart_reference> vp = get_map().veh_at( pos )->part_with_feature( "CARGO",
             false ) ) {
         veh = &vp->vehicle();
         vstor = vp->part_index();

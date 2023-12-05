@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cata_algo.h>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
@@ -22,6 +21,7 @@
 #include "basecamp.h"
 #include "bodypart.h"
 #include "calendar.h"
+#include "cata_algo.h"
 #include "cata_utility.h"
 #include "character.h"
 #include "character_id.h"
@@ -1027,14 +1027,20 @@ void map::register_vehicle_zone( vehicle *veh, const int zlev )
 
 bool map::deregister_vehicle_zone( zone_data &zone )
 {
-    if( const std::optional<vpart_reference> vp = veh_at( getlocal(
-                zone.get_start_point() ) ).part_with_feature( "CARGO", false ) ) {
-        auto bounds = vp->vehicle().loot_zones.equal_range( vp->mount() );
-        for( auto it = bounds.first; it != bounds.second; it++ ) {
-            if( &zone == &( it->second ) ) {
-                vp->vehicle().loot_zones.erase( it );
-                return true;
-            }
+    const auto vp = cata::and_then( veh_at( getlocal( zone.get_start_point() ) ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( "CARGO", false );
+    } );
+
+    if( !vp ) {
+        return false;
+    }
+
+    auto bounds = vp->vehicle().loot_zones.equal_range( vp->mount() );
+    for( auto it = bounds.first; it != bounds.second; it++ ) {
+        if( &zone == &( it->second ) ) {
+            vp->vehicle().loot_zones.erase( it );
+            return true;
         }
     }
     return false;
@@ -1123,8 +1129,11 @@ void map::board_vehicle( const tripoint &pos, player *p )
         return;
     }
 
-    const std::optional<vpart_reference> vp = veh_at( pos ).part_with_feature( VPFLAG_BOARDABLE,
-            true );
+    const auto vp = cata::and_then( veh_at( pos ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( VPFLAG_BOARDABLE, true );
+    } );
+
     if( !vp ) {
         if( p->grab_point.x == 0 && p->grab_point.y == 0 ) {
             debugmsg( "map::board_vehicle: vehicle not found" );
@@ -1170,7 +1179,11 @@ void map::unboard_vehicle( const vpart_reference &vp, Character *passenger, bool
 
 void map::unboard_vehicle( const tripoint &p, bool dead_passenger )
 {
-    const std::optional<vpart_reference> vp = veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, false );
+    const auto vp = cata::and_then( veh_at( p ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( VPFLAG_BOARDABLE, false );
+    } );
+
     player *passenger = nullptr;
     if( !vp ) {
         debugmsg( "map::unboard_vehicle: vehicle not found" );
@@ -1404,8 +1417,13 @@ std::string map::disp_name( const tripoint &p )
 
 std::string map::obstacle_name( const tripoint &p )
 {
-    if( const std::optional<vpart_reference> vp = veh_at( p ).obstacle_at_part() ) {
-        return vp->info().name();
+    const auto vpr = cata::and_then( veh_at( p ),
+    []( const vpart_position & vp ) {
+        return vp.obstacle_at_part();
+    } );
+
+    if( vpr ) {
+        return vpr->info().name();
     }
     return name( p );
 }
@@ -1858,7 +1876,7 @@ int map::move_cost( const tripoint &p, const vehicle *ignored_vehicle ) const
     const ter_t &terrain = ter( p ).obj();
     const auto vp = veh_at( p );
     vehicle *const veh = ( !vp || &vp->vehicle() == ignored_vehicle ) ? nullptr : &vp->vehicle();
-    const int part = veh ? vp->part_index() : -1;
+    const int part = ( veh && vp ) ? vp->part_index() : -1;
 
     return move_cost_internal( furniture, terrain, veh, part );
 }
@@ -2383,8 +2401,11 @@ bool map::can_put_items( const tripoint &p ) const
     if( can_put_items_ter_furn( p ) ) {
         return true;
     }
-    const auto vp = veh_at( p );
-    return static_cast<bool>( vp.part_with_feature( "CARGO", true ) );
+    const auto cargo = cata::and_then( veh_at( p ), []( const vpart_position & vp ) {
+        return vp.part_with_feature( "CARGO", true );
+    } );
+
+    return cargo.has_value();
 }
 
 bool map::can_put_items_ter_furn( const tripoint &p ) const
@@ -2433,8 +2454,9 @@ bool map::has_flag_furn( const ter_bitflags flag, const tripoint &p ) const
 
 bool map::has_flag_vpart( const std::string &flag, const tripoint &p ) const
 {
-    const auto vp = veh_at( p );
-    return static_cast<bool>( vp.part_with_feature( flag, true ) );
+    return cata::and_then( veh_at( p ), [&flag]( const vpart_position & vp ) {
+        return vp.part_with_feature( flag, true );
+    } ).has_value();
 }
 
 bool map::has_flag_furn_or_vpart( const std::string &flag, const tripoint &p ) const
@@ -2512,7 +2534,9 @@ bool map::is_bashable( const tripoint &p, const bool allow_floor ) const
         return false;
     }
 
-    if( veh_at( p ).obstacle_at_part() ) {
+    const auto vp = veh_at( p );
+
+    if( vp && vp->obstacle_at_part() ) {
         return true;
     }
 
@@ -4935,10 +4959,14 @@ std::vector<detached_ptr<item>> map::use_amount_square( const tripoint &p, const
         return ret;
     }
 
-    if( const std::optional<vpart_reference> vp = veh_at( p ).part_with_feature( "CARGO", true ) ) {
-        std::vector<detached_ptr<item>> tmp = use_amount_stack( vp->vehicle().get_items( vp->part_index() ),
-                                              type,
-                                              quantity, filter );
+    const auto vpr = cata::and_then( veh_at( p ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( "CARGO", true );
+    } );
+
+    if( vpr ) {
+        auto stack = vpr->vehicle().get_items( vpr->part_index() );
+        std::vector<detached_ptr<item>> tmp = use_amount_stack( stack, type, quantity, filter );
         ret.insert( ret.end(), std::make_move_iterator( tmp.begin() ),
                     std::make_move_iterator( tmp.end() ) );
     }
@@ -5104,14 +5132,14 @@ std::vector<detached_ptr<item>> map::use_charges( const tripoint &origin, const 
             continue;
         }
 
-        const std::optional<vpart_reference> kpart = vp.part_with_feature( "FAUCET", true );
-        const std::optional<vpart_reference> weldpart = vp.part_with_feature( "WELDRIG", true );
-        const std::optional<vpart_reference> craftpart = vp.part_with_feature( "CRAFTRIG", true );
-        const std::optional<vpart_reference> forgepart = vp.part_with_feature( "FORGE", true );
-        const std::optional<vpart_reference> kilnpart = vp.part_with_feature( "KILN", true );
-        const std::optional<vpart_reference> chempart = vp.part_with_feature( "CHEMLAB", true );
-        const std::optional<vpart_reference> autoclavepart = vp.part_with_feature( "AUTOCLAVE", true );
-        const std::optional<vpart_reference> cargo = vp.part_with_feature( "CARGO", true );
+        const std::optional<vpart_reference> kpart = vp->part_with_feature( "FAUCET", true );
+        const std::optional<vpart_reference> weldpart = vp->part_with_feature( "WELDRIG", true );
+        const std::optional<vpart_reference> craftpart = vp->part_with_feature( "CRAFTRIG", true );
+        const std::optional<vpart_reference> forgepart = vp->part_with_feature( "FORGE", true );
+        const std::optional<vpart_reference> kilnpart = vp->part_with_feature( "KILN", true );
+        const std::optional<vpart_reference> chempart = vp->part_with_feature( "CHEMLAB", true );
+        const std::optional<vpart_reference> autoclavepart = vp->part_with_feature( "AUTOCLAVE", true );
+        const std::optional<vpart_reference> cargo = vp->part_with_feature( "CARGO", true );
 
         if( kpart ) { // we have a faucet, now to see what to drain
             itype_id ftype = itype_id::NULL_ID();

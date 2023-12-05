@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "avatar.h"
+#include "cata_algo.h"
 #include "cata_utility.h"
 #include "construction.h"
 #include "construction_group.h"
@@ -854,8 +855,9 @@ zone_type_id zone_manager::get_near_zone_type_for_item( const item &it,
         return *zone_check_first;
     }
 
-    if( cat.zone() ) {
-        return *cat.zone();
+    auto zone = cat.zone();
+    if( zone ) {
+        return *zone;
     }
 
     if( cat.get_id() == itcat_food ) {
@@ -962,8 +964,13 @@ void zone_manager::add( const std::string &name, const zone_type_id &type, const
                                     std::move( options ) );
     //the start is a vehicle tile with cargo space
     map &here = get_map();
-    if( const std::optional<vpart_reference> vp = here.veh_at( here.getlocal(
-                start ) ).part_with_feature( "CARGO", false ) ) {
+
+    auto vpr = cata::and_then( here.veh_at( here.getlocal( start ) ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( "CARGO", false );
+    } );
+
+    if( vpr ) {
         // TODO:Allow for loot zones on vehicles to be larger than 1x1
         if( start == end && query_yn( _( "Bind this zone to the cargo part here?" ) ) ) {
             // TODO: refactor zone options for proper validation code
@@ -972,7 +979,7 @@ void zone_manager::add( const std::string &name, const zone_type_id &type, const
                 return;
             }
 
-            create_vehicle_loot_zone( vp->vehicle(), vp->mount(), new_zone );
+            create_vehicle_loot_zone( vpr->vehicle(), vpr->mount(), new_zone );
             return;
         }
     }
@@ -1233,12 +1240,17 @@ void zone_manager::revert_vzones()
     map &here = get_map();
     for( auto zone : removed_vzones ) {
         //Code is copied from add() to avoid yn query
-        if( const std::optional<vpart_reference> vp = here.veh_at( here.getlocal(
-                    zone.get_start_point() ) ).part_with_feature( "CARGO", false ) ) {
+        const auto vpr =
+            cata::and_then( here.veh_at( here.getlocal( zone.get_start_point() ) ),
+        []( const vpart_position & vp ) {
+            return vp.part_with_feature( "CARGO", false );
+        } );
+
+        if( vpr ) {
             zone.set_is_vehicle( true );
-            vp->vehicle().loot_zones.emplace( vp->mount(), zone );
-            vp->vehicle().zones_dirty = false;
-            here.register_vehicle_zone( &vp->vehicle(), g->get_levz() );
+            vpr->vehicle().loot_zones.emplace( vpr->mount(), zone );
+            vpr->vehicle().zones_dirty = false;
+            here.register_vehicle_zone( &vpr->vehicle(), g->get_levz() );
             cache_vzones();
         }
     }

@@ -131,4 +131,11 @@ class vpart_reference : public vpart_position
         player *get_passenger() const;
 };
 
+// For legacy code, phase out, don't use in new code.
+// TODO: remove this
+inline auto veh_pointer_or_null( const std::optional<vpart_position> &p ) -> vehicle *
+{
+    return p ? &p->vehicle() : nullptr;
+}
+
 #endif // CATA_SRC_VPART_POSITION_H

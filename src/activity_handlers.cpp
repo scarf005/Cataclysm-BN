@@ -1729,8 +1729,8 @@ void activity_handlers::hotwire_finish( player_activity *act, player *p )
 {
     //Grab this now, in case the vehicle gets shifted
     if( const auto vp = g->m.veh_at( g->m.getlocal( tripoint( act->values[0],
-                                           act->values[1],
-                                           p->posz() ) ) ) ) {
+                                     act->values[1],
+                                     p->posz() ) ) ) ) {
         vehicle *const veh = &vp->vehicle();
         const int mech_skill = act->values[2];
         if( mech_skill > static_cast<int>( rng( 1, 6 ) ) ) {
@@ -2209,8 +2209,8 @@ void activity_handlers::vehicle_finish( player_activity *act, player *p )
     map &here = get_map();
     //Grab this now, in case the vehicle gets shifted
     const auto vp = here.veh_at( here.getlocal( tripoint( act->values[0],
-                                       act->values[1],
-                                       act->values[7] ) ) );
+                                 act->values[1],
+                                 act->values[7] ) ) );
     veh_interact::complete_vehicle( *p );
     // complete_vehicle set activity type to NULL if the vehicle
     // was completely dismantled, otherwise the vehicle still exist and
@@ -2310,10 +2310,11 @@ void activity_handlers::start_engines_finish( player_activity *act, player *p )
     map &here = get_map();
     if( !veh ) {
         const tripoint pos = act->placement + g->u.pos();
-        veh = veh_pointer_or_null( here.veh_at( pos ) );
-        if( !veh ) {
+        auto vp = here.veh_at( pos );
+        if( !vp ) {
             return;
         }
+        veh = &vp->vehicle();
     }
 
     int attempted = 0;

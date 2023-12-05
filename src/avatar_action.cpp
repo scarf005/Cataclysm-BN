@@ -345,7 +345,7 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
         } else if( veh1 != veh0 ) {
             add_msg( m_info, _( "There is another vehicle in the way." ) );
             return false;
-        } else if( !vp1.part_with_feature( "BOARDABLE", true ) ) {
+        } else if( !vp1->part_with_feature( "BOARDABLE", true ) ) {
             add_msg( m_info, _( "That part of the vehicle is currently unsafe." ) );
             return false;
         }
@@ -567,11 +567,11 @@ void avatar_action::swim( map &m, avatar &you, const tripoint &p )
     if( you.in_vehicle ) {
         m.unboard_vehicle( you.pos() );
     }
-    if( you.is_mounted() && m.veh_at( you.pos() ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
+    if( you.is_mounted() && m.veh_at( you.pos() )->part_with_feature( VPFLAG_BOARDABLE, true ) ) {
         add_msg( m_warning, _( "You cannot board a vehicle while mounted." ) );
         return;
     }
-    if( const auto vp = m.veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
+    if( const auto vp = m.veh_at( p )->part_with_feature( VPFLAG_BOARDABLE, true ) ) {
         if( !vp->vehicle().handle_potential_theft( you ) ) {
             return;
         }
@@ -581,7 +581,7 @@ void avatar_action::swim( map &m, avatar &you, const tripoint &p )
 
     cata_event_dispatch::avatar_moves( you, m, p );
 
-    if( m.veh_at( you.pos() ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
+    if( m.veh_at( you.pos() )->part_with_feature( VPFLAG_BOARDABLE, true ) ) {
         m.board_vehicle( you.pos(), &you );
     }
     you.moves -= ( movecost > 200 ? 200 : movecost ) * ( trigdist && diagonal ? M_SQRT2 : 1 );
@@ -1114,7 +1114,7 @@ void avatar_action::wield( item &loc )
                 here.add_item( pos, to_wield->detach() );
                 break;
             case item_location_type::vehicle: {
-                const std::optional<vpart_reference> vp = here.veh_at( pos ).part_with_feature( "CARGO", false );
+                const std::optional<vpart_reference> vp = here.veh_at( pos )->part_with_feature( "CARGO", false );
                 detached_ptr<item> detached = to_wield->detach();
                 // If we fail to return the item to the vehicle for some reason, add it to the map instead.
                 if( vp ) {

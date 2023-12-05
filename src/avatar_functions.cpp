@@ -135,8 +135,8 @@ void try_to_sleep( avatar &you, const time_duration &dur )
                          ter_at_pos == t_improvised_shelter ||
                          trap_at_pos.comfort > confort_level_neutral ||
                          in_shell || websleeping || watersleep ||
-                         vp.part_with_feature( "SEAT", true ) ||
-                         vp.part_with_feature( "BED", true ) ) ) {
+                         vp->part_with_feature( "SEAT", true ) ||
+                         vp->part_with_feature( "BED", true ) ) ) {
         you.add_msg_if_player( m_good, _( "This is a comfortable place to sleep." ) );
     } else if( !plantsleep && !fungaloid_cosplay && !watersleep ) {
         if( !vp && ter_at_pos != t_floor ) {

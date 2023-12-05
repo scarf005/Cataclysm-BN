@@ -7032,7 +7032,7 @@ static object_names_collection enumerate_objects_around_point( const tripoint &p
                 // point is center
                 //~ %1$s: vehicle part name, %2$s: vehicle name
                 description_part_on_figure = string_format( pgettext( "vehicle part", "%1$s from %2$s" ),
-                                             veh_part_pos.part_displayed()->part().name(), veh_name );
+                                             veh_part_pos->part_displayed()->part().name(), veh_name );
                 if( ret_obj.vehicles.find( veh_name ) != ret_obj.vehicles.end() &&
                     local_vehicles_recorded.find( veh_hash ) != local_vehicles_recorded.end() ) {
                     // remove vehicle name only if we previously added THIS vehicle name (in case of same name)
@@ -8051,7 +8051,7 @@ static void emit_radio_signal( player &p, const flag_id &signal )
             if( !vp ) {
                 continue;
             }
-            std::optional<vpart_reference> vpr = vp.part_with_feature( "CARGO", false );
+            std::optional<vpart_reference> vpr = vp->part_with_feature( "CARGO", false );
             if( !vpr ) {
                 continue;
             }
@@ -9599,7 +9599,7 @@ int iuse::craft( player *p, item *it, bool, const tripoint &pos )
     item *where = nullptr;
     if( p->has_item( *it ) ) {
         where = it;
-    } else if( const std::optional<vpart_reference> vp = g->m.veh_at( pos ).part_with_feature( "CARGO",
+    } else if( const std::optional<vpart_reference> vp = g->m.veh_at( pos )->part_with_feature( "CARGO",
                false ) ) {
         const vehicle_cursor vc = vehicle_cursor( vp->vehicle(), vp->part_index() );
         if( vc.has_item( *it ) ) {
