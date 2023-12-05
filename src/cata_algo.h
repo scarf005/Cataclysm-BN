@@ -104,7 +104,8 @@ void find_cycles_impl(
 // Complexity should be O(V+E)
 // Based on https://www.geeksforgeeks.org/detect-cycle-in-a-graph/
 template<typename T>
-std::vector<std::vector<T>> find_cycles( const std::unordered_map<T, std::vector<T>> &edges )
+auto find_cycles( const std::unordered_map<T, std::vector<T>> &edges ) ->
+std::vector<std::vector<T>>
 {
     std::unordered_set<T> visited;
     std::unordered_map<T, T> on_current_branch;
@@ -122,14 +123,53 @@ std::vector<std::vector<T>> find_cycles( const std::unordered_map<T, std::vector
     return result;
 }
 
-/// poor person's https://en.cppreference.com/w/cpp/utility/optional/and_then
+/// @brief transform: `optional T -> (T -> U) -> optional U`
+///
+/// @details
+/// if optional has value, apply function and return its result.
+/// if optional has no value, return it as-is.
+///
+/// @remark poor person's https://en.cppreference.com/w/cpp/utility/optional/transform
 template <typename T, typename Fn>
-auto and_then( std::optional<T> const &opt, Fn &&f ) -> std::optional<std::invoke_result_t<Fn, T>>
+inline auto transform( std::optional<T> &&opt,
+                       Fn &&f ) -> std::optional<std::invoke_result_t<Fn, T>>
 {
     if( opt ) {
         return std::optional{f( *opt )};
     }
     return std::nullopt;
+}
+
+/// @brief and_then: `optional T -> (T -> optional U) -> optional U`
+///
+/// @details
+/// if optional has value, apply function and return its result of type optional.
+/// if optional has no value, return it as-is.
+///
+/// @remark poor person's https://en.cppreference.com/w/cpp/utility/optional/and_then
+template <typename T, typename Fn>
+inline auto and_then( std::optional<T> &&opt, Fn &&f ) -> std::optional<std::invoke_result_t<Fn, T>>
+{
+    if( opt ) {
+        return f( *opt );
+    }
+    return std::nullopt;
+}
+
+/// @brief is_some_and: `optional T -> (T -> bool) -> bool`
+///
+/// @details
+/// if value is none, return false.
+/// else if value is some, return the result of f(value)
+///
+/// @remark poor person's https://doc.rust-lang.org/std/option/enum.Option.html#method.is_some_and
+template <typename T, typename Fn>
+inline auto is_some_and( std::optional<T> &&opt, Fn &&f ) -> bool
+{
+    if( opt ) {
+        return f( *opt );
+    }
+    return false;
 }
 
 /// @brief Group elements of a container into key-value map by a given selector function.
@@ -148,7 +188,7 @@ auto and_then( std::optional<T> const &opt, Fn &&f ) -> std::optional<std::invok
 ///
 /// @remark poor person's https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/group-by.html
 template<template<typename...> typename M = std::map, typename C, typename F>
-auto group_by( const C &c, F && selector )
+inline auto group_by( const C &c, F && selector )
 {
     using K = std::invoke_result_t<F, std::decay_t<decltype( *c.begin() )>>;
 

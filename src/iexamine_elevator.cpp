@@ -1,4 +1,3 @@
-#include "detached_ptr.h"
 #include <optional>
 #include "cata_algo.h"
 #include "game.h"
@@ -222,9 +221,8 @@ auto move_player( player &p, const int movez, tripoint_abs_ms old_abs_pos ) -> v
 
     g->vertical_shift( movez );
     // yes, this is inefficient, but i'm lazy
-    cata::and_then( elevator::find_elevators_nearby( p.pos() ), []( const tripoint & pos ) {
-        return g->place_player( pos );
-    } );
+    cata::transform( elevator::find_elevators_nearby( p.pos() ),
+                     []( const tripoint & pos ) -> point { return g->place_player( pos ); } );
 
     cata_event_dispatch::avatar_moves( *p.as_avatar(), here, old_abs_pos.raw() );
 }
