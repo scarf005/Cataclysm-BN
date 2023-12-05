@@ -27,6 +27,7 @@
 #include "bodypart.h"
 #include "calendar.h"
 #include "cata_unreachable.h"
+#include "cata_algo.h"
 #include "cata_utility.h"
 #include "catacharset.h"
 #include "character.h"
@@ -4748,9 +4749,11 @@ static Character &operator_present( Character &p, const tripoint &autodoc_loc,
     return null_patient;
 }
 
-static item *cyborg_on_couch( const tripoint &couch_pos )
+static auto cyborg_on_couch( const tripoint &couch_pos ) -> item *
 {
-    for( item * const &it : get_map().i_at( couch_pos ) ) {
+    auto &here = get_map();
+
+    for( item * const &it : here.i_at( couch_pos ) ) {
         if( it->typeId() == itype_bot_broken_cyborg || it->typeId() == itype_bot_prototype_cyborg ) {
             return it;
         }
@@ -4761,18 +4764,24 @@ static item *cyborg_on_couch( const tripoint &couch_pos )
         }
     }
     // if we're in a autodoc couch on a vehicle, go through the items in it, and return the item if's a cyborg
-    if( const std::optional<vpart_reference> vp = get_map().veh_at( couch_pos )->part_with_feature(
-                flag_AUTODOC_COUCH, false ) ) {
-        auto dest_veh = &vp->vehicle();
-        int dest_part = vp->part_index();
-        for( item * const &it : dest_veh->get_items( dest_part ) ) {
-            if( it->typeId() == itype_bot_broken_cyborg || it->typeId() == itype_bot_prototype_cyborg ) {
+    const auto vpr = cata::and_then( here.veh_at( couch_pos ),
+    []( const vpart_position & vp ) {
+        return vp.part_with_feature( flag_AUTODOC_COUCH, false );
+    } );
+
+    if( !vpr ) {
+        return nullptr;
+    }
+
+    auto dest_veh = &vpr->vehicle();
+    int dest_part = vpr->part_index();
+    for( item * const &it : dest_veh->get_items( dest_part ) ) {
+        if( it->typeId() == itype_bot_broken_cyborg || it->typeId() == itype_bot_prototype_cyborg ) {
+            return it;
+        }
+        if( it->typeId() == itype_corpse ) {
+            if( it->get_mtype()->id == mon_broken_cyborg || it->get_mtype()->id == mon_prototype_cyborg ) {
                 return it;
-            }
-            if( it->typeId() == itype_corpse ) {
-                if( it->get_mtype()->id == mon_broken_cyborg || it->get_mtype()->id == mon_prototype_cyborg ) {
-                    return it;
-                }
             }
         }
     }

@@ -21,6 +21,7 @@
 #include "avatar_functions.h"
 #include "bionics.h"
 #include "calendar.h"
+#include "cata_algo.h"
 #include "cata_utility.h"
 #include "character.h"
 #include "color.h"
@@ -227,21 +228,26 @@ float workbench_crafting_speed_multiplier( const item &craft, const bench_locati
                 return 0.0f;
             }
             break;
-        case bench_type::vehicle:
-            if( const std::optional<vpart_reference> vp = here.veh_at(
-                        bench.position )->part_with_feature( "WORKBENCH", true ) ) {
+        case bench_type::vehicle: {
+            auto vpr = cata::and_then( here.veh_at( bench.position ),
+            []( const vpart_position & vp ) {
+                return vp.part_with_feature( "WORKBENCH", true );
+            } );
+
+            if( vpr ) {
                 // Vehicle workbench
-                const vpart_info &vp_info = vp->part().info();
+                const vpart_info &vp_info = vpr->part().info();
                 if( const std::optional<vpslot_workbench> &wb_info = vp_info.get_workbench_info() ) {
                     multiplier = wb_info->multiplier;
                     allowed_mass = wb_info->allowed_mass;
                     allowed_volume = wb_info->allowed_volume;
                 } else {
-                    debugmsg( "part '%S' with WORKBENCH flag has no workbench info", vp->part().name() );
+                    debugmsg( "part '%S' with WORKBENCH flag has no workbench info", vpr->part().name() );
                     return 0.0f;
                 }
             }
             break;
+        }
         default:
             debugmsg( "Invalid workbench type %d", static_cast<int>( bench.type ) );
             return 0.0f;

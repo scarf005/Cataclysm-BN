@@ -844,42 +844,43 @@ int vpart_info::repair_time( const player &p ) const
  */
 float vpart_info::engine_backfire_threshold() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->backfire_threshold : false;
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->backfire_threshold : false;
 }
 
 int vpart_info::engine_backfire_freq() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->backfire_freq : false;
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->backfire_freq : false;
 }
 
 int vpart_info::engine_muscle_power_factor() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->muscle_power_factor : false;
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->muscle_power_factor : false;
 }
 
 float vpart_info::engine_damaged_power_factor() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->damaged_power_factor : false;
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->damaged_power_factor : false;
 }
 
 int vpart_info::engine_noise_factor() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->noise_factor : false;
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->noise_factor : false;
 }
 
 int vpart_info::engine_m2c() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->m2c : 0;
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->m2c : 0;
 }
 
 std::vector<std::string> vpart_info::engine_excludes() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->exclusions : std::vector<std::string>();
+    return has_flag( VPFLAG_ENGINE ) &&
+           engine_info ? engine_info->exclusions : std::vector<std::string>();
 }
 
 std::vector<itype_id> vpart_info::engine_fuel_opts() const
 {
-    return has_flag( VPFLAG_ENGINE ) ? engine_info->fuel_opts : std::vector<itype_id>();
+    return has_flag( VPFLAG_ENGINE ) && engine_info ? engine_info->fuel_opts : std::vector<itype_id>();
 }
 
 /**
@@ -889,28 +890,28 @@ std::vector<itype_id> vpart_info::engine_fuel_opts() const
 float vpart_info::wheel_rolling_resistance() const
 {
     // caster wheels return 29, so if a part rolls worse than a caster wheel...
-    return has_flag( VPFLAG_WHEEL ) ? wheel_info->rolling_resistance : 50;
+    return has_flag( VPFLAG_WHEEL ) && wheel_info ? wheel_info->rolling_resistance : 50;
 }
 
 int vpart_info::wheel_area() const
 {
-    return has_flag( VPFLAG_WHEEL ) ? wheel_info->contact_area : 0;
+    return has_flag( VPFLAG_WHEEL ) && wheel_info ? wheel_info->contact_area : 0;
 }
 
 std::vector<std::pair<std::string, int>> vpart_info::wheel_terrain_mod() const
 {
     const std::vector<std::pair<std::string, int>> null_map;
-    return has_flag( VPFLAG_WHEEL ) ? wheel_info->terrain_mod : null_map;
+    return has_flag( VPFLAG_WHEEL ) && wheel_info ? wheel_info->terrain_mod : null_map;
 }
 
 float vpart_info::wheel_or_rating() const
 {
-    return has_flag( VPFLAG_WHEEL ) ? wheel_info->or_rating : 0.0f;
+    return has_flag( VPFLAG_WHEEL ) && wheel_info ? wheel_info->or_rating : 0.0f;
 }
 
 int vpart_info::rotor_diameter() const
 {
-    return has_flag( VPFLAG_ROTOR ) ? rotor_info->rotor_diameter : 0;
+    return has_flag( VPFLAG_ROTOR ) && rotor_info ? rotor_info->rotor_diameter : 0;
 }
 
 const std::optional<vpslot_workbench> &vpart_info::get_workbench_info() const

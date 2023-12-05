@@ -331,7 +331,7 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
 
     bool veh_closed_door = false;
     bool outside_vehicle = ( veh0 == nullptr || veh0 != veh1 );
-    if( veh1 != nullptr ) {
+    if( vp1 && veh1 != nullptr ) {
         dpart = veh1->next_part_to_open( vp1->part_index(), outside_vehicle );
         veh_closed_door = dpart >= 0 && !veh1->part( dpart ).open;
     }
@@ -345,7 +345,7 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
         } else if( veh1 != veh0 ) {
             add_msg( m_info, _( "There is another vehicle in the way." ) );
             return false;
-        } else if( !vp1->part_with_feature( "BOARDABLE", true ) ) {
+        } else if( !( vp1 && vp1->part_with_feature( "BOARDABLE", true ) ) ) {
             add_msg( m_info, _( "That part of the vehicle is currently unsafe." ) );
             return false;
         }

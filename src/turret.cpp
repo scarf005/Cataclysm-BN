@@ -192,10 +192,13 @@ int turret_data::range() const
         return 0;
     }
     if( part->info().has_flag( "USE_TANKS" ) && ammo_data() ) {
-        if( ammo_data()->ammo->shape ) {
-            return ammo_data()->ammo->shape->get_range();
+        const int range = ammo_data()->ammo->range;
+        const auto shape = ammo_data()->ammo->shape;
+
+        if( shape ) {
+            return shape->get_range();
         }
-        return part->base->gun_range() + ammo_data()->ammo->range;
+        return part->base->gun_range() + range;
     }
     return part->base->gun_range();
 }
