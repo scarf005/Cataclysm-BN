@@ -152,7 +152,7 @@ void handbrake()
 {
     const map &here = get_map();
     Character &pl = get_player_character();
-    const optional_vpart_position vp = here.veh_at( pl.pos() );
+    const auto vp = here.veh_at( pl.pos() );
     if( !vp ) {
         return;
     }

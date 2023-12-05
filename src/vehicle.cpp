@@ -400,7 +400,7 @@ bool vehicle::player_in_control( const Character &p ) const
         return true;
     }
 
-    const optional_vpart_position vp = g->m.veh_at( p.pos() );
+    const auto vp = g->m.veh_at( p.pos() );
     if( vp && &vp->vehicle() == this &&
         ( ( part_with_feature( vp->part_index(), "CONTROL_ANIMAL", true ) >= 0 &&
             has_engine_type( fuel_type_animal, false ) && has_harnessed_animal() ) ||
@@ -950,7 +950,7 @@ void vehicle::drive_to_local_target( const tripoint &target, bool follow_protoco
         if( stop ) {
             break;
         }
-        const optional_vpart_position ovp = g->m.veh_at( tripoint( elem, sm_pos.z ) );
+        const auto ovp = g->m.veh_at( tripoint( elem, sm_pos.z ) );
         if( g->m.impassable_ter_furn( tripoint( elem, sm_pos.z ) ) || ( ovp &&
                 &ovp->vehicle() != this ) ) {
             stop = true;
@@ -2613,24 +2613,24 @@ std::optional<vpart_reference> vpart_position::part_with_feature( const vpart_bi
     return vpart_reference( vehicle(), i );
 }
 
-std::optional<vpart_reference> optional_vpart_position::part_with_feature( const std::string &f,
+std::optional<vpart_reference> auto::part_with_feature( const std::string &f,
         const bool unbroken ) const
 {
     return has_value() ? value().part_with_feature( f, unbroken ) : std::nullopt;
 }
 
-std::optional<vpart_reference> optional_vpart_position::part_with_feature( const vpart_bitflags f,
+std::optional<vpart_reference> auto::part_with_feature( const vpart_bitflags f,
         const bool unbroken ) const
 {
     return has_value() ? value().part_with_feature( f, unbroken ) : std::nullopt;
 }
 
-std::optional<vpart_reference> optional_vpart_position::obstacle_at_part() const
+std::optional<vpart_reference> auto::obstacle_at_part() const
 {
     return has_value() ? value().obstacle_at_part() : std::nullopt;
 }
 
-std::optional<vpart_reference> optional_vpart_position::part_displayed() const
+std::optional<vpart_reference> auto::part_displayed() const
 {
     return has_value() ? value().part_displayed() : std::nullopt;
 }
@@ -3515,7 +3515,7 @@ int vehicle::fuel_left( const itype_id &ftype, bool recurse ) const
     //muscle engines have infinite fuel
     if( ftype == fuel_type_muscle ) {
         // TODO: Allow NPCs to power those
-        const optional_vpart_position vp = g->m.veh_at( g->u.pos() );
+        const auto vp = g->m.veh_at( g->u.pos() );
         bool player_controlling = player_in_control( g->u );
 
         //if the engine in the player tile is a muscle engine, and player is controlling vehicle
@@ -5058,7 +5058,7 @@ vehicle *vehicle::find_vehicle( const tripoint &where )
 {
     // Is it in the reality bubble?
     tripoint veh_local = g->m.getlocal( where );
-    if( const optional_vpart_position vp = g->m.veh_at( veh_local ) ) {
+    if( const auto vp = g->m.veh_at( veh_local ) ) {
         return &vp->vehicle();
     }
 
@@ -6181,7 +6181,7 @@ void vehicle::do_towing_move()
 bool vehicle::is_external_part( const tripoint &part_pt ) const
 {
     for( const tripoint &elem : g->m.points_in_radius( part_pt, 1 ) ) {
-        const optional_vpart_position vp = g->m.veh_at( elem );
+        const auto vp = g->m.veh_at( elem );
         if( !vp ) {
             return true;
         }

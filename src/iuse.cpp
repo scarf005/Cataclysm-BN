@@ -2943,14 +2943,14 @@ int iuse::siphon( player *p, item *it, bool, const tripoint & )
         return 0;
     }
     const std::function<bool( const tripoint & )> f = []( const tripoint & pnt ) {
-        const optional_vpart_position vp = g->m.veh_at( pnt );
+        const auto vp = g->m.veh_at( pnt );
         return !!vp;
     };
 
     vehicle *v = nullptr;
     bool found_more_than_one = false;
     for( const tripoint &pos : g->m.points_in_radius( g->u.pos(), 1 ) ) {
-        const optional_vpart_position vp = g->m.veh_at( pos );
+        const auto vp = g->m.veh_at( pos );
         if( !vp ) {
             continue;
         }
@@ -2972,7 +2972,7 @@ int iuse::siphon( player *p, item *it, bool, const tripoint & )
         if( !pnt_ ) {
             return 0;
         }
-        const optional_vpart_position vp = g->m.veh_at( *pnt_ );
+        const auto vp = g->m.veh_at( *pnt_ );
         if( vp ) {
             v = &vp->vehicle();
         }
@@ -7003,7 +7003,7 @@ static object_names_collection enumerate_objects_around_point( const tripoint &p
 
         const item &item = get_top_item_at_point( point_around_figure, volume_to_search );
 
-        const optional_vpart_position veh_part_pos = g->m.veh_at( point_around_figure );
+        const auto veh_part_pos = g->m.veh_at( point_around_figure );
         std::string unusual_ter_desc = colorized_ter_name_flags_at( point_around_figure,
                                        camera_ter_whitelist_flags,
                                        camera_ter_whitelist_types );
@@ -7257,7 +7257,7 @@ static extended_photo_def photo_def_for_camera_point( const tripoint &aim_point,
                           + " " + figure_status.second;
         }
     } else if( found_vehicle_aim_point ) {
-        const optional_vpart_position veh_part_pos = g->m.veh_at( aim_point );
+        const auto veh_part_pos = g->m.veh_at( aim_point );
         const std::string veh_name = colorize( veh_part_pos->vehicle().disp_name(), c_light_blue );
         photo.name = veh_name;
         photo_text += veh_name + ".";
@@ -8047,7 +8047,7 @@ static void emit_radio_signal( player &p, const flag_id &signal )
             } );
 
             // Items in vehicles
-            optional_vpart_position vp = g->m.veh_at( loc );
+            auto vp = g->m.veh_at( loc );
             if( !vp ) {
                 continue;
             }
@@ -8730,7 +8730,7 @@ int iuse::tow_attach( player *p, item *it, bool, const tripoint & )
             return 0;
         }
         const tripoint posp = *posp_;
-        const optional_vpart_position vp = g->m.veh_at( posp );
+        const auto vp = g->m.veh_at( posp );
         if( !vp ) {
             p->add_msg_if_player( _( "There's no vehicle there." ) );
             return 0;
@@ -8759,7 +8759,7 @@ int iuse::tow_attach( player *p, item *it, bool, const tripoint & )
                                     it->get_var( "source_y", 0 ),
                                     it->get_var( "source_z", 0 ) );
             tripoint source_local = g->m.getlocal( source_global );
-            const optional_vpart_position source_vp = g->m.veh_at( source_local );
+            const auto source_vp = g->m.veh_at( source_local );
             vehicle *const source_veh = veh_pointer_or_null( source_vp );
             if( detach_if_missing && source_veh == nullptr ) {
                 if( p->has_item( *it ) ) {
@@ -8785,7 +8785,7 @@ int iuse::tow_attach( player *p, item *it, bool, const tripoint & )
             it->reset_cable( p );
             return 0;
         }
-        const optional_vpart_position source_vp = confirm_source_vehicle( p, it, paying_out );
+        const auto source_vp = confirm_source_vehicle( p, it, paying_out );
         vehicle *const source_veh = veh_pointer_or_null( source_vp );
         if( source_veh == nullptr && paying_out ) {
             return 0;
@@ -8797,7 +8797,7 @@ int iuse::tow_attach( player *p, item *it, bool, const tripoint & )
         }
         const tripoint vpos = *vpos_;
 
-        const optional_vpart_position target_vp = g->m.veh_at( vpos );
+        const auto target_vp = g->m.veh_at( vpos );
         if( !target_vp ) {
             p->add_msg_if_player( _( "There's no vehicle there." ) );
             return 0;
@@ -8918,7 +8918,7 @@ int iuse::cable_attach( player *p, item *it, bool, const tripoint & )
             return 0;
         }
         const tripoint posp = *posp_;
-        const optional_vpart_position vp = g->m.veh_at( posp );
+        const auto vp = g->m.veh_at( posp );
         if( !vp ) {
             p->add_msg_if_player( _( "There's no vehicle there." ) );
             return 0;
@@ -8935,7 +8935,7 @@ int iuse::cable_attach( player *p, item *it, bool, const tripoint & )
                                     it->get_var( "source_y", 0 ),
                                     it->get_var( "source_z", 0 ) );
             tripoint source_local = g->m.getlocal( source_global );
-            const optional_vpart_position source_vp = g->m.veh_at( source_local );
+            const auto source_vp = g->m.veh_at( source_local );
             vehicle *const source_veh = veh_pointer_or_null( source_vp );
             if( detach_if_missing && source_veh == nullptr ) {
                 if( p != nullptr && p->has_item( *it ) ) {
@@ -8990,7 +8990,7 @@ int iuse::cable_attach( player *p, item *it, bool, const tripoint & )
                 return 0;
             }
             // connecting self, vehicle connected
-            const optional_vpart_position source_vp = confirm_source_vehicle( p, it, true );
+            const auto source_vp = confirm_source_vehicle( p, it, true );
             if( veh_pointer_or_null( source_vp ) != nullptr ) {
                 set_cable_active( p, it, "cable_charger_link" );
                 p->add_msg_if_player( m_good, _( "You are now plugged to the vehicle." ) );
@@ -9016,7 +9016,7 @@ int iuse::cable_attach( player *p, item *it, bool, const tripoint & )
             return 0;
         }
         // connecting self to vehicle
-        const optional_vpart_position source_vp = confirm_source_vehicle( p, it, paying_out );
+        const auto source_vp = confirm_source_vehicle( p, it, paying_out );
         vehicle *const source_veh = veh_pointer_or_null( source_vp );
         if( source_veh == nullptr && paying_out ) {
             return 0;
@@ -9028,7 +9028,7 @@ int iuse::cable_attach( player *p, item *it, bool, const tripoint & )
         }
         const tripoint vpos = *vpos_;
 
-        const optional_vpart_position target_vp = g->m.veh_at( vpos );
+        const auto target_vp = g->m.veh_at( vpos );
         tripoint_abs_ms target_global( g->m.getabs( vpos ) );
         vehicle_connector_tile *grid_connection = active_tiles::furn_at<vehicle_connector_tile>
                 ( target_global );
@@ -9178,7 +9178,7 @@ int iuse::weather_tool( player *p, item *it, bool, const tripoint & )
 
     if( it->typeId() == itype_weather_reader ) {
         int vehwindspeed = 0;
-        if( optional_vpart_position vp = g->m.veh_at( p->pos() ) ) {
+        if( auto vp = g->m.veh_at( p->pos() ) ) {
             vehwindspeed = std::abs( vp->vehicle().velocity / 100 ); // For mph
         }
         const oter_id &cur_om_ter = overmap_buffer.ter( p->global_omt_location() );

@@ -960,7 +960,7 @@ bool Character::activate_bionic( bionic &bio, bool eff_only, bool *close_bionics
         add_msg_activate();
         // Calculate local wind power
         int vehwindspeed = 0;
-        if( optional_vpart_position vp = here.veh_at( pos() ) ) {
+        if( auto vp = here.veh_at( pos() ) ) {
             // vehicle velocity in mph
             vehwindspeed = std::abs( vp->vehicle().velocity / 100 );
         }
@@ -1281,7 +1281,7 @@ bool Character::burn_fuel( bionic &bio, bool start )
                             }
                         } else if( fuel == fuel_type_wind ) {
                             int vehwindspeed = 0;
-                            const optional_vpart_position vp = here.veh_at( pos() );
+                            const auto vp = here.veh_at( pos() );
                             if( vp ) {
                                 // vehicle velocity in mph
                                 vehwindspeed = std::abs( vp->vehicle().velocity / 100 );
@@ -1365,7 +1365,7 @@ void Character::passive_power_gen( bionic &bio )
             mod_power_level( units::from_kilojoule( fuel_energy ) * modifier * effective_passive_efficiency );
         } else if( fuel == fuel_type_wind ) {
             int vehwindspeed = 0;
-            const optional_vpart_position vp = here.veh_at( pos() );
+            const auto vp = here.veh_at( pos() );
             if( vp ) {
                 // vehicle velocity in mph
                 vehwindspeed = std::abs( vp->vehicle().velocity / 100 );
@@ -1426,7 +1426,7 @@ itype_id Character::find_remote_fuel( bool look_only )
             }
             continue;
         }
-        const optional_vpart_position vp = here.veh_at( *target );
+        const auto vp = here.veh_at( *target );
         if( !vp ) {
             continue;
         }
@@ -1451,7 +1451,7 @@ int Character::consume_remote_fuel( int amount )
     for( const item *cable : cables ) {
         const std::optional<tripoint> target = cable->get_cable_target( this, pos() );
         if( target ) {
-            const optional_vpart_position vp = here.veh_at( *target );
+            const auto vp = here.veh_at( *target );
             if( !vp ) {
                 continue;
             }

@@ -527,7 +527,7 @@ auto find_target_vehicle( monster &z, int range ) -> std::optional<tripoint>
                 if( !z.sees( i ) ||  here.floor_between( prev_point, i ) ) {
                     break;
                 }
-                optional_vpart_position vp = here.veh_at( i );
+                auto vp = here.veh_at( i );
                 if( vp && &vp->vehicle() == v.v ) {
                     int new_dist = rl_dist( z.pos(), i );
                     if( new_dist <= range ) {

@@ -85,8 +85,8 @@ void advanced_inv_area::init()
             off = g->u.grab_point;
             // Reset position because offset changed
             pos = g->u.pos() + off;
-            if( const std::optional<vpart_reference> vp = here.veh_at( pos ).part_with_feature( "CARGO",
-                    false ) ) {
+            const std::optional<vpart_reference> vp = here.veh_at( pos )->part_with_feature( "CARGO", false );
+            if( vp ) {
                 veh = &vp->vehicle();
                 vstor = vp->part_index();
             } else {

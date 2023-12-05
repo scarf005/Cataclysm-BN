@@ -408,7 +408,7 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
         angle_iff = true;
         // Player inside vehicle won't be hit by shots from the roof,
         // so we can fire "through" them just fine.
-        const optional_vpart_position vp = here.veh_at( u.pos() );
+        const auto vp = here.veh_at( u.pos() );
         if( in_veh && veh_pointer_or_null( vp ) == in_veh && vp->is_inside() ) {
             angle_iff = false; // No angle IFF, but possibly area IFF
         } else if( pldist < 3 ) {
@@ -448,7 +448,7 @@ Creature *Creature::auto_find_hostile_target( int range, int &boo_hoo, int area 
                 // Getting point on vehicle boundaries and on line between target and turret
                 bool continueFlag = true;
                 do {
-                    const optional_vpart_position vp = here.veh_at( path_to_target.back() );
+                    const auto vp = here.veh_at( path_to_target.back() );
                     vehicle *const veh = vp ? &vp->vehicle() : nullptr;
                     if( in_veh == veh ) {
                         continueFlag = false;

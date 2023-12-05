@@ -1856,7 +1856,7 @@ int map::move_cost( const tripoint &p, const vehicle *ignored_vehicle ) const
 
     const furn_t &furniture = furn( p ).obj();
     const ter_t &terrain = ter( p ).obj();
-    const optional_vpart_position vp = veh_at( p );
+    const auto vp = veh_at( p );
     vehicle *const veh = ( !vp || &vp->vehicle() == ignored_vehicle ) ? nullptr : &vp->vehicle();
     const int part = veh ? vp->part_index() : -1;
 
@@ -2315,7 +2315,7 @@ void map::drop_items( const tripoint &p )
 
 void map::drop_vehicle( const tripoint &p )
 {
-    const optional_vpart_position vp = veh_at( p );
+    const auto vp = veh_at( p );
     if( !vp ) {
         return;
     }
@@ -2383,7 +2383,7 @@ bool map::can_put_items( const tripoint &p ) const
     if( can_put_items_ter_furn( p ) ) {
         return true;
     }
-    const optional_vpart_position vp = veh_at( p );
+    const auto vp = veh_at( p );
     return static_cast<bool>( vp.part_with_feature( "CARGO", true ) );
 }
 
@@ -2433,7 +2433,7 @@ bool map::has_flag_furn( const ter_bitflags flag, const tripoint &p ) const
 
 bool map::has_flag_vpart( const std::string &flag, const tripoint &p ) const
 {
-    const optional_vpart_position vp = veh_at( p );
+    const auto vp = veh_at( p );
     return static_cast<bool>( vp.part_with_feature( flag, true ) );
 }
 
@@ -2582,7 +2582,7 @@ int map::bash_rating( const int str, const tripoint &p, const bool allow_floor )
 
     const furn_t &furniture = furn( p ).obj();
     const ter_t &terrain = ter( p ).obj();
-    const optional_vpart_position vp = veh_at( p );
+    const auto vp = veh_at( p );
     vehicle *const veh = vp ? &vp->vehicle() : nullptr;
     const int part = vp ? vp->part_index() : -1;
     return bash_rating_internal( str, furniture, terrain, allow_floor, veh, part );
@@ -2830,7 +2830,7 @@ bool map::has_nearby_fire( const tripoint &p, int radius )
 bool map::has_nearby_table( const tripoint &p, int radius )
 {
     for( const tripoint &pt : points_in_radius( p, radius ) ) {
-        const optional_vpart_position vp = veh_at( p );
+        const auto vp = veh_at( p );
         if( has_flag( "FLAT_SURF", pt ) ) {
             return true;
         }
@@ -2844,7 +2844,7 @@ bool map::has_nearby_table( const tripoint &p, int radius )
 bool map::has_nearby_chair( const tripoint &p, int radius )
 {
     for( const tripoint &pt : points_in_radius( p, radius ) ) {
-        const optional_vpart_position vp = veh_at( pt );
+        const auto vp = veh_at( pt );
         if( has_flag( "CAN_SIT", pt ) ) {
             return true;
         }
@@ -2889,7 +2889,7 @@ bool map::mop_spills( const tripoint &p )
         retval |= fld.remove_field( fid );
     }
 
-    if( const optional_vpart_position vp = veh_at( p ) ) {
+    if( const auto vp = veh_at( p ) ) {
         vehicle *const veh = &vp->vehicle();
         std::vector<int> parts_here = veh->parts_at_relative( vp->mount(), true );
         for( auto &elem : parts_here ) {
@@ -3684,7 +3684,7 @@ bash_results map::bash_vehicle( const tripoint &p, const bash_params &params )
 {
     bash_results result;
     // Smash vehicle if present
-    if( const optional_vpart_position vp = veh_at( p ) ) {
+    if( const auto vp = veh_at( p ) ) {
         vp->vehicle().damage( vp->part_index(), params.strength, DT_BASH );
         if( !params.silent ) {
             sounds::sound( p, 18, sounds::sound_t::combat, _( "crash!" ), false,
@@ -3760,7 +3760,7 @@ void map::crush( const tripoint &p )
     if( crushed_player != nullptr ) {
         bool player_inside = false;
         if( crushed_player->in_vehicle ) {
-            const optional_vpart_position vp = veh_at( p );
+            const auto vp = veh_at( p );
             player_inside = vp && vp->is_inside();
         }
         if( !player_inside ) { //If there's a player at p and he's not in a covered vehicle...
@@ -3800,7 +3800,7 @@ void map::crush( const tripoint &p )
         monhit->check_dead_state();
     }
 
-    if( const optional_vpart_position vp = veh_at( p ) ) {
+    if( const auto vp = veh_at( p ) ) {
         // Arbitrary number is better than collapsing house roof crushing APCs
         vp->vehicle().damage( vp->part_index(), rng( 100, 1000 ), DT_BASH, false );
     }
@@ -3828,7 +3828,7 @@ void map::shoot( const tripoint &p, projectile &proj, const bool hit_items )
 
     const bool inc = proj.has_effect( ammo_effect_INCENDIARY ) ||
                      proj.impact.type_damage( DT_HEAT ) > 0;
-    if( const optional_vpart_position vp = veh_at( p ) ) {
+    if( const auto vp = veh_at( p ) ) {
         dam = vp->vehicle().damage( vp->part_index(), dam, inc ? DT_HEAT : DT_STAB, hit_items );
     }
 
@@ -4011,7 +4011,7 @@ bool map::open_door( const tripoint &p, const bool inside, const bool check_only
         }
 
         return true;
-    } else if( const optional_vpart_position vp = veh_at( p ) ) {
+    } else if( const auto vp = veh_at( p ) ) {
         int openable = vp->vehicle().next_part_to_open( vp->part_index(), true );
         if( openable >= 0 ) {
             if( you.is_mounted() ) {
@@ -5099,7 +5099,7 @@ std::vector<detached_ptr<item>> map::use_charges( const tripoint &origin, const 
             }
         }
 
-        const optional_vpart_position vp = veh_at( p );
+        const auto vp = veh_at( p );
         if( !vp ) {
             continue;
         }
@@ -5643,7 +5643,7 @@ void map::add_splatter( const field_type_id &type, const tripoint &where, int in
         return;
     }
     if( type.obj().is_splattering ) {
-        if( const optional_vpart_position vp = veh_at( where ) ) {
+        if( const auto vp = veh_at( where ) ) {
             vehicle *const veh = &vp->vehicle();
             // Might be -1 if all the vehicle's parts at where are marked for removal
             const int part = veh->part_displayed_at( vp->mount() );

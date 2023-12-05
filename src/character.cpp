@@ -4354,7 +4354,7 @@ bool Character::in_climate_control()
     if( calendar::turn >= next_climate_control_check ) {
         // save CPU and simulate acclimation.
         next_climate_control_check = calendar::turn + 20_turns;
-        if( const optional_vpart_position vp = here.veh_at( pos() ) ) {
+        if( const auto vp = here.veh_at( pos() ) ) {
             // TODO: (?) Force player to scrounge together an AC unit
             regulated_area = (
                                  vp->is_inside() &&  // Already checks for opened doors
@@ -5722,7 +5722,7 @@ void Character::update_bodytemp( const map &m, const weather_manager &weather )
     int Ctemperature = static_cast<int>( 100 * units::fahrenheit_to_celsius( player_local_temp ) );
     const w_point &weather_point = get_weather().get_precise();
     int vehwindspeed = 0;
-    const optional_vpart_position vp = m.veh_at( pos() );
+    const auto vp = m.veh_at( pos() );
     if( vp ) {
         vehwindspeed = std::abs( vp->vehicle().velocity / 100 ); // vehicle velocity in mph
     }
@@ -10000,7 +10000,7 @@ int Character::floor_bedding_warmth( const tripoint &pos )
     const furn_id furn_at_pos = here.furn( pos );
     int floor_bedding_warmth = 0;
 
-    const optional_vpart_position vp = here.veh_at( pos );
+    const auto vp = here.veh_at( pos );
     const std::optional<vpart_reference> boardable = vp.part_with_feature( "BOARDABLE", true );
     // Search the floor for bedding
     if( furn_at_pos != f_null ) {
@@ -11424,7 +11424,7 @@ int Character::impact( const int force, const tripoint &p )
         // TODO: Modify based on something?
         mod = 1.0f;
         effective_force = force;
-    } else if( const optional_vpart_position vp = g->m.veh_at( p ) ) {
+    } else if( const auto vp = g->m.veh_at( p ) ) {
         // Slamming into vehicles
         // TODO: Integrate it with vehicle collision function somehow
         target_name = vp->vehicle().disp_name();

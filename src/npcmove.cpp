@@ -1161,7 +1161,7 @@ void npc::execute_action( npc_action action )
             break;
 
         case npc_follow_embarked: {
-            const optional_vpart_position vp = here.veh_at( player_character.pos() );
+            const auto vp = here.veh_at( player_character.pos() );
 
             if( !vp ) {
                 debugmsg( "Following an embarked player with no vehicle at their location?" );
@@ -2386,8 +2386,8 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
 
     // Boarding moving vehicles is fine, unboarding isn't
     bool moved = false;
-    if( const optional_vpart_position vp = here.veh_at( pos() ) ) {
-        const optional_vpart_position ovp = here.veh_at( p );
+    if( const auto vp = here.veh_at( pos() ) ) {
+        const auto ovp = here.veh_at( p );
         if( vp->vehicle().is_moving() &&
             ( veh_pointer_or_null( ovp ) != veh_pointer_or_null( vp ) ||
               !ovp.part_with_feature( VPFLAG_BOARDABLE, true ) ) ) {
@@ -2936,7 +2936,7 @@ void npc::find_item()
         // Prefetch the number of items present so we can bail out if we already checked here.
         const map_stack m_stack = here.i_at( p );
         int num_items = m_stack.size();
-        const optional_vpart_position vp = here.veh_at( p );
+        const auto vp = here.veh_at( p );
         if( vp ) {
             const std::optional<vpart_reference> cargo = vp.part_with_feature( VPFLAG_CARGO, true );
             if( cargo ) {

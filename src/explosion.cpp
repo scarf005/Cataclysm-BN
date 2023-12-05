@@ -638,7 +638,7 @@ void ExplosionProcess::project_shrapnel( const tripoint position )
 
     if( here.impassable( position ) ) {
         const int damage = fragment.impact.total_damage() * ExplosionConstants::SHRAPNEL_OBSTACLE_REDUCTION;
-        if( optional_vpart_position vp = here.veh_at( position ) ) {
+        if( auto vp = here.veh_at( position ) ) {
             vp->vehicle().damage( vp->part_index(), damage );
         } else {
             // Terrain should be affected by shrapnel less
@@ -1145,7 +1145,7 @@ static std::map<const Creature *, int> legacy_shrapnel( const tripoint &src,
         }
         if( here.impassable( target ) ) {
             int damage = proj.impact.total_damage();
-            if( optional_vpart_position vp = here.veh_at( target ) ) {
+            if( auto vp = here.veh_at( target ) ) {
                 vp->vehicle().damage( vp->part_index(), damage / 100 );
             } else {
                 here.bash( target, damage / 100, true );
@@ -1374,7 +1374,7 @@ static std::map<const Creature *, int> legacy_blast( const tripoint &p, const fl
             here.add_field( pt, fd_fire, intensity );
         }
 
-        if( const optional_vpart_position vp = here.veh_at( pt ) ) {
+        if( const auto vp = here.veh_at( pt ) ) {
             // TODO: Make this weird unit used by vehicle::damage more sensible
             vp->vehicle().damage( vp->part_index(), force, fire ? DT_HEAT : DT_BASH, false );
         }

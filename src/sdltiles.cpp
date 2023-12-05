@@ -2798,7 +2798,7 @@ static void CheckMessages()
 
                         // Check if we're near a vehicle, if so, vehicle controls should be top.
                         {
-                            const optional_vpart_position vp = here.veh_at( pos );
+                            const auto vp = here.veh_at( pos );
                             vehicle *const veh = veh_pointer_or_null( vp );
                             if( veh ) {
                                 const int veh_part = vp ? vp->part_index() : -1;

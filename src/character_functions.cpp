@@ -212,7 +212,7 @@ comfort_response_t base_comfort_value( const Character &who, const tripoint &p )
     bool watersleep = who.has_trait( trait_WATERSLEEP );
 
     map &here = get_map();
-    const optional_vpart_position vp = here.veh_at( p );
+    const auto vp = here.veh_at( p );
     const maptile tile = here.maptile_at( p );
     const trap &trap_at_pos = tile.get_trap_t();
     const ter_id ter_at_pos = tile.get_ter();

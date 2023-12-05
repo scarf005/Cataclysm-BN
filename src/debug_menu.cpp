@@ -2066,7 +2066,7 @@ void debug()
         break;
 
         case DEBUG_VEHICLE_BATTERY_CHARGE: {
-            optional_vpart_position v_part_pos = g->m.veh_at( u.pos() );
+            auto v_part_pos = g->m.veh_at( u.pos() );
             if( !v_part_pos ) {
                 add_msg( m_bad, _( "There's no vehicle there." ) );
                 break;
@@ -2089,7 +2089,7 @@ void debug()
             break;
         }
         case DEBUG_VEHICLE_EXPORT_JSON: {
-            const optional_vpart_position v_part_pos = g->m.veh_at( u.pos() );
+            const auto v_part_pos = g->m.veh_at( u.pos() );
             if( !v_part_pos ) {
                 add_msg( m_bad, _( "There's no vehicle there." ) );
                 break;

@@ -1163,7 +1163,7 @@ namespace weather
 
 bool is_sheltered( const map &m, const tripoint &p )
 {
-    const optional_vpart_position vp = m.veh_at( p );
+    const auto vp = m.veh_at( p );
 
     return ( !m.is_outside( p ) ||
              p.z < 0 ||

@@ -694,7 +694,7 @@ void sfx::do_vehicle_engine_sfx()
     } else if( player_character.in_sleep_state() && audio_muted ) {
         return;
     }
-    optional_vpart_position vpart_opt = get_map().veh_at( player_character.pos() );
+    auto vpart_opt = get_map().veh_at( player_character.pos() );
     vehicle *veh;
     if( vpart_opt.has_value() ) {
         veh = &vpart_opt->vehicle();

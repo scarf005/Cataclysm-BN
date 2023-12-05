@@ -645,7 +645,7 @@ bool vehicle::autodrive_controller::check_drivable( tripoint pt ) const
 
     // check if another vehicle is there; tiles occupied by the current
     // vehicle are evidently drivable
-    const optional_vpart_position ovp = here.veh_at( pt );
+    const auto ovp = here.veh_at( pt );
     if( ovp ) {
         // Known corner case: some furniture can be driven over, but will collide with
         // wheel parts; if the vehicle starts over such a furniture we'll mark that tile

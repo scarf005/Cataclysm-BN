@@ -571,7 +571,7 @@ void inventory::form_from_map( map &m, std::vector<tripoint> pts, const Characte
         // When a vehicle has multiple faucets in range, available water is
         //  multiplied by the number of faucets.
         // Same thing happens for all other tools and resources, but not cargo
-        const optional_vpart_position vp = m.veh_at( p );
+        const auto vp = m.veh_at( p );
         if( !vp ) {
             continue;
         }

@@ -1215,7 +1215,7 @@ int deploy_furn_actor::use( player &p, item &it, bool t, const tripoint &pos ) c
     }
 
     map &here = get_map();
-    optional_vpart_position veh_there = here.veh_at( pnt );
+    auto veh_there = here.veh_at( pnt );
     if( veh_there.has_value() ) {
         // TODO: check for protrusion+short furniture, wheels+tiny furniture, NOCOLLIDE flag, etc.
         // and/or integrate furniture deployment with construction (which already seems to perform these checks sometimes?)

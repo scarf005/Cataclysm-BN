@@ -34,7 +34,7 @@ auto temperature_flag_for_location( const map &m, const item &loc ) -> temperatu
         }
         case item_location_type::vehicle: {
             tripoint pos = loc.position();
-            optional_vpart_position veh = m.veh_at( pos );
+            auto veh = m.veh_at( pos );
             if( !veh ) {
                 debugmsg( "Expected vehicle at %d, %d, %d, but couldn't find any", pos.x, pos.y, pos.z );
                 return temperature_flag::TEMP_NORMAL;

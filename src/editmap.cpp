@@ -634,7 +634,7 @@ void editmap::draw_main_ui_overlay()
                         g->draw_item_override( map_p, itype_id::NULL_ID(), mtype_id::NULL_ID(),
                                                false );
                     }
-                    const optional_vpart_position vp = tmpmap.veh_at( tmp_p );
+                    const auto vp = tmpmap.veh_at( tmp_p );
                     if( vp ) {
                         const vehicle &veh = vp->vehicle();
                         const int veh_part = vp->part_index();
@@ -698,7 +698,7 @@ void editmap::update_view_with_help( const std::string &txt, const std::string &
     Character &player_character = get_player_character();
     map &here = get_map();
 
-    const optional_vpart_position vp = here.veh_at( target );
+    const auto vp = here.veh_at( target );
     std::string veh_msg;
     if( !vp ) {
         veh_msg = pgettext( "vehicle", "no" );

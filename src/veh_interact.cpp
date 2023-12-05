@@ -2158,7 +2158,7 @@ void veh_interact::move_cursor( point d, int dstart_at )
     const tripoint vehp = veh->global_pos3() + q;
     const bool has_critter = g->critter_at( vehp );
     bool obstruct = here.impassable_ter_furn( vehp );
-    const optional_vpart_position ovp = here.veh_at( vehp );
+    const auto ovp = here.veh_at( vehp );
     if( ovp && &ovp->vehicle() != veh ) {
         obstruct = true;
     }
@@ -2341,7 +2341,7 @@ void veh_interact::display_veh()
 
     const auto &here = get_map();
     bool obstruct = here.impassable_ter_furn( vehp );
-    const optional_vpart_position ovp = here.veh_at( vehp );
+    const auto ovp = here.veh_at( vehp );
     if( ovp && &ovp->vehicle() != veh ) {
         obstruct = true;
     }
@@ -3047,8 +3047,8 @@ void veh_interact::complete_vehicle( player &p )
     }
 
     map &here = get_map();
-    optional_vpart_position vp = here.veh_at( here.getlocal( tripoint( p.activity->values[0],
-                                 p.activity->values[1], p.activity->values[7] ) ) );
+    auto vp = here.veh_at( here.getlocal( tripoint( p.activity->values[0],
+                                          p.activity->values[1], p.activity->values[7] ) ) );
     if( !vp ) {
         // so the vehicle could have lost some of its parts from other NPCS works during this player/NPCs activity.
         // check the vehicle points that were stored at beginning of activity.

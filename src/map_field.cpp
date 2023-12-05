@@ -1226,7 +1226,7 @@ void map::player_in_field( player &u )
     // If we are in a vehicle figure out if we are inside (reduces effects usually)
     // and what part of the vehicle we need to deal with.
     if( u.in_vehicle ) {
-        if( const optional_vpart_position vp = veh_at( u.pos() ) ) {
+        if( const auto vp = veh_at( u.pos() ) ) {
             inside = vp->is_inside();
         }
     }
@@ -1571,7 +1571,7 @@ void map::creature_in_field( Creature &critter )
             // If we are in a vehicle figure out if we are inside (reduces effects usually)
             // and what part of the vehicle we need to deal with.
             if( in_vehicle ) {
-                if( const optional_vpart_position vp = veh_at( u->pos() ) ) {
+                if( const auto vp = veh_at( u->pos() ) ) {
                     if( vp->is_inside() ) {
                         inside_vehicle = true;
                     }

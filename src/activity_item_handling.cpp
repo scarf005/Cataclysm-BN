@@ -1325,7 +1325,7 @@ static bool are_requirements_nearby( const std::vector<tripoint> &loot_spots,
     // use nearby welding rig without needing to drag it or position yourself on the right side of the vehicle.
     if( !found_welder ) {
         for( const tripoint &elem : here.points_in_radius( src_loc, PICKUP_RANGE - 1 ) ) {
-            const optional_vpart_position vp = here.veh_at( elem );
+            const auto vp = here.veh_at( elem );
             if( vp ) {
                 vehicle &veh = vp->vehicle();
                 const std::optional<vpart_reference> weldpart = vp.part_with_feature( "WELDRIG", true );
@@ -3263,7 +3263,7 @@ bool find_auto_consume( player &p, const consume_type type )
         if( loc.z != p.pos().z ) {
             continue;
         }
-        const optional_vpart_position vp = here.veh_at( g->m.getlocal( loc ) );
+        const auto vp = here.veh_at( g->m.getlocal( loc ) );
         if( vp ) {
             vehicle &veh = vp->vehicle();
             const int index = veh.part_with_feature( vp->part_index(), "CARGO", false );

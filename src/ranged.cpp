@@ -787,7 +787,7 @@ auto is_mountable( const map &m, const tripoint &pos ) -> bool
         return true;
     }
 
-    if( const optional_vpart_position vp = m.veh_at( pos ) ) {
+    if( const auto vp = m.veh_at( pos ) ) {
         // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         return vp->vehicle().has_part( pos, "MOUNTABLE" );
     }
@@ -1776,7 +1776,7 @@ static void cycle_action( item &weap, const tripoint &pos )
     tripoint eject = tiles.empty() ? pos : random_entry( tiles );
 
     // for turrets try and drop casings or linkages directly to any CARGO part on the same tile
-    const optional_vpart_position vp = here.veh_at( pos );
+    const auto vp = here.veh_at( pos );
     std::vector<vehicle_part *> cargo;
     if( vp && weap.has_flag( flag_VEHICLE ) ) {
         cargo = vp->vehicle().get_parts_at( pos, "CARGO", part_status_flag::any );
@@ -1903,7 +1903,7 @@ item::sound_data item::gun_noise( const bool burst ) const
 
 static bool is_driving( const Character &p )
 {
-    const optional_vpart_position vp = get_map().veh_at( p.pos() );
+    const auto vp = get_map().veh_at( p.pos() );
     return vp && vp->vehicle().is_moving() && vp->vehicle().player_in_control( p );
 }
 
@@ -2092,7 +2092,7 @@ double ranged::recoil_vehicle( const Character &who )
     // TODO: vary penalty dependent upon vehicle part on which player is boarded
 
     if( who.in_vehicle ) {
-        if( const optional_vpart_position vp = get_map().veh_at( who.pos() ) ) {
+        if( const auto vp = get_map().veh_at( who.pos() ) ) {
             // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
             return static_cast<double>( std::abs( vp->vehicle().velocity ) ) * 3 / 100;
         }
@@ -3730,7 +3730,7 @@ bool ranged::gunmode_checks_common( avatar &you, const map &m, std::vector<std::
         result = false;
     }
 
-    const optional_vpart_position vp = m.veh_at( you.pos() );
+    const auto vp = m.veh_at( you.pos() );
     if( vp && vp->vehicle().player_in_control( you ) && ( gmode->is_two_handed( you ) ||
             gmode->has_flag( flag_FIRE_TWOHAND ) ) ) {
         messages.push_back( string_format( _( "You can't fire your %s while driving." ),

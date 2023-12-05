@@ -2208,7 +2208,7 @@ void activity_handlers::vehicle_finish( player_activity *act, player *p )
 {
     map &here = get_map();
     //Grab this now, in case the vehicle gets shifted
-    const optional_vpart_position vp = here.veh_at( here.getlocal( tripoint( act->values[0],
+    const auto vp = here.veh_at( here.getlocal( tripoint( act->values[0],
                                        act->values[1],
                                        act->values[7] ) ) );
     veh_interact::complete_vehicle( *p );
@@ -2537,7 +2537,7 @@ item *get_fake_tool( hack_type_t hack_type, const player_activity &activity )
 
     switch( hack_type ) {
         case hack_type_t::vehicle_weldrig: {
-            const optional_vpart_position pos = m.veh_at( position );
+            const auto pos = m.veh_at( position );
             if( !pos ) {
                 debugmsg( "Failed to find vehicle while using it for repair at %s", position.to_string() );
                 return fake_item;
@@ -2601,7 +2601,7 @@ void discharge_real_power_source(
     int unfulfilled_demand = 0;
     switch( hack_type ) {
         case hack_type_t::vehicle_weldrig: {
-            optional_vpart_position pos = m.veh_at( position );
+            auto pos = m.veh_at( position );
             if( !pos ) {
                 return;
             }

@@ -2196,7 +2196,7 @@ bool cata_tiles::draw_from_id_string( const std::string &id, TILE_CATEGORY categ
                     seed = simple_point_hash( mount );
                 }
             } else {
-                const optional_vpart_position vp = here.veh_at( pos );
+                const auto vp = here.veh_at( pos );
                 if( vp ) {
                     seed = simple_point_hash( vp->mount() );
                 }
@@ -2971,7 +2971,7 @@ bool cata_tiles::draw_vpart( const tripoint &p, lit_level ll, int &height_3d,
     const bool overridden = override != vpart_override.end();
     map &here = get_map();
     // first memorize the actual vpart
-    const optional_vpart_position vp = here.veh_at( p );
+    const auto vp = here.veh_at( p );
     if( vp && !invisible[0] ) {
         const vehicle &veh = vp->vehicle();
         int veh_part = vp->part_index();

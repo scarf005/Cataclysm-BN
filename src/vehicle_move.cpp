@@ -489,7 +489,7 @@ veh_collision vehicle::part_collision( int part, const tripoint &p,
     }
 
     map &here = get_map();
-    const optional_vpart_position ovp = here.veh_at( p );
+    const auto ovp = here.veh_at( p );
     // Disable vehicle/critter collisions when bashing floor
     // TODO: More elegant code
     const bool is_veh_collision = !bash_floor && ovp && &ovp->vehicle() != this;
@@ -1011,7 +1011,7 @@ bool vehicle::check_heli_descend( player &p )
             p.add_msg_if_player( _( "You are already landed!" ) );
             return false;
         }
-        const optional_vpart_position ovp = here.veh_at( below );
+        const auto ovp = here.veh_at( below );
         if( here.impassable_ter_furn( below ) || here.has_flag_ter_or_furn( TFLAG_RAMP_DOWN, below ) ||
             ovp || g->critter_at( below ) ) {
             p.add_msg_if_player( m_bad,

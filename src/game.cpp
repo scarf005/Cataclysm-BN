@@ -3293,7 +3293,7 @@ std::optional<tripoint> game::get_veh_dir_indicator_location( bool next ) const
     if( !get_option<bool>( "VEHICLE_DIR_INDICATOR" ) ) {
         return std::nullopt;
     }
-    const optional_vpart_position vp = m.veh_at( u.pos() );
+    const auto vp = m.veh_at( u.pos() );
     if( !vp ) {
         return std::nullopt;
     }
@@ -5103,7 +5103,7 @@ bool game::forced_door_closing( const tripoint &p, const ter_id &door_type, int 
             }
         }
     }
-    if( const optional_vpart_position vp = m.veh_at( p ) ) {
+    if( const auto vp = m.veh_at( p ) ) {
         if( bash_dmg <= 0 ) {
             return false;
         }
@@ -5167,7 +5167,7 @@ void game::toggle_gate( const tripoint &p )
 
 void game::moving_vehicle_dismount( const tripoint &dest_loc )
 {
-    const optional_vpart_position vp = m.veh_at( u.pos() );
+    const auto vp = m.veh_at( u.pos() );
     if( !vp ) {
         debugmsg( "Tried to exit non-existent vehicle." );
         return;
@@ -5202,7 +5202,7 @@ void game::control_vehicle()
     int veh_part = -1;
     vehicle *veh = remoteveh();
     if( veh == nullptr ) {
-        if( const optional_vpart_position vp = m.veh_at( u.pos() ) ) {
+        if( const auto vp = m.veh_at( u.pos() ) ) {
             veh = &vp->vehicle();
             veh_part = vp->part_index();
         }
@@ -5243,7 +5243,7 @@ void game::control_vehicle()
         std::optional<tripoint> vehicle_position;
         std::optional<vpart_reference> vehicle_controls;
         for( const tripoint elem : m.points_in_radius( g->u.pos(), 1 ) ) {
-            if( const optional_vpart_position vp = m.veh_at( elem ) ) {
+            if( const auto vp = m.veh_at( elem ) ) {
                 const std::optional<vpart_reference> controls = vp.value().part_with_feature( "CONTROLS", true );
                 if( controls ) {
                     num_valid_controls++;
@@ -5260,7 +5260,7 @@ void game::control_vehicle()
             if( !vehicle_position ) {
                 return;
             }
-            const optional_vpart_position vp = m.veh_at( *vehicle_position );
+            const auto vp = m.veh_at( *vehicle_position );
             if( vp ) {
                 vehicle_controls = vp.value().part_with_feature( "CONTROLS", true );
                 if( !vehicle_controls ) {
@@ -5409,7 +5409,7 @@ void game::examine()
 {
     // if we are driving a vehicle, examine the
     // current tile without asking.
-    const optional_vpart_position vp = m.veh_at( u.pos() );
+    const auto vp = m.veh_at( u.pos() );
     if( vp && vp->vehicle().player_in_control( u ) ) {
         examine( u.pos() );
         return;
@@ -5549,7 +5549,7 @@ void game::examine( const tripoint &examp )
         }
     }
 
-    const optional_vpart_position vp = m.veh_at( examp );
+    const auto vp = m.veh_at( examp );
     if( vp && u.is_mounted() ) {
         if( !u.mounted_creature->has_flag( MF_RIDEABLE_MECH ) ) {
             add_msg( m_warning, _( "You cannot interact with a vehicle while mounted." ) );
@@ -5787,7 +5787,7 @@ void game::print_all_tile_info( const tripoint &lp, const catacurses::window &w_
     const Creature *creature = critter_at( lp, true );
     switch( visibility ) {
         case VIS_CLEAR: {
-            const optional_vpart_position vp = m.veh_at( lp );
+            const auto vp = m.veh_at( lp );
             print_terrain_info( lp, w_look, area_name, column, line );
             print_fields_info( lp, w_look, column, line );
             print_trap_info( lp, w_look, column, line );
@@ -8836,8 +8836,8 @@ bool game::walk_move( const tripoint &dest_loc, const bool via_ramp )
             return false;
         }
     }
-    const optional_vpart_position vp_here = m.veh_at( u.pos() );
-    const optional_vpart_position vp_there = m.veh_at( dest_loc );
+    const auto vp_here = m.veh_at( u.pos() );
+    const auto vp_there = m.veh_at( dest_loc );
 
     bool pushing = false; // moving -into- grabbed tile; skip check for move_cost > 0
     bool pulling = false; // moving -away- from grabbed tile; check for move_cost > 0
@@ -9132,7 +9132,7 @@ bool game::walk_move( const tripoint &dest_loc, const bool via_ramp )
 
 point game::place_player( const tripoint &dest_loc )
 {
-    const optional_vpart_position vp1 = m.veh_at( dest_loc );
+    const auto vp1 = m.veh_at( dest_loc );
     if( const std::optional<std::string> label = vp1.get_label() ) {
         add_msg( m_info, _( "Label here: %s" ), *label );
     }

@@ -212,7 +212,7 @@ bool map::build_vision_transparency_cache( const Character &player )
             return veh->obstacle_at_position( p ) == -1 && ( veh->part_with_feature( p,  "AISLE", true ) != -1 || veh->part_with_feature( p,  "PROTRUSION", true ) != -1 );
         };
 
-        const optional_vpart_position player_vp = veh_at( p );
+        const auto player_vp = veh_at( p );
 
         point player_mount;
         if( player_vp ) {
@@ -230,7 +230,7 @@ bool map::build_vision_transparency_cache( const Character &player )
             } else {
                 if( std::find( four_diagonal_offsets.begin(), four_diagonal_offsets.end(),
                                adjacent ) != four_diagonal_offsets.end() ) {
-                    const optional_vpart_position adjacent_vp = veh_at( p + adjacent );
+                    const auto adjacent_vp = veh_at( p + adjacent );
 
                     point adjacent_mount;
                     if( adjacent_vp ) {
@@ -1652,7 +1652,7 @@ void map::build_seen_cache( const tripoint &origin, const int target_z )
                                            blocked_restore_cache );
     }
 
-    const optional_vpart_position vp = veh_at( origin );
+    const auto vp = veh_at( origin );
     if( !vp ) {
         return;
     }

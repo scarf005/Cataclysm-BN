@@ -50,7 +50,7 @@ namespace avatar_funcs
 void try_to_sleep( avatar &you, const time_duration &dur )
 {
     map &here = get_map();
-    const optional_vpart_position vp = here.veh_at( you.pos() );
+    const auto vp = here.veh_at( you.pos() );
     const trap &trap_at_pos = here.tr_at( you.pos() );
     const ter_id ter_at_pos = here.ter( you.pos() );
     const furn_id furn_at_pos = here.furn( you.pos() );

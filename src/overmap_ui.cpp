@@ -1905,7 +1905,7 @@ static std::vector<tripoint_abs_omt> get_overmap_path_to( const tripoint_abs_omt
     overmap_path_params params;
     vehicle *player_veh = nullptr;
     if( driving ) {
-        const optional_vpart_position vp = here.veh_at( player_character.pos() );
+        const auto vp = here.veh_at( player_character.pos() );
         if( !vp.has_value() ) {
             debugmsg( "Failed to find driven vehicle" );
             return {};

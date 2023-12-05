@@ -567,7 +567,7 @@ void pickup::pick_up( const tripoint &p, int min, from_where get_items_from )
 {
     int cargo_part = -1;
 
-    const optional_vpart_position vp = g->m.veh_at( p );
+    const auto vp = g->m.veh_at( p );
     vehicle *const veh = veh_pointer_or_null( vp );
     bool from_vehicle = false;
 

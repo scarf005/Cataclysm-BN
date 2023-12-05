@@ -271,7 +271,7 @@ void doors::close_door( map &m, Character &who, const tripoint &closep )
         return;
     }
 
-    if( optional_vpart_position vp = m.veh_at( closep ) ) {
+    if( auto vp = m.veh_at( closep ) ) {
         vehicle *const veh = &vp->vehicle();
         const int vpart = vp->part_index();
         const int closable = veh->next_part_to_close( vpart,

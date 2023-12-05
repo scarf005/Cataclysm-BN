@@ -456,7 +456,7 @@ static void pldrive( const tripoint &p )
     int part = -1;
     map &here = get_map();
     if( !veh ) {
-        if( const optional_vpart_position vp = here.veh_at( u.pos() ) ) {
+        if( const auto vp = here.veh_at( u.pos() ) ) {
             veh = &vp->vehicle();
             part = vp->part_index();
         }
@@ -528,7 +528,7 @@ static void open()
 
     u.moves -= 100;
 
-    if( const optional_vpart_position vp = here.veh_at( openp ) ) {
+    if( const auto vp = here.veh_at( openp ) ) {
         vehicle *const veh = &vp->vehicle();
         int openable = veh->next_part_to_open( vp->part_index() );
         if( openable >= 0 ) {
@@ -607,7 +607,7 @@ static void grab()
     map &here = get_map();
 
     if( you.get_grab_type() != OBJECT_NONE ) {
-        if( const optional_vpart_position vp = here.veh_at( you.pos() + you.grab_point ) ) {
+        if( const auto vp = here.veh_at( you.pos() + you.grab_point ) ) {
             add_msg( _( "You release the %s." ), vp->vehicle().name );
         } else if( here.has_furn( you.pos() + you.grab_point ) ) {
             add_msg( _( "You release the %s." ), here.furnname( you.pos() + you.grab_point ) );
@@ -629,7 +629,7 @@ static void grab()
         you.grab( OBJECT_NONE );
         return;
     }
-    if( const optional_vpart_position vp = here.veh_at( grabp ) ) {
+    if( const auto vp = here.veh_at( grabp ) ) {
         if( !vp->vehicle().handle_potential_theft( get_avatar() ) ) {
             return;
         }
@@ -1336,7 +1336,7 @@ static void fire()
     // Use vehicle turret or draw a pistol from a holster if unarmed
     if( !u.is_armed() ) {
 
-        const optional_vpart_position vp = here.veh_at( u.pos() );
+        const auto vp = here.veh_at( u.pos() );
 
         turret_data turret;
         if( vp && ( turret = vp->vehicle().turret_query( u.pos() ) ) ) {
@@ -1551,7 +1551,7 @@ bool game::handle_action()
         ctxt = get_player_input( action );
     }
 
-    const optional_vpart_position vp = m.veh_at( u.pos() );
+    const auto vp = m.veh_at( u.pos() );
     bool veh_ctrl = !u.is_dead_state() &&
                     ( ( vp && vp->vehicle().player_in_control( u ) ) || remoteveh() != nullptr );
 

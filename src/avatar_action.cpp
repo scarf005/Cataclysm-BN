@@ -324,9 +324,9 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
 
     // GRAB: pre-action checking.
     int dpart = -1;
-    const optional_vpart_position vp0 = m.veh_at( you.pos() );
+    const auto vp0 = m.veh_at( you.pos() );
     vehicle *const veh0 = veh_pointer_or_null( vp0 );
-    const optional_vpart_position vp1 = m.veh_at( dest_loc );
+    const auto vp1 = m.veh_at( dest_loc );
     vehicle *const veh1 = veh_pointer_or_null( vp1 );
 
     bool veh_closed_door = false;
