@@ -3,6 +3,7 @@
 #define CATA_SRC_CATA_ALGO_H
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <cassert>
 #include <optional>
@@ -131,13 +132,14 @@ std::vector<std::vector<T>>
 ///
 /// @remark poor person's https://en.cppreference.com/w/cpp/utility/optional/transform
 template <typename T, typename Fn>
-inline auto transform( std::optional<T> &&opt,
-                       Fn &&f ) -> std::optional<std::invoke_result_t<Fn, T>>
+inline auto transform( std::optional<T> &&opt, Fn &&f )
 {
+    using U = decltype( f( *opt ) );
+
     if( opt ) {
-        return std::optional{f( *opt )};
+        return static_cast<std::optional<U>>( std::optional{f( *opt )} );
     }
-    return std::nullopt;
+    return static_cast<std::optional<U>>( std::nullopt );
 }
 
 /// @brief and_then: `optional T -> (T -> optional U) -> optional U`
@@ -148,12 +150,14 @@ inline auto transform( std::optional<T> &&opt,
 ///
 /// @remark poor person's https://en.cppreference.com/w/cpp/utility/optional/and_then
 template <typename T, typename Fn>
-inline auto and_then( std::optional<T> &&opt, Fn &&f ) -> std::optional<std::invoke_result_t<Fn, T>>
+inline auto and_then( std::optional<T> &&opt, Fn &&f )
 {
+    using U = decltype( f( *opt ) );
+
     if( opt ) {
-        return f( *opt );
+        return static_cast<U>( f( *opt ) );
     }
-    return std::nullopt;
+    return  static_cast<U>( std::nullopt );
 }
 
 /// @brief is_some_and: `optional T -> (T -> bool) -> bool`
