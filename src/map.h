@@ -54,7 +54,7 @@ class field_entry;
 class map_cursor;
 class mapgendata;
 class monster;
-class optional_vpart_position;
+class vpart_position;
 class player;
 class submap;
 template<typename Tripoint>
@@ -730,8 +730,8 @@ class map
         *
         * @param p Tile to check for vehicle
         */
-        optional_vpart_position veh_at( const tripoint &p ) const;
-        optional_vpart_position veh_at( const tripoint_abs_ms &p ) const;
+        auto veh_at( const tripoint &p ) const -> std::optional<vpart_position>;
+        auto veh_at( const tripoint_abs_ms &p ) const -> std::optional<vpart_position>;
         vehicle *veh_at_internal( const tripoint &p, int &part_num );
         const vehicle *veh_at_internal( const tripoint &p, int &part_num ) const;
         // Put player on vehicle at x,y

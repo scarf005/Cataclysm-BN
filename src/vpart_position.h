@@ -96,26 +96,6 @@ class vpart_position
 };
 
 /**
- * Simple wrapper to forward functions that may return a @ref std::optional
- * to @ref vpart_position. They generally return an empty `optional`, or
- * forward to the same function in `vpart_position`.
- */
-class optional_vpart_position : public std::optional<vpart_position>
-{
-    public:
-        optional_vpart_position( std::optional<vpart_position> p ) : std::optional<vpart_position>
-            ( std::move( p ) ) { }
-
-        std::optional<std::string> get_label() const {
-            return has_value() ? value().get_label() : std::nullopt;
-        }
-        std::optional<vpart_reference> part_with_feature( const std::string &f, bool unbroken ) const;
-        std::optional<vpart_reference> part_with_feature( vpart_bitflags f, bool unbroken ) const;
-        std::optional<vpart_reference> obstacle_at_part() const;
-        std::optional<vpart_reference> part_displayed() const;
-};
-
-/**
  * This is a wrapper over a vehicle pointer and a reference to a part of it.
  *
  * The class does not support an "invalid" state, it is created from a
@@ -150,12 +130,5 @@ class vpart_reference : public vpart_position
         /// Returns the passenger in this part, or nullptr if no passenger.
         player *get_passenger() const;
 };
-
-// For legacy code, phase out, don't use in new code.
-// TODO: remove this
-inline vehicle *veh_pointer_or_null( const optional_vpart_position &p )
-{
-    return p ? &p->vehicle() : nullptr;
-}
 
 #endif // CATA_SRC_VPART_POSITION_H

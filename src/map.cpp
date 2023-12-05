@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cata_algo.h>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
@@ -757,9 +758,13 @@ vehicle *map::move_vehicle( vehicle &veh, const tripoint &dp, const tileray &fac
         veh.stop();
     }
     veh.check_falling_or_floating();
-    // If the PC is in the currently moved vehicle, adjust the
-    //  view offset.
-    if( g->u.controlling_vehicle && veh_pointer_or_null( veh_at( g->u.pos() ) ) == &veh ) {
+
+    // If the PC is in the currently moved vehicle, adjust the view offset.
+    const bool is_you_driving = g->u.controlling_vehicle
+                                && cata::is_some_and( veh_at( g->u.pos() ),
+                                        [&veh]( const vpart_position & my_veh ) -> bool { return &my_veh.vehicle() == &veh; } );
+
+    if( is_you_driving ) {
         g->calc_driving_offset( &veh );
         if( veh.skidding && can_move ) {
             // TODO: Make skid recovery in air hard
@@ -1066,23 +1071,23 @@ VehicleList map::get_vehicles( const tripoint &start, const tripoint &end )
     return vehs;
 }
 
-optional_vpart_position map::veh_at( const tripoint_abs_ms &p ) const
+auto map::veh_at( const tripoint_abs_ms &p ) const  -> std::optional<vpart_position>
 {
     return veh_at( getlocal( p ) );
 }
 
-optional_vpart_position map::veh_at( const tripoint &p ) const
+auto map::veh_at( const tripoint &p ) const -> std::optional<vpart_position>
 {
     if( !inbounds( p ) || !const_cast<map *>( this )->get_cache( p.z ).veh_in_active_range ) {
-        return optional_vpart_position( std::nullopt );
+        return std::nullopt;
     }
 
     int part_num = 1;
     vehicle *const veh = const_cast<map *>( this )->veh_at_internal( p, part_num );
     if( !veh ) {
-        return optional_vpart_position( std::nullopt );
+        return std::nullopt;
     }
-    return optional_vpart_position( vpart_position( *veh, part_num ) );
+    return vpart_position( *veh, part_num );
 
 }
 

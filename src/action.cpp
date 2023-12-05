@@ -1,6 +1,7 @@
 #include "action.h"
 
 #include <algorithm>
+#include <cata_algo.h>
 #include <climits>
 #include <istream>
 #include <iterator>
@@ -623,30 +624,44 @@ bool can_examine_at( const tripoint &p )
     return here.can_see_trap_at( p, u );
 }
 
-static bool can_pickup_at( const tripoint &p )
+namespace
 {
-    bool veh_has_items = false;
+
+auto can_pickup_at( const tripoint &p ) ->  bool
+{
     map &here = get_map();
-    const optional_vpart_position vp = here.veh_at( p );
-    if( vp ) {
-        const int cargo_part = vp->vehicle().part_with_feature( vp->part_index(), "CARGO", false );
-        veh_has_items = cargo_part >= 0 && !vp->vehicle().get_items( cargo_part ).empty();
-    }
+
+    const bool veh_has_items = cata::is_some_and( here.veh_at( p ),
+    [&]( const vpart_position & vp ) -> bool {
+        const int cargo_part = vp.vehicle().part_with_feature( vp.part_index(), "CARGO", false );
+
+        return cargo_part >= 0 && !vp.vehicle().get_items( cargo_part ).empty();
+    } );
+
     return ( here.has_items( p ) && !here.has_flag( flag_SEALED, p ) ) || veh_has_items;
 }
 
-bool can_interact_at( action_id action, const tripoint &p )
+} //namespace
+
+auto can_interact_at( action_id action, const tripoint &p ) -> bool
 {
     map &here = get_map();
+    const bool is_outside = here.is_outside( g->u.pos() );
+
     switch( action ) {
         case ACTION_OPEN:
-            return here.open_door( p, !here.is_outside( g->u.pos() ), true );
+            return here.open_door( p, !is_outside, true );
         case ACTION_CLOSE: {
-            const optional_vpart_position vp = here.veh_at( p );
-            return ( vp &&
-                     vp->vehicle().next_part_to_close( vp->part_index(),
-                             veh_pointer_or_null( here.veh_at( g->u.pos() ) ) != &vp->vehicle() ) >= 0 ) ||
-                   here.close_door( p, !here.is_outside( g->u.pos() ), true );
+            auto yvp = here.veh_at( g->u.pos() );
+            auto vp = here.veh_at( p );
+
+            if( !vp ) {
+                return false;
+            }
+            const bool outside = yvp && ( &yvp->vehicle() == &vp->vehicle() );
+
+            return vp->vehicle().next_part_to_close( vp->part_index(), outside ) >= 0
+                   || here.close_door( p, !is_outside, true );
         }
         case ACTION_BUTCHER:
             return can_butcher_at( p );

@@ -1532,7 +1532,7 @@ void activity_handlers::fill_liquid_do_turn( player_activity *act, player *p )
         // 2. Transfer charges.
         switch( static_cast<liquid_target_type>( act_ref.values.at( 2 ) ) ) {
             case LTT_VEHICLE:
-                if( const optional_vpart_position vp = here.veh_at( act_ref.coords.at( 1 ) ) ) {
+                if( const auto vp = here.veh_at( act_ref.coords.at( 1 ) ) ) {
                     finished = transfer( [&p, &vp]( detached_ptr<item> &&it ) {
                         return p->pour_into( vp->vehicle(), std::move( it ) );
                     } );
@@ -1728,7 +1728,7 @@ void activity_handlers::game_do_turn( player_activity *act, player *p )
 void activity_handlers::hotwire_finish( player_activity *act, player *p )
 {
     //Grab this now, in case the vehicle gets shifted
-    if( const optional_vpart_position vp = g->m.veh_at( g->m.getlocal( tripoint( act->values[0],
+    if( const auto vp = g->m.veh_at( g->m.getlocal( tripoint( act->values[0],
                                            act->values[1],
                                            p->posz() ) ) ) ) {
         vehicle *const veh = &vp->vehicle();
