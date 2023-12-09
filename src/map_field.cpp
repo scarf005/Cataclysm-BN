@@ -29,6 +29,7 @@
 #include "fire.h"
 #include "fungal_effects.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
@@ -860,7 +861,7 @@ void map::process_fields_in_submap( submap *const current_submap,
                     cur_fd_type.npc_complain_data;
                 const int chance = std::get<0>( npc_complain_data );
                 if( chance > 0 && one_in( chance ) ) {
-                    if( npc *const np = g->critter_at<npc>( p, false ) ) {
+                    if( npc *const np = critter_at<npc>( p, false ) ) {
                         np->complain_about( std::get<1>( npc_complain_data ),
                                             std::get<2>( npc_complain_data ),
                                             std::get<3>( npc_complain_data ) );
@@ -1007,7 +1008,7 @@ void map::process_fields_in_submap( submap *const current_submap,
                                     get_avatar().check_dead_state();
                                 }
 
-                                if( npc *const p = g->critter_at<npc>( newp ) ) {
+                                if( npc *const p = critter_at<npc>( newp ) ) {
                                     // TODO: combine with player character code above
                                     const bodypart_id hit = get_avatar().get_random_body_part();
                                     p->deal_damage( nullptr, hit, damage_instance( DT_BASH, 6 ) );
@@ -1015,7 +1016,7 @@ void map::process_fields_in_submap( submap *const current_submap,
                                         add_msg( _( "A %1$s hits %2$s!" ), tmp.tname(), p->name );
                                     }
                                     p->check_dead_state();
-                                } else if( monster *const mon = g->critter_at<monster>( newp ) ) {
+                                } else if( monster *const mon = critter_at<monster>( newp ) ) {
                                     mon->apply_damage( nullptr, bodypart_id( "torso" ),
                                                        6 - mon->get_armor_bash( bodypart_id( "torso" ) ) );
                                     if( get_avatar().sees( newp ) ) {

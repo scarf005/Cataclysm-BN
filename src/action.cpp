@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "iexamine.h"
 #include "input.h"
 #include "item.h"
@@ -618,7 +619,7 @@ bool can_examine_at( const tripoint &p )
         return true;
     }
 
-    Creature *c = g->critter_at( p );
+    Creature *c = critter_at( p );
     if( c != nullptr && p != u.pos() ) {
         return true;
     }

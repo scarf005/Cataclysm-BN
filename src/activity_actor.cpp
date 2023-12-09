@@ -24,6 +24,7 @@
 #include "field_type.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "gates.h"
 #include "iexamine.h"
 #include "int_id.h"
@@ -1374,7 +1375,7 @@ std::optional<tripoint> lockpick_activity_actor::select_location( avatar &you )
     const ter_id terr_type = get_map().ter( *target );
     if( *target == you.pos() ) {
         you.add_msg_if_player( m_info, _( "You pick your nose and your sinuses swing open." ) );
-    } else if( g->critter_at<npc>( *target ) ) {
+    } else if( critter_at<npc>( *target ) ) {
         you.add_msg_if_player( m_info,
                                _( "You can pick your friends, and you can pick your nose, but you can't pick your friend's nose." ) );
     } else if( !terr_type->open.is_null() ) {

@@ -21,6 +21,7 @@
 #include "explosion.h"
 #include "field_type.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "input.h"
@@ -422,7 +423,7 @@ void computer_session::action_terminate()
     g->events().send<event_type::terminates_subspace_specimens>();
     map &here = get_map();
     for( const tripoint &p : here.points_on_zlevel() ) {
-        monster *const mon = g->critter_at<monster>( p );
+        monster *const mon = critter_at<monster>( p );
         if( !mon ) {
             continue;
         }

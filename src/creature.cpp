@@ -22,6 +22,7 @@
 #include "event_bus.h"
 #include "field.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
@@ -1538,7 +1539,7 @@ void Creature::set_killer( Creature *nkiller )
     // Only the first killer will be stored, calling set_killer again with a different
     // killer would mean it's called on a dead creature and therefore ignored.
     if( !get_killer() && nkiller && !nkiller->is_fake() ) {
-        killer = g->shared_from( *nkiller );
+        killer = shared_from( *nkiller );
     }
 }
 

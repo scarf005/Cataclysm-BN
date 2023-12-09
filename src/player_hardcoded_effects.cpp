@@ -16,6 +16,7 @@
 #include "event_bus.h"
 #include "field_type.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "int_id.h"
 #include "map.h"
 #include "map_iterator.h"
@@ -727,7 +728,7 @@ void Character::hardcoded_effects( effect &it )
                     if( tries >= 10 ) {
                         break;
                     }
-                } while( g->critter_at( dest ) );
+                } while( critter_at( dest ) );
                 if( tries < 10 ) {
                     if( get_map().impassable( dest ) ) {
                         get_map().make_rubble( dest, f_rubble_rock );
@@ -912,7 +913,7 @@ void Character::hardcoded_effects( effect &it )
         set_num_blocks_bonus( get_num_blocks_bonus() - 1 );
         int zed_number = 0;
         for( auto &dest : get_map().points_in_radius( pos(), 1, 0 ) ) {
-            const monster *const mon = g->critter_at<monster>( dest );
+            const monster *const mon = critter_at<monster>( dest );
             if( mon && mon->has_effect( effect_grabbing ) ) {
                 zed_number += mon->get_grab_strength();
             }

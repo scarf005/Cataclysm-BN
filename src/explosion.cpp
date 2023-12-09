@@ -32,6 +32,7 @@
 #include "flat_set.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
@@ -604,7 +605,7 @@ void ExplosionProcess::project_shrapnel( const tripoint position )
     projectile fragment = shrapnel.value();
     fragment.add_effect( ammo_effect_NULL_SOURCE );
 
-    auto critter = g->critter_at( position );
+    auto critter = critter_at( position );
     if( critter && !critter->is_dead_state() ) {
         int damage_taken = 0;
         const auto bps = critter->get_all_body_parts( true );
@@ -679,7 +680,7 @@ void ExplosionProcess::blast_tile( const tripoint position, const int rl_distanc
 
         // Damage creatures. Done first to reduce the amount of flung enemies.
         {
-            Creature *critter = g->critter_at( position );
+            Creature *critter = critter_at( position );
 
             if( critter != nullptr && !mobs_blasted.count( critter ) ) {
                 const int blast_damage = blast_power * critter_blast_percentage( critter, blast_radius,
@@ -729,7 +730,7 @@ void ExplosionProcess::blast_tile( const tripoint position, const int rl_distanc
 
         // Fling creatures
         {
-            Creature *critter = g->critter_at( position );
+            Creature *critter = critter_at( position );
 
             if( critter != nullptr && !flung_set.count( critter ) ) {
                 const int push_strength = ( blast_radius - rl_distance ) * blast_power;
@@ -942,7 +943,7 @@ void ExplosionProcess::move_entity( const tripoint position,
                                                     position.z );
             if( !here.inbounds( maybe_new_position ) ||
                 here.impassable( maybe_new_position ) ||
-                ( is_mob && maybe_new_position != position && g->critter_at( maybe_new_position ) ) ||
+                ( is_mob && maybe_new_position != position && critter_at( maybe_new_position ) ) ||
                 here.obstructed_by_vehicle_rotation( position, maybe_new_position ) ) {
                 // TODO: Bash the obstacle with whatever is flung?
 
@@ -1111,7 +1112,7 @@ static std::map<const Creature *, int> legacy_shrapnel( const tripoint &src,
         if( visited_cache[target.x][target.y] <= 0.0f || rl_dist( src, target ) > fragment.range ) {
             continue;
         }
-        auto critter = g->critter_at( target );
+        auto critter = critter_at( target );
         if( critter && !critter->is_dead_state() ) {
             // dealt_dag->m.total_damage() == 0 means armor block
             // dealt_dag->m.total_damage() > 0 means took damage
@@ -1379,7 +1380,7 @@ static std::map<const Creature *, int> legacy_blast( const tripoint &p, const fl
             vp->vehicle().damage( vp->part_index(), force, fire ? DT_HEAT : DT_BASH, false );
         }
 
-        Creature *critter = g->critter_at( pt, true );
+        Creature *critter = critter_at( pt, true );
         if( critter == nullptr ) {
             continue;
         }
@@ -1628,7 +1629,7 @@ void explosion_funcs::shockwave( const queued_explosion &qe )
 
 void scrambler_blast( const tripoint &p )
 {
-    if( monster *const mon_ptr = g->critter_at<monster>( p ) ) {
+    if( monster *const mon_ptr = critter_at<monster>( p ) ) {
         monster &critter = *mon_ptr;
         if( critter.has_flag( MF_ELECTRONIC ) ) {
             critter.make_friendly();
@@ -1679,7 +1680,7 @@ void emp_blast( const tripoint &p )
             }
         }
     }
-    if( monster *const mon_ptr = g->critter_at<monster>( p ) ) {
+    if( monster *const mon_ptr = critter_at<monster>( p ) ) {
         monster &critter = *mon_ptr;
         if( critter.has_flag( MF_ELECTRONIC ) ) {
             int deact_chance = 0;

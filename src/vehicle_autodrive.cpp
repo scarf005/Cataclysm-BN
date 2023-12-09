@@ -23,6 +23,7 @@
 #include "debug.h"
 #include "enums.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "hash_utils.h"
 #include "map.h"
 #include "map_iterator.h"
@@ -675,7 +676,7 @@ bool vehicle::autodrive_controller::check_drivable( tripoint pt ) const
 
     // check for creatures
     // TODO: padding around monsters
-    Creature *critter = g->critter_at( pt, true );
+    Creature *critter = critter_at( pt, true );
     if( critter && driver.sees( *critter ) ) {
         return false;
     }

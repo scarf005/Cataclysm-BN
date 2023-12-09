@@ -21,6 +21,7 @@
 #include "field_type.h"
 #include "fungal_effects.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "harvest.h"
 #include "item.h"
 #include "item_group.h"
@@ -278,7 +279,7 @@ void mdeath::boomer( monster &z )
     sounds::sound( z.pos(), 24, sounds::sound_t::combat, explode, false, "explosion", "small" );
     for( const tripoint &dest : get_map().points_in_radius( z.pos(), 1 ) ) { // *NOPAD*
         get_map().bash( dest, 10 );
-        if( monster *const target = g->critter_at<monster>( dest ) ) {
+        if( monster *const target = critter_at<monster>( dest ) ) {
             target->stumble();
             target->moves -= 250;
         }
@@ -298,11 +299,11 @@ void mdeath::boomer_glow( monster &z )
 
     for( const tripoint &dest : get_map().points_in_radius( z.pos(), 1 ) ) { // *NOPAD*
         get_map().bash( dest, 10 );
-        if( monster *const target = g->critter_at<monster>( dest ) ) {
+        if( monster *const target = critter_at<monster>( dest ) ) {
             target->stumble();
             target->moves -= 250;
         }
-        if( Creature *const critter = g->critter_at( dest ) ) {
+        if( Creature *const critter = critter_at( dest ) ) {
             critter->add_env_effect( effect_boomered, bp_eyes, 5, 25_turns );
             for( int i = 0; i < rng( 2, 4 ); i++ ) {
                 body_part bp = random_body_part();
@@ -349,7 +350,7 @@ void mdeath::vine_cut( monster &z )
         if( tmp == z.pos() ) {
             continue; // Skip ourselves
         }
-        if( monster *const neighbor = g->critter_at<monster>( tmp ) ) {
+        if( monster *const neighbor = critter_at<monster>( tmp ) ) {
             if( neighbor->type->id == mon_creeper_vine ) {
                 vines.push_back( neighbor );
             }
@@ -361,7 +362,7 @@ void mdeath::vine_cut( monster &z )
         for( const tripoint &dest : get_map().points_in_radius( vine->pos(), 1 ) ) {
             if( dest != z.pos() ) {
                 // Not the dying vine
-                if( monster *const v = g->critter_at<monster>( dest ) ) {
+                if( monster *const v = critter_at<monster>( dest ) ) {
                     if( v->type->id == mon_creeper_hub || v->type->id == mon_creeper_vine ) {
                         found_neighbor = true;
                         break;

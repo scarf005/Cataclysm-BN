@@ -37,6 +37,7 @@
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_inventory.h"
 #include "int_id.h"
 #include "inventory.h"
@@ -3586,7 +3587,7 @@ static player &get_patient( player &healer, const tripoint &pos )
         return healer;
     }
 
-    player *const person = g->critter_at<player>( pos );
+    player *const person = critter_at<player>( pos );
     if( !person ) {
         // Default to heal self on failure not to break old functionality
         add_msg( m_debug, "No heal target at position %d,%d,%d", pos.x, pos.y, pos.z );
@@ -4627,7 +4628,7 @@ int deploy_tent_actor::use( player &p, item &it, bool, const tripoint & ) const
             add_msg( m_info, _( "The %s is in the way." ), vp->vehicle().name );
             return 0;
         }
-        if( const Creature *const c = g->critter_at( dest ) ) {
+        if( const Creature *const c = critter_at( dest ) ) {
             add_msg( m_info, _( "The %s is in the way." ), c->disp_name() );
             return 0;
         }

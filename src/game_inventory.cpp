@@ -29,6 +29,7 @@
 #include "flag.h"
 #include "examine_item_menu.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "input.h"
 #include "inventory.h"
 #include "inventory_ui.h"
@@ -386,7 +387,7 @@ item *game_menus::inv::container_for( avatar &you, const item &liquid, int radiu
 {
     const auto filter = [ &liquid ]( const item & location ) {
         if( location.where() == item_location_type::character ) {
-            Character *character = g->critter_at<Character>( location.position() );
+            Character *character = critter_at<Character>( location.position() );
             if( character == nullptr ) {
                 debugmsg( "Invalid location supplied to the liquid filter: no character found." );
                 return false;

@@ -26,6 +26,7 @@
 #include "event.h"
 #include "field.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "generic_factory.h"
 #include "input.h"
 #include "inventory.h"
@@ -996,7 +997,7 @@ bool spell::is_valid_target( valid_target t ) const
 bool spell::is_valid_target( const Creature &caster, const tripoint &p ) const
 {
     bool valid = false;
-    if( Creature *const cr = g->critter_at<Creature>( p ) ) {
+    if( Creature *const cr = critter_at<Creature>( p ) ) {
         Creature::Attitude cr_att = cr->attitude_to( caster );
         valid = valid || ( cr_att != Creature::A_FRIENDLY && is_valid_target( target_hostile ) );
         valid = valid || ( cr_att == Creature::A_FRIENDLY && is_valid_target( target_ally ) &&
@@ -1020,7 +1021,7 @@ bool spell::target_by_monster_id( const tripoint &p ) const
         return true;
     }
     bool valid = false;
-    if( monster *const target = g->critter_at<monster>( p ) ) {
+    if( monster *const target = critter_at<monster>( p ) ) {
         if( type->targeted_monster_ids.find( target->type->id ) != type->targeted_monster_ids.end() ) {
             valid = true;
         }
@@ -1202,11 +1203,11 @@ vproto_id spell::summon_vehicle_id() const
 
 int spell::heal( const tripoint &target ) const
 {
-    monster *const mon = g->critter_at<monster>( target );
+    monster *const mon = critter_at<monster>( target );
     if( mon ) {
         return mon->heal( -damage() );
     }
-    Character *const p = g->critter_at<Character>( target );
+    Character *const p = critter_at<Character>( target );
     if( p ) {
         p->healall( -damage() );
         return -damage();

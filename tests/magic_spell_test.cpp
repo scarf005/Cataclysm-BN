@@ -2,6 +2,7 @@
 
 #include "avatar.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "magic.h"
 #include "monster.h"
 
@@ -479,13 +480,13 @@ TEST_CASE( "spell effect - target_attack", "[magic][spell][effect][target_attack
     clear_character( dummy );
     dummy.setpos( dummy_loc );
     REQUIRE( dummy.pos() == dummy_loc );
-    REQUIRE( g->critter_at( dummy_loc ) );
+    REQUIRE( critter_at( dummy_loc ) );
     REQUIRE( g->num_creatures() == 1 );
 
     // Monster/defender
     monster &mummy = spawn_test_monster( "mon_zombie", mummy_loc );
     REQUIRE( mummy.pos() == mummy_loc );
-    REQUIRE( g->critter_at( mummy_loc ) );
+    REQUIRE( critter_at( mummy_loc ) );
     REQUIRE( g->num_creatures() == 2 );
 
     // Spell with ranged target_attack effect
@@ -527,7 +528,7 @@ TEST_CASE( "spell effect - summon", "[magic][spell][effect][summon]" )
     clear_character( dummy );
     dummy.setpos( dummy_loc );
     REQUIRE( dummy.pos() == dummy_loc );
-    REQUIRE( g->critter_at( dummy_loc ) );
+    REQUIRE( critter_at( dummy_loc ) );
     REQUIRE( g->num_creatures() == 1 );
 
     spell_id mummy_id( "test_spell_tp_mummy" );
@@ -538,7 +539,7 @@ TEST_CASE( "spell effect - summon", "[magic][spell][effect][summon]" )
     // Summon the mummy in the adjacent space
     mummy_spell.cast_spell_effect( dummy, mummy_loc );
 
-    CHECK( g->critter_at( mummy_loc ) );
+    CHECK( critter_at( mummy_loc ) );
     CHECK( g->num_creatures() == 2 );
 }
 

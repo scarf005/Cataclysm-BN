@@ -32,6 +32,7 @@
 #include "faction.h"
 #include "fault.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "handle_liquid.h"
 #include "item.h"
@@ -2156,7 +2157,7 @@ void veh_interact::move_cursor( point d, int dstart_at )
     const point vd = -dd;
     const point q = veh->coord_translate( vd );
     const tripoint vehp = veh->global_pos3() + q;
-    const bool has_critter = g->critter_at( vehp );
+    const bool has_critter = critter_at( vehp );
     bool obstruct = here.impassable_ter_furn( vehp );
     const optional_vpart_position ovp = here.veh_at( vehp );
     if( ovp && &ovp->vehicle() != veh ) {
@@ -3150,7 +3151,7 @@ void veh_interact::complete_vehicle( player &p )
 
             const tripoint vehp = veh->global_pos3() + tripoint( q, 0 );
             // TODO: allow boarding for non-players as well.
-            player *const pl = g->critter_at<player>( vehp );
+            player *const pl = critter_at<player>( vehp );
             if( vpinfo.has_flag( VPFLAG_BOARDABLE ) && pl ) {
                 here.board_vehicle( vehp, pl );
             }

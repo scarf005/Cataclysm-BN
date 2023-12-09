@@ -1,4 +1,5 @@
 #include "game.h"
+#include "creature_utils.h"
 
 #include <algorithm>
 #include <bitset>
@@ -4654,7 +4655,7 @@ template Creature *game::critter_by_id<Creature>( const character_id & );
 
 static bool can_place_monster( const monster &mon, const tripoint &p )
 {
-    if( const monster *const critter = g->critter_at<monster>( p ) ) {
+    if( const monster *const critter = critter_at<monster>( p ) ) {
         // Creature_tracker handles this. The hallucination monster will simply vanish
         if( !critter->is_hallucination() ) {
             return false;
@@ -4662,7 +4663,7 @@ static bool can_place_monster( const monster &mon, const tripoint &p )
     }
     // Although monsters can sometimes exist on the same place as a Character (e.g. ridden horse),
     // it is usually wrong. So don't allow it.
-    if( g->critter_at<Character>( p ) ) {
+    if( critter_at<Character>( p ) ) {
         return false;
     }
     return mon.will_move_to( p );
@@ -10016,7 +10017,7 @@ static std::optional<tripoint> find_empty_spot_nearby( const tripoint &pos )
         if( here.impassable( p ) ) {
             continue;
         }
-        if( g->critter_at( p ) ) {
+        if( critter_at( p ) ) {
             continue;
         }
         return p;
@@ -10396,7 +10397,7 @@ void game::vertical_move( int movez, bool force, bool peeking )
         bool player_displace = false;
         std::optional<tripoint> displace = find_empty_spot_nearby( u.pos() );
         if( displace.has_value() ) {
-            npc *guy = g->critter_at<npc>( u.pos(), true );
+            npc *guy = critter_at<npc>( u.pos(), true );
             if( guy ) {
                 crit_name = guy->get_name();
                 tripoint old_pos = guy->pos();
@@ -10409,7 +10410,7 @@ void game::vertical_move( int movez, bool force, bool peeking )
                     player_displace = true;
                 }
             }
-            monster *mon = g->critter_at<monster>( u.pos(), true );
+            monster *mon = critter_at<monster>( u.pos(), true );
             // if the monster is ridden by the player or an NPC:
             // Dont displace them. If they are mounted by a friendly NPC,
             // then the NPC will already have been displaced just above.

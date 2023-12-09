@@ -29,6 +29,7 @@
 #include "field.h"
 #include "field_type.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "handle_liquid.h"
 #include "item.h"
 #include "line.h"
@@ -129,7 +130,7 @@ void spell_effect::teleport_random( const spell &sp, Creature &caster, const tri
 
 static void swap_pos( Creature &caster, const tripoint &target )
 {
-    Creature *const critter = g->critter_at<Creature>( target );
+    Creature *const critter = critter_at<Creature>( target );
     critter->setpos( caster.pos() );
     caster.setpos( target );
     //update map in case a monster swapped positions with the player
@@ -443,8 +444,8 @@ static std::set<tripoint> spell_effect_area(
 
 static void add_effect_to_target( const tripoint &target, const spell &sp )
 {
-    Creature *const critter = g->critter_at<Creature>( target );
-    Character *const guy = g->critter_at<Character>( target );
+    Creature *const critter = critter_at<Creature>( target );
+    Character *const guy = critter_at<Character>( target );
     efftype_id spell_effect( sp.effect_data() );
 
     // TODO: migrate duration from moves to time_duration
@@ -479,7 +480,7 @@ static void damage_targets( const spell &sp, Creature &caster,
         }
         sp.make_sound( target );
         sp.create_field( target );
-        Creature *const cr = g->critter_at<Creature>( target );
+        Creature *const cr = critter_at<Creature>( target );
         if( !cr ) {
             continue;
         }
@@ -663,7 +664,7 @@ static void spell_move( const spell &sp, const Creature &caster,
                                sp.is_valid_effect_target( target_hostile );
 
     if( can_target_creature ) {
-        if( Creature *victim = g->critter_at<Creature>( from ) ) {
+        if( Creature *victim = critter_at<Creature>( from ) ) {
             Creature::Attitude cr_att = victim->attitude_to( get_avatar() );
             bool valid = cr_att != Creature::A_FRIENDLY && sp.is_valid_effect_target( target_hostile );
             valid |= cr_att == Creature::A_FRIENDLY && sp.is_valid_effect_target( target_ally );
@@ -777,7 +778,7 @@ void spell_effect::recover_energy( const spell &sp, Creature &caster, const trip
     const std::string energy_source = sp.effect_data();
     // TODO: Change to Character
     // current limitation is that Character does not have stamina or power_level members
-    player *p = g->critter_at<player>( target );
+    player *p = critter_at<player>( target );
     if( !p ) {
         return;
     }
@@ -951,7 +952,7 @@ void spell_effect::vomit( const spell &sp, Creature &caster, const tripoint &tar
         if( !sp.is_valid_target( caster, potential_target ) ) {
             continue;
         }
-        Character *const ch = g->critter_at<Character>( potential_target );
+        Character *const ch = critter_at<Character>( potential_target );
         if( !ch ) {
             continue;
         }
@@ -983,7 +984,7 @@ void spell_effect::mod_moves( const spell &sp, Creature &caster, const tripoint 
         if( !sp.is_valid_target( caster, potential_target ) ) {
             continue;
         }
-        Creature *critter = g->critter_at<Creature>( potential_target );
+        Creature *critter = critter_at<Creature>( potential_target );
         if( !critter ) {
             continue;
         }
@@ -1019,7 +1020,7 @@ void spell_effect::morale( const spell &sp, Creature &caster, const tripoint &ta
     for( const tripoint &potential_target : area ) {
         player *player_target;
         if( !( sp.is_valid_target( caster, potential_target ) &&
-               ( player_target = g->critter_at<player>( potential_target ) ) ) ) {
+               ( player_target = critter_at<player>( potential_target ) ) ) ) {
             continue;
         }
         player_target->add_morale( morale_type( sp.effect_data() ), sp.damage(), 0, sp.duration_turns(),
@@ -1035,7 +1036,7 @@ void spell_effect::charm_monster( const spell &sp, Creature &caster, const tripo
         if( !sp.is_valid_target( caster, potential_target ) ) {
             continue;
         }
-        monster *mon = g->critter_at<monster>( potential_target );
+        monster *mon = critter_at<monster>( potential_target );
         if( !mon ) {
             continue;
         }
@@ -1054,7 +1055,7 @@ void spell_effect::mutate( const spell &sp, Creature &caster, const tripoint &ta
         if( !sp.is_valid_target( caster, potential_target ) ) {
             continue;
         }
-        Character *guy = g->critter_at<Character>( potential_target );
+        Character *guy = critter_at<Character>( potential_target );
         if( !guy ) {
             continue;
         }

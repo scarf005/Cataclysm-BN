@@ -27,6 +27,7 @@
 #include "faction.h"
 #include "faction_camp.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "input.h"
 #include "int_id.h"
@@ -2089,7 +2090,7 @@ void talk_function::loot_building( const tripoint_abs_omt &site )
             bay.spawn_items( p, item_group::items_from( bash.drop_group, calendar::turn ) );
         }
         //Kill zombies!  Only works against pre-spawned enemies at the moment...
-        Creature *critter = g->critter_at( p );
+        Creature *critter = critter_at( p );
         if( critter != nullptr ) {
             critter->die( nullptr );
         }

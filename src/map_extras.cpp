@@ -23,6 +23,7 @@
 #include "field_type.h"
 #include "fungal_effects.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "generic_factory.h"
 #include "int_id.h"
@@ -1039,7 +1040,7 @@ static bool mx_portal( map &m, const tripoint &abs_sub )
         // NO_FLOOR flag, and isn't currently occupied by a creature.
         const std::optional<tripoint> mon_pos = random_point( points, [&]( const tripoint & p ) {
             /// TODO: wrong: this checks for creatures on the main game map. Not within the map m.
-            return !m.has_flag_ter( TFLAG_NO_FLOOR, p ) && *portal_pos != p && !g->critter_at( p );
+            return !m.has_flag_ter( TFLAG_NO_FLOOR, p ) && *portal_pos != p && !critter_at( p );
         } );
 
         // If we couldn't get a random location, we can't place a monster and we know that there are no

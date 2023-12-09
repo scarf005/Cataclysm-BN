@@ -8,6 +8,7 @@
 #include "creature.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "map_helpers.h"
 #include "monster.h"
@@ -291,10 +292,10 @@ TEST_CASE( "player::get_dodge while grabbed", "[player][melee][dodge][grab]" )
     monster *zed4 = g->place_critter_at( mtype_id( "debug_mon" ), mon4_pos );
 
     // Make sure zombies are in their places
-    REQUIRE( g->critter_at<monster>( mon1_pos ) );
-    REQUIRE( g->critter_at<monster>( mon2_pos ) );
-    REQUIRE( g->critter_at<monster>( mon3_pos ) );
-    REQUIRE( g->critter_at<monster>( mon4_pos ) );
+    REQUIRE( critter_at<monster>( mon1_pos ) );
+    REQUIRE( critter_at<monster>( mon2_pos ) );
+    REQUIRE( critter_at<monster>( mon3_pos ) );
+    REQUIRE( critter_at<monster>( mon4_pos ) );
 
     // Get grabbed
     dummy.add_effect( efftype_id( "grabbed" ), 1_minutes );

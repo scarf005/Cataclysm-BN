@@ -17,6 +17,7 @@
 #include "cursesdef.h"
 #include "enums.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "json.h"
 #include "line.h"
 #include "map.h"
@@ -107,7 +108,7 @@ void teleporter_list::translocate( const std::set<tripoint> &targets )
 
     bool valid_targets = false;
     for( const tripoint &pt : targets ) {
-        Character *you = g->critter_at<Character>( pt );
+        Character *you = critter_at<Character>( pt );
 
         if( you && you->is_avatar() ) {
             valid_targets = true;

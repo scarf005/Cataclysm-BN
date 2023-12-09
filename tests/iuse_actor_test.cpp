@@ -6,6 +6,7 @@
 
 #include "avatar.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "inventory.h"
 #include "item.h"
 #include "item_factory.h"
@@ -31,7 +32,7 @@ static monster *find_adjacent_monster( const tripoint &pos )
             if( target == pos ) {
                 continue;
             }
-            if( monster *const candidate = g->critter_at<monster>( target ) ) {
+            if( monster *const candidate = critter_at<monster>( target ) ) {
                 return candidate;
             }
         }

@@ -23,6 +23,7 @@
 #include "creature.h"
 #include "debug.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "lightmap.h"
@@ -523,7 +524,7 @@ void pixel_minimap::render_critters( const tripoint &center )
                 continue;
             }
 
-            const auto critter = g->critter_at( p, true );
+            const auto critter = critter_at( p, true );
 
             if( critter == nullptr || !get_avatar().sees( *critter ) ) {
                 continue;

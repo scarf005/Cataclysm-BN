@@ -11,6 +11,7 @@
 #include "creature.h"
 #include "explosion_queue.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "itype.h"
 #include "iuse_actor.h"
@@ -243,7 +244,7 @@ TEST_CASE( "shrapnel at max grenade range", "[grenade][explosion]" )
     set_off_explosion( grenade, origin );
 
     for( const tripoint &pt : closest_points_first( origin, range + 1 ) ) {
-        const monster *m = g->critter_at<monster>( pt );
+        const monster *m = critter_at<monster>( pt );
         REQUIRE( m != nullptr );
         CAPTURE( m->pos() );
         CAPTURE( rl_dist( origin, m->pos() ) );
@@ -281,7 +282,7 @@ TEST_CASE( "rotated_vehicle_walls_block_explosions" )
 
     set_off_explosion( grenade, explode_at );
 
-    const monster *m = g->critter_at<monster>( mon_origin );
+    const monster *m = critter_at<monster>( mon_origin );
     REQUIRE( m != nullptr );
     CHECK( m == &s );
     CHECK( m->get_hp() == m->get_hp_max() );

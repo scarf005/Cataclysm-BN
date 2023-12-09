@@ -19,6 +19,7 @@
 #include "enums.h"
 #include "explosion_queue.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "line.h"
 #include "map.h"
@@ -207,7 +208,7 @@ dealt_projectile_attack projectile_attack( const projectile &proj_arg, const tri
 
     double range = rl_dist( source, target_arg );
 
-    Creature *target_critter = g->critter_at( target_arg );
+    Creature *target_critter = critter_at( target_arg );
     map &here = get_map();
     double target_size = target_critter != nullptr ?
                          target_critter->ranged_target_size() :
@@ -243,7 +244,7 @@ dealt_projectile_attack projectile_attack( const projectile &proj_arg, const tri
     // If we were targetting a tile rather than a monster, don't overshoot
     // Unless the target was a wall, then we are aiming high enough to overshoot
     const bool no_overshoot = proj.has_effect( ammo_effect_NO_OVERSHOOT ) ||
-                              ( g->critter_at( target_arg ) == nullptr && here.passable( target_arg ) );
+                              ( critter_at( target_arg ) == nullptr && here.passable( target_arg ) );
 
     double extend_to_range = no_overshoot ? range : proj_arg.range;
 
@@ -372,7 +373,7 @@ dealt_projectile_attack projectile_attack( const projectile &proj_arg, const tri
             }
         }
 
-        Creature *critter = g->critter_at( tp );
+        Creature *critter = critter_at( tp );
         if( origin == critter ) {
             // No hitting self with "weird" attacks.
             critter = nullptr;

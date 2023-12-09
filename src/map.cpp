@@ -46,6 +46,7 @@
 #include "fragment_cloud.h"
 #include "fungal_effects.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "harvest.h"
 #include "iexamine.h"
 #include "input.h"
@@ -1171,7 +1172,7 @@ void map::unboard_vehicle( const tripoint &p, bool dead_passenger )
     if( !vp ) {
         debugmsg( "map::unboard_vehicle: vehicle not found" );
         // Try and force unboard the player anyway.
-        passenger = g->critter_at<player>( p );
+        passenger = critter_at<player>( p );
         if( passenger ) {
             passenger->in_vehicle = false;
             passenger->controlling_vehicle = false;
@@ -1274,7 +1275,7 @@ bool map::displace_vehicle( vehicle &veh, const tripoint &dp )
             // Place passenger on the new part location
             tripoint psgp( dst + next_pos );
             // someone is in the way so try again
-            if( g->critter_at( psgp ) ) {
+            if( critter_at( psgp ) ) {
                 complete = false;
                 continue;
             }
@@ -1452,7 +1453,7 @@ void map::furn_set( const tripoint &p, const furn_id &new_furniture,
     }
     // If a creature was crushed under a rubble -> free it
     if( old_id == f_rubble && new_furniture == f_null ) {
-        Creature *c = g->critter_at( p );
+        Creature *c = critter_at( p );
         if( c ) {
             c->remove_effect( effect_crushed );
         }
@@ -2182,7 +2183,7 @@ void map::drop_furniture( const tripoint &p )
             }
         }
 
-        if( g->critter_at( below_dest ) != nullptr ) {
+        if( critter_at( below_dest ) != nullptr ) {
             // Smash a critter
             return SS_CREATURE;
         }
@@ -2246,7 +2247,7 @@ void map::drop_furniture( const tripoint &p )
         const std::string &furn_name = frn_obj.name();
         bash( current, dmg, false, false, false );
         tripoint below( current.xy(), current.z - 1 );
-        Creature *critter = g->critter_at( below );
+        Creature *critter = critter_at( below );
         if( critter == nullptr ) {
             debugmsg( "drop_furniture couldn't find creature at %d,%d,%d",
                       below.x, below.y, below.z );
@@ -3752,7 +3753,7 @@ void map::batter( const tripoint &p, int power, int tries, const bool silent )
 
 void map::crush( const tripoint &p )
 {
-    player *crushed_player = g->critter_at<player>( p );
+    player *crushed_player = critter_at<player>( p );
 
     if( crushed_player != nullptr ) {
         bool player_inside = false;
@@ -3788,7 +3789,7 @@ void map::crush( const tripoint &p )
         }
     }
 
-    if( monster *const monhit = g->critter_at<monster>( p ) ) {
+    if( monster *const monhit = critter_at<monster>( p ) ) {
         // 25 ~= 60 * .45 (torso)
         monhit->deal_damage( nullptr, bodypart_id( "torso" ), damage_instance( DT_BASH, rng( 0, 25 ) ) );
 
@@ -7262,7 +7263,7 @@ void map::remove_rotten_items( Container &items, const tripoint &pnt, temperatur
 
 void map::rotten_item_spawn( const item &item, const tripoint &pnt )
 {
-    if( g->critter_at( pnt ) != nullptr ) {
+    if( critter_at( pnt ) != nullptr ) {
         return;
     }
     const auto &comest = item.get_comestible();
@@ -7731,7 +7732,7 @@ void map::spawn_monsters_submap_group( const tripoint &gp, mongroup &group, bool
             int fx = x + SEEX * gp.x;
             int fy = y + SEEY * gp.y;
             tripoint fp{ fx, fy, gp.z };
-            if( g->critter_at( fp ) != nullptr ) {
+            if( critter_at( fp ) != nullptr ) {
                 continue; // there is already some creature
             }
 
@@ -7849,7 +7850,7 @@ void map::spawn_monsters_submap( const tripoint &gp, bool ignore_sight )
             const auto valid_location = [&]( const tripoint & p ) {
                 // Checking for creatures via g is only meaningful if this is the main game map.
                 // If it's some local map instance, the coordinates will most likely not even match.
-                return ( !g || &get_map() != this || !g->critter_at( p ) ) && tmp.can_move_to( p );
+                return ( !g || &get_map() != this || !critter_at( p ) ) && tmp.can_move_to( p );
             };
 
             const auto place_it = [&]( const tripoint & p ) {
@@ -8903,7 +8904,7 @@ std::list<Creature *> map::get_creatures_in_radius( const tripoint &center, size
 {
     std::list<Creature *> creatures;
     for( const auto &loc : points_in_radius( center, radius, radiusz ) ) {
-        Creature *tmp_critter = g->critter_at( loc );
+        Creature *tmp_critter = critter_at( loc );
         if( tmp_critter != nullptr ) {
             creatures.push_back( tmp_critter );
         }

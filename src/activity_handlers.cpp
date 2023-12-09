@@ -49,6 +49,7 @@
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "handle_liquid.h"
@@ -1426,7 +1427,7 @@ void activity_handlers::shear_finish( player_activity *act, player *p )
     item *shears = &*loc;
     map &here = get_map();
     const tripoint source_pos = here.getlocal( act->coords.at( 0 ) );
-    monster *source_mon = g->critter_at<monster>( source_pos );
+    monster *source_mon = critter_at<monster>( source_pos );
     if( source_mon == nullptr ) {
         debugmsg( "could not find source creature for shearing" );
         return;
@@ -1454,7 +1455,7 @@ void activity_handlers::milk_finish( player_activity *act, player *p )
     }
     map &here = get_map();
     const tripoint source_pos = here.getlocal( act->coords.at( 0 ) );
-    monster *source_mon = g->critter_at<monster>( source_pos );
+    monster *source_mon = critter_at<monster>( source_pos );
     if( source_mon == nullptr ) {
         debugmsg( "could not find source creature for liquid transfer" );
         return;
@@ -4010,7 +4011,7 @@ void activity_handlers::chop_tree_finish( player_activity *act, player *p )
             std::vector<tripoint> rough_tree_line = line_to( pos, proposed_to );
             for( const tripoint &elem : rough_tree_line ) {
                 // Try not to drop onto a critter
-                if( g->critter_at( elem ) ) {
+                if( critter_at( elem ) ) {
                     cantuse = true;
                     break;
                 }

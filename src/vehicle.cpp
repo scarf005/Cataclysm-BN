@@ -40,6 +40,7 @@
 #include "field_type.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "item_contents.h"
 #include "item_group.h"
@@ -966,8 +967,8 @@ void vehicle::drive_to_local_target( const tripoint &target, bool follow_protoco
             }
         }
         bool its_a_pet = false;
-        if( g->critter_at( tripoint( elem, sm_pos.z ) ) ) {
-            npc *guy = g->critter_at<npc>( tripoint( elem, sm_pos.z ) );
+        if( critter_at( tripoint( elem, sm_pos.z ) ) ) {
+            npc *guy = critter_at<npc>( tripoint( elem, sm_pos.z ) );
             if( guy && !guy->in_vehicle ) {
                 stop = true;
                 break;
@@ -3375,7 +3376,7 @@ std::vector<rider_data> vehicle::get_riders() const
 {
     std::vector<rider_data> res;
     for( const vpart_reference &vp : get_avail_parts( VPFLAG_BOARDABLE ) ) {
-        Creature *rider = g->critter_at( vp.pos() );
+        Creature *rider = critter_at( vp.pos() );
         if( rider ) {
             rider_data r;
             r.prt = vp.part_index();
@@ -3399,7 +3400,7 @@ monster *vehicle::get_pet( int p ) const
 {
     p = part_with_feature( p, VPFLAG_BOARDABLE, false );
     if( p >= 0 ) {
-        return g->critter_at<monster>( global_part_pos3( p ), true );
+        return critter_at<monster>( global_part_pos3( p ), true );
     }
     return nullptr;
 }

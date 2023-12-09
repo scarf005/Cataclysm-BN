@@ -33,6 +33,7 @@
 #include "field_type.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "gates.h"
 #include "gun_mode.h"
@@ -204,7 +205,7 @@ static bool clear_shot_reach( const tripoint &from, const tripoint &to, bool che
     }
     tripoint &last_point = path[0];
     for( const tripoint &p : path ) {
-        Creature *inter = g->critter_at( p );
+        Creature *inter = critter_at( p );
         if( check_ally && inter != nullptr ) {
             return false;
         } else if( get_map().impassable( p ) ) {
@@ -444,23 +445,23 @@ void npc::assess_danger()
         }
 
         if( has_faction_relationship( guy, npc_factions::watch_your_back ) ) {
-            ai_cache.friends.emplace_back( g->shared_from( guy ) );
+            ai_cache.friends.emplace_back( shared_from( guy ) );
         } else if( attitude_to( guy ) != A_NEUTRAL && sees( guy.pos() ) ) {
-            hostile_guys.emplace_back( g->shared_from( guy ) );
+            hostile_guys.emplace_back( shared_from( guy ) );
         }
     }
     if( sees( player_character.pos() ) ) {
         if( is_enemy() ) {
-            hostile_guys.emplace_back( g->shared_from( player_character ) );
+            hostile_guys.emplace_back( shared_from( player_character ) );
         } else if( is_friendly( player_character ) ) {
-            ai_cache.friends.emplace_back( g->shared_from( player_character ) );
+            ai_cache.friends.emplace_back( shared_from( player_character ) );
         }
     }
 
     for( const monster &critter : g->all_monsters() ) {
         auto att = critter.attitude_to( *this );
         if( att == A_FRIENDLY ) {
-            ai_cache.friends.emplace_back( g->shared_from( critter ) );
+            ai_cache.friends.emplace_back( shared_from( critter ) );
             continue;
         }
         if( att != A_HOSTILE && ( critter.friendly || !is_enemy() ) ) {
@@ -519,7 +520,7 @@ void npc::assess_danger()
         cur_threat_map[direction_from( pos(), critter.pos() )] += priority;
         if( priority > highest_priority ) {
             highest_priority = priority;
-            ai_cache.target = g->shared_from( critter );
+            ai_cache.target = shared_from( critter );
             ai_cache.danger = critter_danger;
         }
     }
@@ -564,7 +565,7 @@ void npc::assess_danger()
                 warn_about( warning, 1_minutes );
                 highest_priority = priority;
                 ai_cache.danger = foe_threat;
-                ai_cache.target = g->shared_from( foe );
+                ai_cache.target = shared_from( foe );
             }
         }
         return foe_threat;
@@ -596,7 +597,7 @@ void npc::assess_danger()
         } else if( is_friendly( player_character ) ) {
             float min_danger = assessment >= NPC_DANGER_VERY_LOW ? NPC_DANGER_VERY_LOW : -10.0f;
             assessment = std::max( min_danger, assessment - player_diff * 0.5f );
-            ai_cache.friends.emplace_back( g->shared_from( player_character ) );
+            ai_cache.friends.emplace_back( shared_from( player_character ) );
         }
     }
     assessment *= 0.1f;
@@ -764,7 +765,7 @@ void npc::move()
 
     if( is_enemy() && vehicle_danger( avoidance_vehicles_radius ) > 0 ) {
         // TODO: Think about how this actually needs to work, for now assume flee from player
-        ai_cache.target = g->shared_from( player_character );
+        ai_cache.target = shared_from( player_character );
     }
 
     map &here = get_map();
@@ -1795,7 +1796,7 @@ npc_action npc::address_needs( float danger )
                 if( try_to_fix_other.any_true() ) {
                     ai_cache.can_heal = has_healing_options( try_to_fix_other );
                     if( ai_cache.can_heal.any_true() ) {
-                        ai_cache.ally = g->shared_from( player_character );
+                        ai_cache.ally = shared_from( player_character );
                         return npc_heal_player;
                     }
                 }
@@ -1808,7 +1809,7 @@ npc_action npc::address_needs( float danger )
                 if( try_to_fix_other.any_true() ) {
                     ai_cache.can_heal = has_healing_options( try_to_fix_other );
                     if( ai_cache.can_heal.any_true() ) {
-                        ai_cache.ally = g->shared_from( guy );
+                        ai_cache.ally = shared_from( guy );
                         return npc_heal_player;
                     }
                 }
@@ -2315,7 +2316,7 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
     }
 
     bool attacking = false;
-    if( g->critter_at<monster>( p ) ) {
+    if( critter_at<monster>( p ) ) {
         attacking = true;
     }
     if( !move_effects( attacking ) ) {
@@ -2323,7 +2324,7 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
         return;
     }
 
-    Creature *critter = g->critter_at( p );
+    Creature *critter = critter_at( p );
     if( critter != nullptr ) {
         if( critter == this ) { // We're just pausing!
             move_pause();
@@ -2662,7 +2663,7 @@ void npc::worker_downtime()
         // find a chair
         if( !is_mounted() ) {
             for( const tripoint &elem : here.points_in_radius( pos(), 30 ) ) {
-                if( here.has_flag_furn( "CAN_SIT", elem ) && !g->critter_at( elem ) && could_move_onto( elem ) &&
+                if( here.has_flag_furn( "CAN_SIT", elem ) && !critter_at( elem ) && could_move_onto( elem ) &&
                     here.point_within_camp( here.getabs( elem ) ) ) {
                     // this one will do
                     chair_pos = here.getabs( elem );
@@ -2697,7 +2698,7 @@ void npc::worker_downtime()
         std::vector<tripoint> pts;
         for( const tripoint &elem : here.points_in_radius( here.getlocal( temp_camp->get_bb_pos() ),
                 10 ) ) {
-            if( g->critter_at( elem ) || !could_move_onto( elem ) || here.has_flag( TFLAG_DEEP_WATER, elem ) ||
+            if( critter_at( elem ) || !could_move_onto( elem ) || here.has_flag( TFLAG_DEEP_WATER, elem ) ||
                 !here.has_floor( elem ) || g->is_dangerous_tile( elem ) ) {
                 continue;
             }
@@ -3707,13 +3708,13 @@ bool npc::alt_attack()
     // We need to throw this live (grenade, etc) NOW! Pick another target?
     for( int dist = 2; dist <= conf; dist++ ) {
         for( const tripoint &pt : here.points_in_radius( pos(), dist ) ) {
-            const monster *const target_ptr = g->critter_at<monster>( pt );
+            const monster *const target_ptr = critter_at<monster>( pt );
             int newdist = rl_dist( pos(), pt );
             // TODO: Change "newdist >= 2" to "newdist >= safe_distance(used)"
             if( newdist <= conf && newdist >= 2 && target_ptr &&
                 wont_hit_friend( pt, *used, true ) ) {
                 // Friendlyfire-safe!
-                ai_cache.target = g->shared_from( *target_ptr );
+                ai_cache.target = shared_from( *target_ptr );
                 if( !one_in( 100 ) ) {
                     // Just to prevent infinite loops...
                     if( alt_attack() ) {

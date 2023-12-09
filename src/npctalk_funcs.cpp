@@ -24,6 +24,7 @@
 #include "event_bus.h"
 #include "faction.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "item.h"
@@ -243,7 +244,7 @@ void talk_function::find_mount( npc &p )
         if( p.can_mount( critter ) ) {
             // keep the horse still for some time, so that NPC can catch up to it and mount it.
             p.assign_activity( ACT_FIND_MOUNT );
-            p.chosen_mount = g->shared_from( critter );
+            p.chosen_mount = shared_from( critter );
             // we found one, that's all we need.
             return;
         }

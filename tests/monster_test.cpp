@@ -12,6 +12,7 @@
 
 #include "avatar.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "map.h"
 #include "map_helpers.h"
 #include "monster.h"
@@ -347,10 +348,10 @@ TEST_CASE( "monster_move_through_vehicle_holes" )
     monster &zombie = spawn_test_monster( "mon_zombie", mon_origin );
     zombie.move_to( mon_origin + tripoint_north_west, false, false, 0.0f );
 
-    const monster *m = g->critter_at<monster>( mon_origin );
+    const monster *m = critter_at<monster>( mon_origin );
     CHECK( m != nullptr );
 
-    const monster *m2 = g->critter_at<monster>( mon_origin + tripoint_north_west );
+    const monster *m2 = critter_at<monster>( mon_origin + tripoint_north_west );
     CHECK( m2 == nullptr );
 
 }

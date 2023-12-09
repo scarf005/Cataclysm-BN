@@ -53,6 +53,7 @@
 #include "flat_set.h"
 #include "fungal_effects.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "handle_liquid.h"
@@ -695,7 +696,7 @@ int iuse::fungicide( player *p, item *it, bool, const tripoint & )
             }
             if( get_map().passable( dest ) && !get_map().obstructed_by_vehicle_rotation( p->pos(), dest ) &&
                 x_in_y( spore_count, 8 ) ) {
-                if( monster *const mon_ptr = g->critter_at<monster>( dest ) ) {
+                if( monster *const mon_ptr = critter_at<monster>( dest ) ) {
                     monster &critter = *mon_ptr;
                     if( get_avatar().sees( dest ) &&
                         !critter.type->in_species( FUNGUS ) ) {
@@ -1249,7 +1250,7 @@ static void spawn_spores( const player &p )
         if( x_in_y( 1, dist ) ) {
             fe.marlossify( dest );
         }
-        if( g->critter_at( dest ) != nullptr ) {
+        if( critter_at( dest ) != nullptr ) {
             continue;
         }
         if( one_in( 10 + 5 * dist ) && one_in( spores_spawned * 2 ) ) {
@@ -1562,8 +1563,8 @@ static int petfood( player &p, item &it, Petfood animal_food_type )
     p.moves -= to_moves<int>( 1_seconds );
 
     // First a check to see if we are trying to feed a NPC dog food.
-    if( animal_food_type == DOGFOOD && g->critter_at<npc>( pnt ) != nullptr ) {
-        if( npc *const person_ = g->critter_at<npc>( pnt ) ) {
+    if( animal_food_type == DOGFOOD && critter_at<npc>( pnt ) != nullptr ) {
+        if( npc *const person_ = critter_at<npc>( pnt ) ) {
             npc &person = *person_;
             if( query_yn( _( "Are you sure you want to feed a person the dog food?" ) ) ) {
                 p.add_msg_if_player( _( "You put your %1$s into %2$s's mouth!" ), it.tname(),
@@ -1585,7 +1586,7 @@ static int petfood( player &p, item &it, Petfood animal_food_type )
             }
         }
         // Then monsters.
-    } else if( monster *const mon_ptr = g->critter_at<monster>( pnt, true ) ) {
+    } else if( monster *const mon_ptr = critter_at<monster>( pnt, true ) ) {
         monster &mon = *mon_ptr;
 
         if( mon.is_hallucination() ) {
@@ -1959,7 +1960,7 @@ int iuse::extinguisher( player *p, item *it, bool, const tripoint & )
     get_map().mod_field_intensity( dest, fd_fire, 0 - rng( 2, 3 ) );
 
     // Also spray monsters in that tile.
-    if( monster *const mon_ptr = g->critter_at<monster>( dest, true ) ) {
+    if( monster *const mon_ptr = critter_at<monster>( dest, true ) ) {
         monster &critter = *mon_ptr;
         critter.moves -= to_moves<int>( 2_seconds );
         bool blind = false;
@@ -3432,7 +3433,7 @@ int iuse::geiger( player *p, item *it, bool t, const tripoint &pos )
     switch( ch ) {
         case 0: {
             const std::function<bool( const tripoint & )> f = [&]( const tripoint & pnt ) {
-                return g->critter_at<npc>( pnt ) != nullptr || g->critter_at<player>( pnt ) != nullptr;
+                return critter_at<npc>( pnt ) != nullptr || critter_at<player>( pnt ) != nullptr;
             };
 
             const std::optional<tripoint> pnt_ = choose_adjacent_highlight( _( "Scan whom?" ),
@@ -3446,7 +3447,7 @@ int iuse::geiger( player *p, item *it, bool t, const tripoint &pos )
                                       p->leak_level( flag_RADIOACTIVE ) );
                 break;
             }
-            if( npc *const person_ = g->critter_at<npc>( pnt ) ) {
+            if( npc *const person_ = critter_at<npc>( pnt ) ) {
                 npc &person = *person_;
                 p->add_msg_if_player( m_info, _( "%s's radiation level: %d mSv (%d mSv from items)" ),
                                       person.name, person.get_rad(),
@@ -3503,7 +3504,7 @@ int iuse::can_goo( player *p, item *it, bool, const tripoint & )
         add_msg( _( "Nothing happens." ) );
         return 0;
     }
-    if( monster *const mon_ptr = g->critter_at<monster>( goop ) ) {
+    if( monster *const mon_ptr = critter_at<monster>( goop ) ) {
         monster &critter = *mon_ptr;
         if( get_avatar().sees( goop ) ) {
             add_msg( _( "Black goo emerges from the canister and envelopes a %s!" ),
@@ -3602,7 +3603,7 @@ int iuse::granade_act( player *p, item *it, bool t, const tripoint &pos )
                                true, "speech", it->typeId().str() );
                 explosion_handler::draw_explosion( pos, explosion_radius, c_light_cyan, "explosion" );
                 for( const tripoint &dest : get_map().points_in_radius( pos, explosion_radius ) ) {
-                    monster *const mon = g->critter_at<monster>( dest, true );
+                    monster *const mon = critter_at<monster>( dest, true );
                     if( mon && ( mon->type->in_species( INSECT ) || mon->is_hallucination() ) ) {
                         mon->die_in_explosion( nullptr );
                     }
@@ -3614,12 +3615,12 @@ int iuse::granade_act( player *p, item *it, bool t, const tripoint &pos )
                                true, "speech", it->typeId().str() );
                 explosion_handler::draw_explosion( pos, explosion_radius, c_green, "explosion" );
                 for( const tripoint &dest : get_map().points_in_radius( pos, explosion_radius ) ) {
-                    if( monster *const mon_ptr = g->critter_at<monster>( dest ) ) {
+                    if( monster *const mon_ptr = critter_at<monster>( dest ) ) {
                         monster &critter = *mon_ptr;
                         critter.set_speed_base(
                             critter.get_speed_base() * rng_float( 1.1, 2.0 ) );
                         critter.set_hp( critter.get_hp() * rng_float( 1.1, 2.0 ) );
-                    } else if( npc *const person = g->critter_at<npc>( dest ) ) {
+                    } else if( npc *const person = critter_at<npc>( dest ) ) {
                         /** @EFFECT_STR_MAX increases possible granade str buff for NPCs */
                         buff_stat( person->str_max, rng( 0, person->str_max / 2 ) );
                         /** @EFFECT_DEX_MAX increases possible granade dex buff for NPCs */
@@ -3654,12 +3655,12 @@ int iuse::granade_act( player *p, item *it, bool t, const tripoint &pos )
                                true, "speech", it->typeId().str() );
                 explosion_handler::draw_explosion( pos, explosion_radius, c_red, "explosion" );
                 for( const tripoint &dest : get_map().points_in_radius( pos, explosion_radius ) ) {
-                    if( monster *const mon_ptr = g->critter_at<monster>( dest ) ) {
+                    if( monster *const mon_ptr = critter_at<monster>( dest ) ) {
                         monster &critter = *mon_ptr;
                         critter.set_speed_base(
                             rng( 0, critter.get_speed_base() ) );
                         critter.set_hp( rng( 1, critter.get_hp() ) );
-                    } else if( npc *const person = g->critter_at<npc>( dest ) ) {
+                    } else if( npc *const person = critter_at<npc>( dest ) ) {
                         /** @EFFECT_STR_MAX increases possible granade str debuff for NPCs (NEGATIVE) */
                         person->str_max -= rng( 0, person->str_max / 2 );
                         /** @EFFECT_DEX_MAX increases possible granade dex debuff for NPCs (NEGATIVE) */
@@ -3693,12 +3694,12 @@ int iuse::granade_act( player *p, item *it, bool t, const tripoint &pos )
                                true, "speech", it->typeId().str() );
                 explosion_handler::draw_explosion( pos, explosion_radius, c_pink, "explosion" );
                 for( const tripoint &dest : get_map().points_in_radius( pos, explosion_radius ) ) {
-                    if( monster *const mon_ptr = g->critter_at<monster>( dest ) ) {
+                    if( monster *const mon_ptr = critter_at<monster>( dest ) ) {
                         monster &critter = *mon_ptr;
                         critter.set_speed_base( critter.type->speed );
                         critter.set_hp( critter.get_hp_max() );
                         critter.clear_effects();
-                    } else if( npc *const person = g->critter_at<npc>( dest ) ) {
+                    } else if( npc *const person = critter_at<npc>( dest ) ) {
                         person->environmental_revert_effect();
                     } else if( get_avatar().pos() == dest ) {
                         get_avatar().environmental_revert_effect();
@@ -3711,7 +3712,7 @@ int iuse::granade_act( player *p, item *it, bool t, const tripoint &pos )
                                true, "speech", it->typeId().str() );
                 explosion_handler::draw_explosion( pos, explosion_radius, c_yellow, "explosion" );
                 for( const tripoint &dest : get_map().points_in_radius( pos, explosion_radius ) ) {
-                    if( one_in( 5 ) && !g->critter_at( dest ) ) {
+                    if( one_in( 5 ) && !critter_at( dest ) ) {
                         get_map().add_field( dest, fd_bees, rng( 1, 3 ) );
                     }
                 }
@@ -3950,7 +3951,7 @@ int iuse::pheromone( player *p, item *it, bool, const tripoint &pos )
 
     int converts = 0;
     for( const tripoint &dest : get_map().points_in_radius( pos, 4 ) ) {
-        monster *const mon_ptr = g->critter_at<monster>( dest, true );
+        monster *const mon_ptr = critter_at<monster>( dest, true );
         if( !mon_ptr ) {
             continue;
         }
@@ -4008,7 +4009,7 @@ int iuse::tazer( player *p, item *it, bool, const tripoint &pos )
         return 0;
     }
 
-    Creature *target = g->critter_at( pnt, true );
+    Creature *target = critter_at( pnt, true );
     if( target == nullptr ) {
         p->add_msg_if_player( _( "There's nothing to zap there!" ) );
         return 0;
@@ -5240,7 +5241,7 @@ int iuse::artifact( player *p, item *it, bool, const tripoint & )
 
             case AEA_CONFUSED:
                 for( const tripoint &dest : get_map().points_in_radius( p->pos(), 8 ) ) {
-                    if( monster *const mon = g->critter_at<monster>( dest, true ) ) {
+                    if( monster *const mon = critter_at<monster>( dest, true ) ) {
                         mon->add_effect( effect_stunned, rng( 5_turns, 15_turns ) );
                     }
                 }
@@ -5248,7 +5249,7 @@ int iuse::artifact( player *p, item *it, bool, const tripoint & )
 
             case AEA_ENTRANCE:
                 for( const tripoint &dest : get_map().points_in_radius( p->pos(), 8 ) ) {
-                    monster *const mon = g->critter_at<monster>( dest, true );
+                    monster *const mon = critter_at<monster>( dest, true );
                     if( mon && mon->friendly == 0 && rng( 0, 600 ) > mon->get_hp() ) {
                         mon->make_friendly();
                     }
@@ -6009,7 +6010,7 @@ int iuse::robotcontrol( player *p, item *it, bool, const tripoint & )
             int entry_num = 0;
             for( const monster &candidate : g->all_monsters() ) {
                 if( robotcontrol_can_target( p, candidate ) ) {
-                    mons.push_back( g->shared_from( candidate ) );
+                    mons.push_back( shared_from( candidate ) );
                     pick_robot.addentry( entry_num++, true, MENU_AUTOASSIGN, candidate.name() );
                     tripoint seen_loc;
                     // Show locations of seen robots, center on player if robot is not seen
@@ -6882,7 +6883,7 @@ static std::string effects_description_for_creature( Creature *const creature, s
         }
         if( creature->has_effect( effect_riding ) ) {
             pose = _( "rides" );
-            monster *const mon = g->critter_at<monster>( creature->pos(), false );
+            monster *const mon = critter_at<monster>( creature->pos(), false );
             figure_effects += pronoun_sex + string_format( _( " is riding %s. " ),
                               colorize( mon->name(), c_light_blue ) );
         }
@@ -7089,8 +7090,8 @@ static extended_photo_def photo_def_for_camera_point( const tripoint &aim_point,
         if( !get_map().sees( camera_pos, current, dist + 3 ) ) {
             continue; // disallow photos with non-visible objects
         }
-        monster *const mon = g->critter_at<monster>( current, false );
-        avatar *guy = g->critter_at<avatar>( current );
+        monster *const mon = critter_at<monster>( current, false );
+        avatar *guy = critter_at<avatar>( current );
 
         total_tiles_num++;
         if( get_map().is_outside( current ) ) {
@@ -7511,8 +7512,8 @@ int iuse::camera( player *p, item *it, bool, const tripoint & )
                 }
             }
 
-            monster *const mon = g->critter_at<monster>( trajectory_point, true );
-            player *const guy = g->critter_at<player>( trajectory_point );
+            monster *const mon = critter_at<monster>( trajectory_point, true );
+            player *const guy = critter_at<player>( trajectory_point );
             if( mon || guy || trajectory_point == aim_point ) {
                 int dist = rl_dist( p->pos(), trajectory_point );
 
@@ -9211,7 +9212,7 @@ bool item::release_monster( const tripoint &target, const int radius )
 // at target
 int item::contain_monster( const tripoint &target )
 {
-    const monster *const mon_ptr = g->critter_at<monster>( target );
+    const monster *const mon_ptr = critter_at<monster>( target );
     if( !mon_ptr ) {
         return 0;
     }
@@ -9272,7 +9273,7 @@ int iuse::capture_monster_act( player *p, item *it, bool, const tripoint &pos )
             return 0;
         }
         const std::function<bool( const tripoint & )> adjacent_capturable = []( const tripoint & pnt ) {
-            const monster *mon_ptr = g->critter_at<monster>( pnt );
+            const monster *mon_ptr = critter_at<monster>( pnt );
             return mon_ptr != nullptr;
         };
         const std::string query = string_format( _( "Grab which creature to place in the %s?" ),
@@ -9286,7 +9287,7 @@ int iuse::capture_monster_act( player *p, item *it, bool, const tripoint &pos )
         const tripoint target = *target_;
 
         // Capture the thing, if it's on the target square.
-        if( const monster *const mon_ptr = g->critter_at<monster>( target ) ) {
+        if( const monster *const mon_ptr = critter_at<monster>( target ) ) {
             const monster &f = *mon_ptr;
 
             if( f.get_size() > Creature::size_map.find( capacity )->second ) {

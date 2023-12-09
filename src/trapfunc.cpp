@@ -16,6 +16,7 @@
 #include "enums.h"
 #include "explosion.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
@@ -1160,7 +1161,7 @@ bool trapfunc::ledge( const tripoint &p, Creature *c, item * )
     below.z--;
     while( get_map().valid_move( where, below, false, true ) ) {
         where.z--;
-        if( g->critter_at( where ) != nullptr ) {
+        if( critter_at( where ) != nullptr ) {
             where.z++;
             break;
         }
@@ -1171,7 +1172,7 @@ bool trapfunc::ledge( const tripoint &p, Creature *c, item * )
 
     if( height == 0 && c->is_player() ) {
         // For now just special case player, NPCs don't "zedwalk"
-        Creature *critter = g->critter_at( below, true );
+        Creature *critter = critter_at( below, true );
         if( critter == nullptr || !critter->is_monster() ) {
             return false;
         }

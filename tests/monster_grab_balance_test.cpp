@@ -8,6 +8,7 @@
 #include "calendar.h"
 #include "creature.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "map_helpers.h"
 #include "monster.h"
@@ -36,7 +37,7 @@ TEST_CASE( "Monster losing grabbing effect", "[player][melee][grab]" )
     // Grabbed by a monster
     monster *zed = g->place_critter_at( mtype_id( "debug_mon" ), mon_pos );
 
-    REQUIRE( g->critter_at<monster>( mon_pos ) );
+    REQUIRE( critter_at<monster>( mon_pos ) );
 
     // Get grabbed
     dummy.add_effect( efftype_id( "grabbed" ), 1_minutes );

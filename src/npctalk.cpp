@@ -34,6 +34,7 @@
 #include "faction.h"
 #include "faction_camp.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "help.h"
@@ -674,7 +675,7 @@ void npc::handle_sound( const sounds::sound_t spriority, const std::string &desc
              s_abs_pos.x, s_abs_pos.y, my_abs_pos.x, my_abs_pos.y );
 
     bool player_ally = get_player_character().pos() == spos && is_player_ally();
-    player *const sound_source = g->critter_at<player>( spos );
+    player *const sound_source = critter_at<player>( spos );
     bool npc_ally = sound_source && sound_source->is_npc() && is_ally( *sound_source );
 
     if( ( player_ally || npc_ally ) && spriority == sounds::sound_t::order ) {

@@ -27,6 +27,7 @@
 #include "enums.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "gun_mode.h"
@@ -252,7 +253,7 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
     // Are we displacing a monster?
 
     bool attacking = false;
-    if( g->critter_at( dest_loc ) ) {
+    if( critter_at( dest_loc ) ) {
         attacking = true;
     }
 
@@ -266,7 +267,7 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
         return false;
     }
 
-    if( monster *const mon_ptr = g->critter_at<monster>( dest_loc, true ) ) {
+    if( monster *const mon_ptr = critter_at<monster>( dest_loc, true ) ) {
         monster &critter = *mon_ptr;
         // Additional checking to make sure we won't take a swing at friendly monsters.
         Character &u = get_player_character();
@@ -303,7 +304,7 @@ bool avatar_action::move( avatar &you, map &m, const tripoint &d )
         // Successful displacing is handled (much) later
     }
     // If not a monster, maybe there's an NPC there
-    if( npc *const np_ = g->critter_at<npc>( dest_loc ) ) {
+    if( npc *const np_ = critter_at<npc>( dest_loc ) ) {
         npc &np = *np_;
         if( you.is_auto_moving() ) {
             add_msg( _( "NPC in the way, Auto-move canceled." ) );

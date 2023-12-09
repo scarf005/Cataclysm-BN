@@ -33,6 +33,7 @@
 #include "field_type.h"
 #include "fstream_utils.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "input.h"
 #include "int_id.h"
@@ -1437,7 +1438,7 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
                             invisible[0] = true;
                         }
                         for( int cz = pos.z; !invisible[0] && cz <= -center.z; cz++ ) {
-                            const Creature *critter = g->critter_at( {pos.xy(), cz}, true );
+                            const Creature *critter = critter_at( {pos.xy(), cz}, true );
                             if( critter && ( get_avatar().sees_with_infrared( *critter ) ||
                                              get_avatar().sees_with_specials( *critter ) ) ) {
                                 invisible[0] = true;
@@ -2243,7 +2244,7 @@ bool cata_tiles::draw_from_id_string( const std::string &id, TILE_CATEGORY categ
         case C_MONSTER:
             // FIXME: add persistent id to Creature type, instead of using monster pointer address
             if( monster_override.find( pos ) == monster_override.end() ) {
-                seed = reinterpret_cast<uintptr_t>( g->critter_at<monster>( pos ) );
+                seed = reinterpret_cast<uintptr_t>( critter_at<monster>( pos ) );
             }
             break;
         default:
@@ -2254,7 +2255,7 @@ bool cata_tiles::draw_from_id_string( const std::string &id, TILE_CATEGORY categ
             }
             // NPC
             if( string_starts_with( found_id, "npc_" ) ) {
-                if( npc *const guy = g->critter_at<npc>( pos ) ) {
+                if( npc *const guy = critter_at<npc>( pos ) ) {
                     seed = guy->getID().get_value();
                     break;
                 }
@@ -2981,7 +2982,7 @@ bool cata_tiles::draw_vpart( const tripoint &p, lit_level ll, int &height_3d,
         // Gets the visible part, should work fine once tileset vp_ids are updated to work with the vehicle part json ids
         // get the vpart_id
         char part_mod = 0;
-        const Creature *critter = g->critter_at( p, true );
+        const Creature *critter = critter_at( p, true );
         const vpart_id &vp_id = veh.part_id_string( veh_part, z_drop > 0 && critter == nullptr, part_mod );
         const int subtile = part_mod == 1 ? open_ : part_mod == 2 ? broken : 0;
         const int rotation = std::round( to_degrees( veh.face.dir() ) );
@@ -3055,7 +3056,7 @@ bool cata_tiles::draw_critter_at( const tripoint &p, lit_level ll, int &height_3
         result = draw_from_id_string( chosen_id, C_MONSTER, ent_subcategory, p, corner, 0,
                                       lit_level::LIT, false, height_3d, z_drop );
     } else if( !invisible[0] ) {
-        const Creature *pcritter = g->critter_at( p, true );
+        const Creature *pcritter = critter_at( p, true );
         if( pcritter == nullptr ) {
             return false;
         }
@@ -3122,7 +3123,7 @@ bool cata_tiles::draw_critter_at( const tripoint &p, lit_level ll, int &height_3
         }
     } else {
         // invisible
-        const Creature *critter = g->critter_at( p, true );
+        const Creature *critter = critter_at( p, true );
         if( critter && ( get_avatar().sees_with_infrared( *critter ) ||
                          get_avatar().sees_with_specials( *critter ) ) ) {
             // try drawing infrared creature if invisible and not overridden

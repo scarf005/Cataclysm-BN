@@ -44,6 +44,7 @@
 #include "flag.h"
 #include "fungal_effects.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item_contents.h"
@@ -1323,7 +1324,7 @@ player_activity &Character::get_destination_activity() const
 void Character::mount_creature( monster &z )
 {
     tripoint pnt = z.pos();
-    shared_ptr_fast<monster> mons = g->shared_from( z );
+    shared_ptr_fast<monster> mons = shared_from( z );
     if( mons == nullptr ) {
         add_msg( m_debug, "mount_creature(): monster not found in critter_tracker" );
         return;
@@ -1776,7 +1777,7 @@ bool static try_remove_grab( Character &c )
         }
     } else {
         for( auto&& dest : here.points_in_radius( c.pos(), 1, 0 ) ) { // *NOPAD*
-            const monster *const mon = g->critter_at<monster>( dest );
+            const monster *const mon = critter_at<monster>( dest );
             if( mon && mon->has_effect( effect_grabbing ) ) {
                 zed_number += mon->get_grab_strength();
             }
@@ -1796,7 +1797,7 @@ bool static try_remove_grab( Character &c )
                                      _( "<npcname> breaks out of the grab!" ) );
             c.remove_effect( effect_grabbed );
             for( auto&& dest : here.points_in_radius( c.pos(), 1, 0 ) ) { // *NOPAD*
-                monster *mon = g->critter_at<monster>( dest );
+                monster *mon = critter_at<monster>( dest );
                 if( mon && mon->has_effect( effect_grabbing ) ) {
                     mon->remove_effect( effect_grabbing );
                 }
@@ -11420,7 +11421,7 @@ int Character::impact( const int force, const tripoint &p )
     // control the impact as well
     const bool slam = p != pos();
     std::string target_name = "a swarm of bugs";
-    Creature *critter = g->critter_at( p );
+    Creature *critter = critter_at( p );
     if( critter != this && critter != nullptr ) {
         target_name = critter->disp_name();
         // Slamming into creatures and NPCs
@@ -11562,7 +11563,7 @@ void Character::knock_back_to( const tripoint &to )
     }
 
     // First, see if we hit a monster
-    if( monster *const critter = g->critter_at<monster>( to ) ) {
+    if( monster *const critter = critter_at<monster>( to ) ) {
         deal_damage( critter, bodypart_id( "torso" ), damage_instance( DT_BASH, critter->type->size ) );
         add_effect( effect_stunned, 1_turns );
         /** @EFFECT_STR_MAX allows knocked back player to knock back, damage, stun some monsters */
@@ -11581,7 +11582,7 @@ void Character::knock_back_to( const tripoint &to )
         return;
     }
 
-    if( npc *const np = g->critter_at<npc>( to ) ) {
+    if( npc *const np = critter_at<npc>( to ) ) {
         deal_damage( np, bodypart_id( "torso" ), damage_instance( DT_BASH, np->get_size() + 1 ) );
         add_effect( effect_stunned, 1_turns );
         np->deal_damage( this, bodypart_id( "torso" ), damage_instance( DT_BASH, 3 ) );

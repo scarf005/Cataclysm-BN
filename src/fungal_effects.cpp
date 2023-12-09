@@ -13,6 +13,7 @@
 #include "enums.h"
 #include "field_type.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "item_stack.h"
 #include "map.h"
@@ -67,7 +68,7 @@ void fungal_effects::fungalize( const tripoint &p, Creature *origin, double spor
 {
     auto &you = get_avatar();
 
-    if( monster *const mon_ptr = g->critter_at<monster>( p ) ) {
+    if( monster *const mon_ptr = critter_at<monster>( p ) ) {
         monster &critter = *mon_ptr;
         if( you.sees( p ) &&
             !critter.type->in_species( FUNGUS ) ) {

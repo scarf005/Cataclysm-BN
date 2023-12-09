@@ -25,6 +25,7 @@
 #include "field_type.h"
 #include "fstream_utils.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "input.h"
 #include "int_id.h"
@@ -217,7 +218,7 @@ void editmap_hilight::draw( editmap &em, bool update )
         for( auto &elem : points ) {
             const tripoint &p = elem.first;
             // but only if there's no vehicles/mobs/npcs on a point
-            if( !here.veh_at( p ) && !g->critter_at( p ) ) {
+            if( !here.veh_at( p ) && !critter_at( p ) ) {
                 const ter_t &terrain = here.ter( p ).obj();
                 char t_sym = terrain.symbol();
                 nc_color t_col = terrain.color();
@@ -414,7 +415,7 @@ std::optional<tripoint> editmap::edit()
         } else if( action == "EDITMAP_SHOW_ALL" ) {
             uberdraw = !uberdraw;
         } else if( action == "EDIT_MONSTER" ) {
-            if( Creature *const critter = g->critter_at( target ) ) {
+            if( Creature *const critter = critter_at( target ) ) {
                 edit_critter( *critter );
             } else if( get_map().veh_at( target ) ) {
                 edit_veh();
@@ -467,7 +468,7 @@ void editmap::uber_draw_ter( const catacurses::window &w, map *m )
         int sym = game_map ? '%' : ' ';
         if( p.x >= 0 && p.x < msize && p.y >= 0 && p.y < msize ) {
             if( game_map ) {
-                Creature *critter = g->critter_at( p );
+                Creature *critter = critter_at( p );
                 if( critter != nullptr ) {
                     critter->draw( w, center.xy(), false );
                 } else {
@@ -502,7 +503,7 @@ void editmap::do_ui_invalidation()
 
 void editmap::draw_main_ui_overlay()
 {
-    const Creature *critter = g->critter_at( target );
+    const Creature *critter = critter_at( target );
 
     map &here = get_map();
 #if !defined( TILES )
@@ -559,7 +560,7 @@ void editmap::draw_main_ui_overlay()
             } else {
 #endif
                 // but only if there's no vehicles/mobs/npcs on a point
-                if( !here.veh_at( p ) && !g->critter_at( p ) ) {
+                if( !here.veh_at( p ) && !critter_at( p ) ) {
                     const ter_t &terrain = here.ter( p ).obj();
                     char t_sym = terrain.symbol();
                     nc_color t_col = terrain.color();
@@ -790,7 +791,7 @@ void editmap::update_view_with_help( const std::string &txt, const std::string &
         off++; // 11
     }
 
-    const Creature *critter = g->critter_at( target );
+    const Creature *critter = critter_at( target );
     if( critter != nullptr ) {
         off = critter->print_info( w_info, off, 5, 1 );
     } else if( vp ) {

@@ -23,6 +23,7 @@
 #include "debug.h"
 #include "enums.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "iexamine.h"
 #include "input.h"
 #include "int_id.h"
@@ -1569,7 +1570,7 @@ bool vehicle::can_close( int part_index, Character &who )
 {
     for( auto const &vec : find_lines_of_parts( part_index, "OPENABLE" ) ) {
         for( auto const &partID : vec ) {
-            const Creature *const mon = g->critter_at( global_part_pos3( parts[partID] ) );
+            const Creature *const mon = critter_at( global_part_pos3( parts[partID] ) );
             if( mon ) {
                 if( mon->is_player() ) {
                     who.add_msg_if_player( m_info, _( "There's some buffoon in the way!" ) );
@@ -1793,7 +1794,7 @@ void vehicle::use_harness( int part, const tripoint &pos )
         return;
     }
     const std::function<bool( const tripoint & )> f = []( const tripoint & pnt ) {
-        monster *mon_ptr = g->critter_at<monster>( pnt );
+        monster *mon_ptr = critter_at<monster>( pnt );
         if( mon_ptr == nullptr ) {
             return false;
         }
@@ -1810,7 +1811,7 @@ void vehicle::use_harness( int part, const tripoint &pos )
         return;
     }
     const tripoint &target = *pnt_;
-    monster *mon_ptr = g->critter_at<monster>( target );
+    monster *mon_ptr = critter_at<monster>( target );
     if( mon_ptr == nullptr ) {
         add_msg( m_info, _( "No creature there." ) );
         return;

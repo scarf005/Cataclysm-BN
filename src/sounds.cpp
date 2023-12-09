@@ -23,6 +23,7 @@
 #include "enums.h"
 #include "enum_conversions.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "item.h"
 #include "itype.h"
@@ -1107,7 +1108,7 @@ sfx::sound_thread::sound_thread( const tripoint &source, const tripoint &target,
 {
     // This is function is run in the main thread.
     const int heard_volume = get_heard_volume( source );
-    const player *p = g->critter_at<npc>( source );
+    const player *p = critter_at<npc>( source );
     if( !p ) {
         p = &get_avatar();
         // sound comes from the same place as the player is, calculation of angle wouldn't work

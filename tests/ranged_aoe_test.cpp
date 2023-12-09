@@ -9,6 +9,7 @@
 #include "map_helpers.h"
 #include "overmapbuffer.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "state_helpers.h"
 
 static void shape_coverage_vs_distance_no_obstacle( const shape_factory_impl &c,
@@ -120,7 +121,7 @@ TEST_CASE( "character using birdshot against another character", "[shape][ranged
     REQUIRE( gun->gun_range() >= rl_dist( shooter_pos, target_pos ) );
     REQUIRE( g->all_npcs().items.size() == 1 );
     REQUIRE( target->pos() == target_pos );
-    REQUIRE( g->critter_at( target_pos ) == &*target );
+    REQUIRE( critter_at( target_pos ) == &*target );
     const int target_hp_total_before = target->get_hp();
     REQUIRE( target->get_hp() >= 100 );
     shooter.wield( std::move( gun ) );

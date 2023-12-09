@@ -19,6 +19,7 @@
 #include "enums.h"
 #include "explosion.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "int_id.h"
 #include "item.h"
 #include "itype.h"
@@ -477,7 +478,7 @@ veh_collision vehicle::part_collision( int part, const tripoint &p,
     const bool vert_coll = bash_floor || p.z != sm_pos.z;
     Character &player_character = get_player_character();
     const bool pl_ctrl = player_in_control( player_character );
-    Creature *critter = g->critter_at( p, true );
+    Creature *critter = critter_at( p, true );
     player *ph = dynamic_cast<player *>( critter );
 
     Creature *driver = pl_ctrl ? &player_character : nullptr;
@@ -534,7 +535,7 @@ veh_collision vehicle::part_collision( int part, const tripoint &p,
             std::set<tripoint> &cur_points = get_points( true );
             // push the animal out of way until it's no longer in our vehicle and not in
             // anyone else's position
-            while( g->critter_at( end_pos, true ) ||
+            while( critter_at( end_pos, true ) ||
                    cur_points.find( end_pos ) != cur_points.end() ) {
                 start_pos = end_pos;
                 calc_ray_end( angle, 2, start_pos, end_pos );
@@ -1013,7 +1014,7 @@ bool vehicle::check_heli_descend( player &p )
         }
         const optional_vpart_position ovp = here.veh_at( below );
         if( here.impassable_ter_furn( below ) || here.has_flag_ter_or_furn( TFLAG_RAMP_DOWN, below ) ||
-            ovp || g->critter_at( below ) ) {
+            ovp || critter_at( below ) ) {
             p.add_msg_if_player( m_bad,
                                  _( "It would be unsafe to try and land when there are obstacles below you." ) );
             return false;
@@ -1055,7 +1056,7 @@ bool vehicle::check_heli_ascend( player &p )
         bool has_ceiling = !here.has_flag_ter( TFLAG_NO_FLOOR, above );
         bool has_blocking_ter_furn = here.impassable_ter_furn( above );
         bool has_veh = here.veh_at( above ).has_value();
-        bool has_critter = g->critter_at( above );
+        bool has_critter = critter_at( above );
         if( has_ceiling || has_blocking_ter_furn || has_veh || has_critter ) {
             direction obstacle_direction = direction_from( ( pt - p.pos() ).xy() );
             const std::string direction_string = direction_name( obstacle_direction );
@@ -1067,7 +1068,7 @@ bool vehicle::check_heli_ascend( player &p )
             } else if( has_veh ) {
                 blocker_string = here.veh_at( above )->vehicle().disp_name();
             } else if( has_critter ) {
-                blocker_string = g->critter_at( above )->disp_name();
+                blocker_string = critter_at( above )->disp_name();
             } else {
                 blocker_string = "BUGS";
             }

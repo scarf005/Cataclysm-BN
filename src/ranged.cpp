@@ -33,6 +33,7 @@
 #include "event_bus.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "gun_mode.h"
 #include "input.h"
@@ -1256,7 +1257,7 @@ dealt_projectile_attack throw_item( Character &who, const tripoint &target,
         proj.add_effect( ammo_effect_TANGLE );
     }
 
-    Creature *critter = g->critter_at( target, true );
+    Creature *critter = critter_at( target, true );
     const dispersion_sources dispersion( ranged::throwing_dispersion( who, thrown, critter,
                                          blind_throw_from_pos.has_value() ) );
     const itype *thrown_type = thrown.type;
@@ -1555,7 +1556,7 @@ static bool pl_sees( const Creature &cr )
 static double calculate_aim_cap( const Character &p, const tripoint &target )
 {
     double min_recoil = 0.0;
-    const Creature *victim = g->critter_at( target, true );
+    const Creature *victim = critter_at( target, true );
     // No p.sees_with_specials() here because special senses are not precise enough
     // to give creature's exact size & position, only which tile it occupies
     if( victim == nullptr || ( !p.sees( *victim ) && !p.sees_with_infrared( *victim ) ) ) {
@@ -1620,7 +1621,7 @@ static int draw_throw_aim( const player &p, const catacurses::window &w, int lin
                            input_context &ctxt,
                            const item &weapon, const tripoint &target_pos, bool is_blind_throw )
 {
-    Creature *target = g->critter_at( target_pos, true );
+    Creature *target = critter_at( target_pos, true );
     if( target != nullptr && !p.sees( *target ) ) {
         target = nullptr;
     }
@@ -2668,7 +2669,7 @@ bool target_ui::set_cursor_pos( const tripoint &new_pos )
 
     // Cache creature under cursor
     if( src != dst ) {
-        Creature *cr = g->critter_at( dst, true );
+        Creature *cr = critter_at( dst, true );
         if( cr && pl_sees( *cr ) ) {
             dst_critter = cr;
         } else {
@@ -2786,7 +2787,7 @@ bool target_ui::try_reacquire_target( bool critter, tripoint &new_dst )
     if( dist_fn( local_lt ) <= range ) {
         new_dst = local_lt;
         // Abort aiming if a creature moved in
-        return !critter && !g->critter_at( local_lt, true );
+        return !critter && !critter_at( local_lt, true );
     }
 
     // We moved out of range
@@ -2831,7 +2832,7 @@ void target_ui::set_last_target()
 {
     you->last_target_pos = get_map().getabs( dst );
     if( dst_critter ) {
-        you->last_target = g->shared_from( *dst_critter );
+        you->last_target = shared_from( *dst_critter );
     } else {
         you->last_target.reset();
     }
@@ -2893,14 +2894,14 @@ std::vector<weak_ptr_fast<Creature>> target_ui::list_friendlies_in_lof()
     }
     for( const tripoint &p : traj ) {
         if( p != dst && p != src ) {
-            Creature *cr = g->critter_at( p, true );
+            Creature *cr = critter_at( p, true );
             if( cr && you->sees( *cr ) ) {
                 Creature::Attitude a = cr->attitude_to( *this->you );
                 if(
                     ( cr->is_npc() && a != Creature::A_HOSTILE ) ||
                     ( !cr->is_npc() && a == Creature::A_FRIENDLY )
                 ) {
-                    ret.emplace_back( g->shared_from( *cr ) );
+                    ret.emplace_back( shared_from( *cr ) );
                 }
             }
         }
@@ -3180,7 +3181,7 @@ bool target_ui::action_aim_and_shoot( const std::string &action )
     // If no critter is at dst then sight dispersion does not apply,
     // so it would lock into an infinite loop.
     bool done_aiming = you->recoil <= aim_threshold || you->recoil - sight_dispersion == min_recoil ||
-                       ( !g->critter_at( dst ) && you->recoil == min_recoil );
+                       ( !critter_at( dst ) && you->recoil == min_recoil );
     return done_aiming;
 }
 
@@ -3266,7 +3267,7 @@ void target_ui::draw_terrain_overlay()
             } else {
 #endif
                 get_map().drawsq( g->w_terrain, tile, params );
-                Creature *critter = g->critter_at( tile );
+                Creature *critter = critter_at( tile );
                 if( critter != nullptr ) {
                     g->draw_critter_highlighted( *critter, center );
                 }

@@ -20,6 +20,7 @@
 #include "field_type.h"
 #include "flat_set.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "int_id.h"
 #include "item.h"
@@ -151,13 +152,13 @@ static std::vector<player *> find_targets_to_ungrab( const tripoint &pos )
 {
     std::vector<player *> result;
     for( auto &player_pos : get_map().points_in_radius( pos, 1, 0 ) ) {
-        player *p = g->critter_at<player>( player_pos );
+        player *p = critter_at<player>( player_pos );
         if( !p || !p->has_effect( effect_grabbed ) ) {
             continue;
         }
         bool grabbed = false;
         for( auto &mon_pos : get_map().points_in_radius( player_pos, 1, 0 ) ) {
-            const monster *const mon = g->critter_at<monster>( mon_pos );
+            const monster *const mon = critter_at<monster>( mon_pos );
             if( mon && mon->has_effect( effect_grabbing ) ) {
                 grabbed = true;
                 break;
@@ -1193,7 +1194,7 @@ Creature *monster::attack_target()
         return nullptr;
     }
 
-    Creature *target = g->critter_at( move_target() );
+    Creature *target = critter_at( move_target() );
     if( target == nullptr || target == this ||
         attitude_to( *target ) == Creature::A_FRIENDLY || !sees( *target ) ) {
         return nullptr;
@@ -2404,7 +2405,7 @@ void monster::process_turn()
     // Persist grabs as long as there's an adjacent target.
     if( has_effect( effect_grabbing ) ) {
         for( auto &dest : get_map().points_in_radius( pos(), 1, 0 ) ) {
-            const player *const p = g->critter_at<player>( dest );
+            const player *const p = critter_at<player>( dest );
             if( p && p->has_effect( effect_grabbed ) ) {
                 add_effect( effect_grabbing, 2_turns );
             }

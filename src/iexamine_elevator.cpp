@@ -2,6 +2,7 @@
 #include <optional>
 #include "cata_algo.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "iexamine.h"
 #include "mapdata.h"
 #include "output.h"
@@ -159,7 +160,7 @@ auto move_creatures_away( const elevator::tiles &dest ) -> void
     const auto is_movable = [&]( const tripoint & candidate ) {
         return !here.has_flag( TFLAG_ELEVATOR, candidate )
                && here.passable( candidate )
-               && !g->critter_at( candidate );
+               && !critter_at( candidate );
     };
 
     for( Creature &critter : g->all_creatures() ) {

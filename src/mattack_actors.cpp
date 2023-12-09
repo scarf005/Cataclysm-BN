@@ -10,6 +10,7 @@
 #include "creature.h"
 #include "enums.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "generic_factory.h"
 #include "gun_mode.h"
 #include "int_id.h"
@@ -212,7 +213,7 @@ bool mon_spellcasting_actor::call( monster &mon ) const
     }
 
     std::string target_name;
-    if( const Creature *target_monster = g->critter_at( target ) ) {
+    if( const Creature *target_monster = critter_at( target ) ) {
         target_name = target_monster->disp_name();
     }
 

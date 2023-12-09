@@ -10,6 +10,7 @@
 #include "creature.h"
 #include "flag.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "handle_liquid.h"
 #include "itype.h"
 #include "make_static.h"
@@ -624,7 +625,7 @@ std::optional<tripoint> pick_safe_adjacent_tile( const Character &who )
             continue;
         }
         const trap &curtrap = here.tr_at( p );
-        if( g->critter_at( p ) == nullptr && here.passable( p ) &&
+        if( critter_at( p ) == nullptr && here.passable( p ) &&
             ( curtrap.is_null() || curtrap.is_benign() ) ) {
             // Only consider tile if unoccupied, passable and has no traps
             dangerous_fields = 0;

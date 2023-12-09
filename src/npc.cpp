@@ -30,6 +30,7 @@
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "int_id.h"
@@ -2263,7 +2264,7 @@ bool npc::emergency( float danger ) const
 //Active npcs are the npcs near the player that are actively simulated.
 bool npc::is_active() const
 {
-    return g->critter_at<npc>( pos() ) == this;
+    return critter_at<npc>( pos() ) == this;
 }
 
 int npc::follow_distance() const
@@ -2803,8 +2804,8 @@ void npc::on_load()
         get_map().board_vehicle( pos(), this );
     }
     if( has_effect( effect_riding ) && !mounted_creature ) {
-        if( const monster *const mon = g->critter_at<monster>( pos() ) ) {
-            mounted_creature = g->shared_from( *mon );
+        if( const monster *const mon = critter_at<monster>( pos() ) ) {
+            mounted_creature = shared_from( *mon );
         } else {
             add_msg( m_debug, "NPC is meant to be riding, though the mount is not found when %s is loaded",
                      disp_name() );

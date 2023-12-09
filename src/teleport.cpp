@@ -10,6 +10,7 @@
 #include "event.h"
 #include "event_bus.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "map.h"
 #include "messages.h"
 #include "player.h"
@@ -66,7 +67,7 @@ bool teleport::teleport( Creature &critter, int min_distance, int max_distance, 
 
     }
     //handles telefragging other creatures
-    if( Creature *const poor_soul = g->critter_at<Creature>( new_pos ) ) {
+    if( Creature *const poor_soul = critter_at<Creature>( new_pos ) ) {
         player *const poor_player = dynamic_cast<player *>( poor_soul );
         if( safe ) {
             if( c_is_u ) {

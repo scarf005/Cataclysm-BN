@@ -13,6 +13,7 @@
 #include "field.h"
 #include "field_type.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "itype.h"
 #include "line.h"
 #include "map.h"
@@ -254,7 +255,7 @@ static void check_npc_movement( const tripoint &origin )
                 case 'B':
                 case 'C':
                     tripoint p = origin + point( x, y );
-                    npc *guy = g->critter_at<npc>( p );
+                    npc *guy = critter_at<npc>( p );
                     REQUIRE( guy != nullptr );
                     guy->move();
                     break;
@@ -267,7 +268,7 @@ static void check_npc_movement( const tripoint &origin )
         for( int x = 0; x < width; ++x ) {
             if( setup[y][x] == 'A' ) {
                 tripoint p = origin + point( x, y );
-                npc *guy = g->critter_at<npc>( p );
+                npc *guy = critter_at<npc>( p );
                 REQUIRE( guy != nullptr );
                 CHECK( !guy->has_effect( effect_bouldering ) );
             }
@@ -279,7 +280,7 @@ static void check_npc_movement( const tripoint &origin )
         for( int x = 0; x < width; ++x ) {
             if( setup[y][x] == 'R' ) {
                 tripoint p = origin + point( x, y );
-                npc *guy = g->critter_at<npc>( p );
+                npc *guy = critter_at<npc>( p );
                 REQUIRE( guy != nullptr );
                 CHECK( guy->has_effect( effect_bouldering ) );
             }
@@ -294,7 +295,7 @@ static void check_npc_movement( const tripoint &origin )
                 case 'M':
                     CAPTURE( setup[y][x] );
                     tripoint p = origin + point( x, y );
-                    npc *guy = g->critter_at<npc>( p );
+                    npc *guy = critter_at<npc>( p );
                     CHECK( guy != nullptr );
                     break;
             }
@@ -308,7 +309,7 @@ static void check_npc_movement( const tripoint &origin )
                 case 'B':
                 case 'C':
                     tripoint p = origin + point( x, y );
-                    npc *guy = g->critter_at<npc>( p );
+                    npc *guy = critter_at<npc>( p );
                     CHECK( guy == nullptr );
                     break;
             }
@@ -410,7 +411,7 @@ TEST_CASE( "npc-movement" )
             } else {
                 REQUIRE( !here.veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, true ).has_value() );
             }
-            npc *guy = g->critter_at<npc>( p );
+            npc *guy = critter_at<npc>( p );
             if( type == 'A' || type == 'R' || type == 'W' || type == 'M'
                 || type == 'B' || type == 'C' ) {
 
@@ -488,10 +489,10 @@ TEST_CASE( "npc_move_through_vehicle_holes" )
 
     guy->move_to( mon_origin + tripoint_north_west, true, nullptr );
 
-    const npc *m = g->critter_at<npc>( mon_origin );
+    const npc *m = critter_at<npc>( mon_origin );
     CHECK( m != nullptr );
 
-    const npc *m2 = g->critter_at<npc>( mon_origin + tripoint_north_west );
+    const npc *m2 = critter_at<npc>( mon_origin + tripoint_north_west );
     CHECK( m2 == nullptr );
 
 }

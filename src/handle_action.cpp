@@ -1,4 +1,5 @@
 #include "game.h" // IWYU pragma: associated
+#include "creature_utils.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -235,7 +236,7 @@ static void generate_weather_anim_frame( const weather_type_id &wtype, weather_p
         const lit_level lighting = visibility_cache[mapp.x][mapp.y];
 
         if( m.is_outside( mapp ) && m.get_visibility( lighting, cache ) == VIS_CLEAR &&
-            !g->critter_at( mapp, true ) ) {
+            !critter_at( mapp, true ) ) {
             // Suppress if a critter is there
             wPrint.vdrops.emplace_back( iRand.x, iRand.y );
         }

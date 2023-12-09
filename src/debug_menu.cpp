@@ -46,6 +46,7 @@
 #include "faction.h"
 #include "filesystem.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "game_inventory.h"
 #include "input.h"
@@ -506,7 +507,7 @@ static Character &pick_character( Character &preselected )
         return preselected;
     }
     const size_t index = charmenu.ret;
-    Character *c = g->critter_at<Character>( locations[index] );
+    Character *c = critter_at<Character>( locations[index] );
     return c != nullptr ? *c : preselected;
 }
 

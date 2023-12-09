@@ -36,6 +36,7 @@
 #include "flag.h"
 #include "flat_set.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "game_constants.h"
 #include "iexamine.h"
 #include "int_id.h"
@@ -819,7 +820,7 @@ void stash_activity_actor::do_turn( player_activity &, Character &who )
 {
     const tripoint pos = who.pos() + relpos;
 
-    monster *pet = g->critter_at<monster>( pos );
+    monster *pet = critter_at<monster>( pos );
     if( pet != nullptr && pet->has_effect( effect_pet ) ) {
         std::vector<detached_ptr<item>> stashed = obtain_activity_items( who, items );
         stash_on_pet( stashed, *pet, who );

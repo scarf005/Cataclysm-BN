@@ -9,6 +9,7 @@
 #include "damage.h"
 #include "dispersion.h"
 #include "game.h"
+#include "creature_utils.h"
 #include "item.h"
 #include "map.h"
 #include "map_helpers.h"
@@ -51,7 +52,7 @@ TEST_CASE( "projectiles_through_obstacles", "[projectile]" )
         REQUIRE( here.inbounds( pt ) );
         here.ter_set( pt, ter_id( "t_dirt" ) );
         here.furn_set( pt, furn_id( "f_null" ) );
-        REQUIRE_FALSE( g->critter_at( pt ) );
+        REQUIRE_FALSE( critter_at( pt ) );
         REQUIRE( here.is_transparent( pt ) );
     }
 
