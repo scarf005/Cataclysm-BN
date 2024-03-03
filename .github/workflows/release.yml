@@ -63,14 +63,6 @@ jobs:
 
       - run: git fetch origin tag ${{ needs.metadata.outputs.tag_name }} --no-tags
 
-      - name: Build Changelog
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v2.1.0
-        with:
-          configuration: "changelog.json"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create release
         if: ${{ steps.tag_check.outputs.exists == 'false' }}
         id: create_release
