@@ -75,14 +75,16 @@ jobs:
         with:
           vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
           vcpkgGitCommitId: "66444e13a86da7087ee24c342f91801cc6eb9877"
+          runVcpkgInstall: true # it's discouraged in README but that's for cmake, this workflow doesn't use cmake per se
 
       - name: Integrate vcpkg
         if: runner.os == 'Windows'
         run: |
           vcpkg integrate install
-          vcpkg list
-          vcpkg install gettext
-          vcpkg list
+      - run: vcpkg list
+
+      - run: vcpkg install gettext
+      - run: vcpkg list
 
       - name: Compile translations (windows)
         if: runner.os == 'Windows'
