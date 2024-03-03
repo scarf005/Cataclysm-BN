@@ -2,7 +2,10 @@
     "name": "bn-vcpkg-dependencies",
     "version-string": "experimental",
     "dependencies": [
-        "gettext",
+        {
+          "name": "gettext",
+          "features": [ "tools", "runtime-tools" ]
+        },
         "sdl2",
         {
           "name": "sdl2-image",
