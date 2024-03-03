@@ -21,19 +21,24 @@ jobs:
             mxe: none
             ext: zip
             content: application/zip
-          - name: Windows Tiles x32 MSVC
-            artifact: windows-tiles-x32-msvc
-            arch: x86
-            os: windows-2019
-            mxe: none
-            ext: zip
-            content: application/zip
+          # - name: Windows Tiles x32 MSVC
+          #   artifact: windows-tiles-x32-msvc
+          #   arch: x86
+          #   os: windows-2019
+          #   mxe: none
+          #   ext: zip
+          #   content: application/zip
 
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
 
     env:
       ZSTD_CLEVEL: 17
+      # There's not enough disk space to build both release and debug versions of
+      # our dependencies, so we hack the triplet file to build only release versions
+      # Have to use github.workspace because runner namespace isn't available yet.
+      VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\.github\vcpkg_triplets
+      CMAKE_PRESET: windows-tiles-sounds-x64-msvc
     steps:
       - uses: actions/checkout@v3
       - name: Create VERSION.TXT
@@ -45,6 +50,17 @@ jobs:
           commit sha: ${{ github.sha }}
           commit url: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
           EOL
+
+      - name: Remove Strawberry Perl from PATH
+        run: |
+          echo $env:PATH
+          echo =========================
+          $env:PATH = $env:PATH -replace "C:\\Strawberry\\c\\bin;", ""
+          $env:PATH = $env:PATH -replace "C:\\Strawberry\\perl\\site\\bin;", ""
+          $env:PATH = $env:PATH -replace "C:\\Strawberry\\perl\\bin;", ""
+          "PATH=$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo =========================
+          echo $env:PATH
 
       - name: Install MSBuild (windows msvc)
         if: runner.os == 'Windows'
@@ -64,25 +80,9 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           vcpkg integrate install
-
-      - name: Install dependencies (windows mxe)
-        if: matrix.mxe != 'none'
-        run: |
-          sudo apt update
-          sudo apt install astyle autoconf automake autopoint bash bison bzip2 cmake flex gettext git g++ gperf intltool \
-            libffi-dev libgdk-pixbuf2.0-dev libtool libltdl-dev libssl-dev libxml-parser-perl lzip make mingw-w64 openssl \
-            p7zip-full patch perl pkg-config python ruby scons sed unzip wget xz-utils g++-multilib libc6-dev-i386 libtool-bin
-
-      - name: Install MXE
-        if: matrix.mxe != 'none'
-        run: |
-          curl -L -o mxe-${{ matrix.mxe }}.tar.xz https://github.com/BrettDong/MXE-GCC/releases/download/mxe-gcc-11.2/mxe-${{ matrix.mxe }}.tar.xz
-          curl -L -o mxe-${{ matrix.mxe }}.tar.xz.sha256 https://github.com/BrettDong/MXE-GCC/releases/download/mxe-gcc-11.2/mxe-${{ matrix.mxe }}.tar.xz.sha256
-          shasum -a 256 -c ./mxe-${{ matrix.mxe }}.tar.xz.sha256
-          sudo tar xJf mxe-${{ matrix.mxe }}.tar.xz -C /opt
-          curl -L -o libbacktrace-${{ matrix.mxe }}-w64-mingw32.tar.gz https://github.com/Qrox/libbacktrace/releases/download/2020-01-03/libbacktrace-${{ matrix.mxe }}-w64-mingw32.tar.gz
-          shasum -a 256 -c ./build-scripts/libbacktrace-${{ matrix.mxe }}-w64-mingw32-sha256
-          sudo tar -xzf libbacktrace-${{ matrix.mxe }}-w64-mingw32.tar.gz --exclude=LICENSE -C /opt/mxe/usr/${{ matrix.mxe }}-w64-mingw32.static.gcc11
+          vcpkg list
+          vcpkg install gettext
+          vcpkg list
 
       - name: Compile translations (windows)
         if: runner.os == 'Windows'
