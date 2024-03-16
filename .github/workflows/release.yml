@@ -78,6 +78,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - run: |
+          CHANGELOG=$(cat <<EOF
+          ${{ steps.build_changelog.outputs.changelog }}
+          EOF
+          )
+          echo "changelog:" >> "$GITHUB_STEP_SUMMARY"
+          while IFS= read -r line; do
+            echo "  - $line" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "$CHANGELOG"
+
+
       - name: Create release
         if: ${{ steps.tag_check.outputs.exists == 'false' }}
         id: create_release
