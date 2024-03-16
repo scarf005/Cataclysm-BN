@@ -73,6 +73,8 @@ jobs:
           configuration: "changelog.json"
           fromTag: ${{ needs.metadata.outputs.yesterday_tag_name }}
           toTag: ${{ needs.metadata.outputs.tag_name }}
+          owner: cataclysmbnteam
+          repo: Cataclysm-BN
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
