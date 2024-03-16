@@ -54,6 +54,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/checkout@v4
+        with:
+          repository: cataclysmbnteam/Cataclysm-BN
 
       - name: Push tag
         if: ${{ steps.tag_check.outputs.exists == 'false' }}
@@ -63,8 +65,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ needs.metadata.outputs.tag_name }}
           tag_prefix: ""
-
-      - uses: actions/checkout@v4
 
       - name: Build Changelog
         id: build_changelog
