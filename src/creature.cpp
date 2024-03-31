@@ -205,6 +205,7 @@ void Creature::reset_bonuses()
 
 void Creature::process_turn()
 {
+    ZoneScoped;
     if( is_dead_state() ) {
         return;
     }
@@ -1384,6 +1385,8 @@ struct removed_effect {
 
 void Creature::process_effects()
 {
+    ZoneScoped;
+
     process_effects_internal();
 
     // id's and body_part's of all effects to be removed. If we ever get player or
@@ -1395,6 +1398,7 @@ void Creature::process_effects()
 
     // Decay/removal of effects
     for( auto &elem : *effects ) {
+        ZoneScopedN( "Decay/removal of effects" );
         for( auto &_it : elem.second ) {
             if( _it.second.is_removed() ) {
                 to_remove.emplace_back( elem.first, _it.first, false );
@@ -1416,9 +1420,9 @@ void Creature::process_effects()
             }
         }
     }
-
     // Run the on-remove effects
     for( const removed_effect &r : to_remove ) {
+        ZoneScopedN( " Run the on-remove effects" );
         const auto &add_after = r.type->get_effects_on_remove();
         if( !add_after.empty() ) {
             bool found = false;
@@ -1445,6 +1449,7 @@ void Creature::process_effects()
     }
     // Actually remove effects. This should be the last thing done in process_effects().
     for( const removed_effect &r : to_remove ) {
+        ZoneScopedN( "Actually remove effects" );
         if( !r.bp ) {
             effects->erase( r.type );
         } else {
@@ -1457,6 +1462,7 @@ void Creature::process_effects()
     }
 
     for( const effect &eff : to_add ) {
+        ZoneScopedN( "Add effects" );
         add_effect( eff );
     }
 }

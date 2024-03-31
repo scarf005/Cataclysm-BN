@@ -99,6 +99,8 @@ static const itype_id itype_UPS( "UPS" );
 
 void Character::recalc_speed_bonus()
 {
+    ZoneScoped;
+
     // Minus some for weight...
     // Easy test, if Character DOES have this trait then we don't need to check weight carried/capacity
     if( !has_trait( trait_DEBUG_STORAGE ) ) {
@@ -168,6 +170,7 @@ void Character::recalc_speed_bonus()
 
 void Character::process_turn()
 {
+    ZoneScoped;
     // Has to happen before reset_stats
     clear_miss_reasons();
 
@@ -556,6 +559,8 @@ void Character::process_one_effect( effect &it, bool is_new )
 
 void Character::process_effects_internal()
 {
+    ZoneScoped;
+
     //Special Removals
     if( has_effect( effect_darkness ) && g->is_in_sunlight( pos() ) ) {
         remove_effect( effect_darkness );
@@ -601,6 +606,7 @@ void Character::process_effects_internal()
 
 void Character::reset_stats()
 {
+    ZoneScoped;
     const int current_stim = get_stim();
 
     // Trait / mutation buffs
@@ -746,6 +752,7 @@ void Character::reset_stats()
 
     // Effects
     for( const auto &maps : *effects ) {
+        ZoneScoped;
         for( auto i : maps.second ) {
             const auto &it = i.second;
             if( it.is_removed() ) {

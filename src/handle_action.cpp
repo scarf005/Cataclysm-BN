@@ -94,6 +94,7 @@
 #include "vpart_range.h"
 #include "weather.h"
 #include "worldfactory.h"
+#include "profile.h"
 
 static const activity_id ACT_FERTILIZE_PLOT( "ACT_FERTILIZE_PLOT" );
 static const activity_id ACT_MOVE_LOOT( "ACT_MOVE_LOOT" );
@@ -1532,6 +1533,8 @@ void game::open_consume_item_menu()
 
 bool game::handle_action()
 {
+    ZoneScoped;
+
     std::string action;
     input_context ctxt;
     action_id act = ACTION_NULL;

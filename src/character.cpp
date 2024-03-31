@@ -111,6 +111,7 @@
 #include "vpart_range.h"
 #include "weather.h"
 #include "weather_gen.h"
+#include "profile.h"
 
 struct dealt_projectile_attack;
 
@@ -1982,6 +1983,8 @@ void Character::calc_all_parts_hp( float hp_mod, float hp_adjustment, int str_ma
 // 'wears' vector is still allowed due to refactor exhaustion.
 void Character::recalc_sight_limits()
 {
+    ZoneScoped;
+
     sight_max = 9999;
     vision_mode_cache.reset();
 

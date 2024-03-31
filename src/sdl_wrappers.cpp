@@ -9,6 +9,7 @@
 
 #include "debug.h"
 #include "point.h"
+#include "profile.h"
 
 #if defined(_MSC_VER) && defined(USE_VCPKG)
 #  include <SDL2/SDL_image.h>
@@ -38,6 +39,8 @@ void throwErrorIf( const bool condition, const char *const message )
 void RenderCopy( const SDL_Renderer_Ptr &renderer, const SDL_Texture_Ptr &texture,
                  const SDL_Rect *srcrect, const SDL_Rect *dstrect )
 {
+    ZoneScoped;
+
     if( !renderer ) {
         dbg( DL::Error ) << "Tried to render to a null renderer";
         return;
@@ -53,6 +56,8 @@ void RenderCopy( const SDL_Renderer_Ptr &renderer, const SDL_Texture_Ptr &textur
 SDL_Texture_Ptr CreateTexture( const SDL_Renderer_Ptr &renderer, Uint32 format, int access,
                                int w, int h )
 {
+    ZoneScoped;
+
     if( !renderer ) {
         dbg( DL::Error ) << "Tried to create texture with a null renderer";
         return SDL_Texture_Ptr();
@@ -65,6 +70,8 @@ SDL_Texture_Ptr CreateTexture( const SDL_Renderer_Ptr &renderer, Uint32 format, 
 SDL_Texture_Ptr CreateTextureFromSurface( const SDL_Renderer_Ptr &renderer,
         const SDL_Surface_Ptr &surface )
 {
+    ZoneScoped;
+
     if( !renderer ) {
         dbg( DL::Error ) << "Tried to create texture with a null renderer";
         return SDL_Texture_Ptr();

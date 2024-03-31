@@ -13,6 +13,7 @@
 #include "submap.h"
 #include "options.h"
 #include "overmapbuffer.h"
+#include "profile.h"
 
 static distribution_grid empty_grid( {}, MAPBUFFER );
 
@@ -348,6 +349,8 @@ std::string grid_furn_transform_queue::to_string() const
 
 void distribution_grid_tracker::update( time_point to )
 {
+    ZoneScopedN( "distribution_grid_tracker::update" );
+
     for( const shared_ptr_fast<distribution_grid> &grid : grids_requiring_updates ) {
         grid->update( to );
     }

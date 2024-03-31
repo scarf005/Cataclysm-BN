@@ -166,6 +166,7 @@ static bool operator==( const cata_cursesport::WINDOW *const lhs, const catacurs
 
 static void ClearScreen()
 {
+    ZoneScoped;
     SetRenderDrawColor( renderer, 0, 0, 0, 255 );
     RenderClear( renderer );
 }
@@ -533,6 +534,8 @@ SDL_Rect get_android_render_rect( float DisplayBufferWidth, float DisplayBufferH
 
 void refresh_display()
 {
+    ZoneScoped;
+
     needupdate = false;
     lastupdate = SDL_GetTicks();
 
@@ -556,7 +559,10 @@ void refresh_display()
     draw_quick_shortcuts();
     draw_virtual_joystick();
 #endif
-    SDL_RenderPresent( renderer.get() );
+    {
+        ZoneScopedN( "SDL_RenderPresent" );
+        SDL_RenderPresent( renderer.get() );
+    }
     SetRenderTarget( renderer, display_buffer );
 }
 
