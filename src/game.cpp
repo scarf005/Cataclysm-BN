@@ -1345,7 +1345,6 @@ void game::calc_driving_offset( vehicle *veh )
 // Returns true if game is over (death, saved, quit, etc)
 bool game::do_turn()
 {
-    FrameMark;
     ZoneScoped;
     cleanup_arenas();
     if( is_game_over() ) {
@@ -3101,6 +3100,7 @@ static shared_ptr_fast<game::draw_callback_t> create_trail_callback(
 
 void game::draw()
 {
+    FrameMark;
     ZoneScopedN( "game::draw" );
     if( test_mode ) {
         return;
