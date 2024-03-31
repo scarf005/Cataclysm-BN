@@ -5792,12 +5792,19 @@ void map::update_visibility_cache( const int zlev )
         p.z = z;
         int &x = p.x;
         int &y = p.y;
-        for( x = 0; x < MAPSIZE_X; x++ ) {
-            for( y = 0; y < MAPSIZE_Y; y++ ) {
-                lit_level ll = apparent_light_at( p, visibility_variables_cache );
-                visibility_cache[x][y] = ll;
-                if( z == zlev ) {
+
+        if( z == zlev ) {
+            for( x = 0; x < MAPSIZE_X; x++ ) {
+                for( y = 0; y < MAPSIZE_Y; y++ ) {
+                    lit_level ll = apparent_light_at( p, visibility_variables_cache );
+                    visibility_cache[x][y] = ll;
                     sm_squares_seen[ x / SEEX ][ y / SEEY ] += ( ll == lit_level::BRIGHT || ll == lit_level::LIT );
+                }
+            }
+        } else {
+            for( x = 0; x < MAPSIZE_X; x++ ) {
+                for( y = 0; y < MAPSIZE_Y; y++ ) {
+                    visibility_cache[x][y] = apparent_light_at( p, visibility_variables_cache );
                 }
             }
         }
