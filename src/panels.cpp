@@ -60,6 +60,7 @@
 #include "vehicle_part.h"
 #include "vpart_position.h"
 #include "weather.h"
+#include "profile.h"
 
 static const trait_id trait_SELFAWARE( "SELFAWARE" );
 static const trait_id trait_THRESH_FELINE( "THRESH_FELINE" );
@@ -2350,13 +2351,17 @@ void panel_manager::show_adm()
     ui.mark_resize();
 
     ui.on_redraw( [&]( const ui_adaptor & ) {
+        ZoneScopedN( "panel_manager::show_adm" );
         auto &panels = layouts[current_layout_id];
 
         werase( w );
         decorate_panel( _( "SIDEBAR OPTIONS" ), w );
 
         for( std::pair<size_t, size_t> row_indx : row_indices ) {
-            std::string name = _( panels[row_indx.second].get_name() );
+            ZoneScopedN( "panel_manager::show_adm" );
+            const std::string raw_name = panels[row_indx.second].get_name();
+            ZoneText( raw_name.c_str(), raw_name.size() );
+            std::string name = _( raw_name );
             if( swapping && source_index == row_indx.second ) {
                 mvwprintz( w, point( 5, current_row + 1 ), c_yellow, name );
             } else {

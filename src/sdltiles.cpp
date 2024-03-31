@@ -72,6 +72,7 @@
 #include "ui_manager.h"
 #include "wcwidth.h"
 #include "worldfactory.h"
+#include "profile.h"
 
 #if defined(__linux__)
 #   include <cstdlib> // getenv()/setenv()
@@ -579,6 +580,7 @@ void set_displaybuffer_rendertarget()
 static void invalidate_framebuffer( std::vector<curseline> &framebuffer, point p, int width,
                                     int height )
 {
+    ZoneScoped;
     for( int j = 0, fby = p.y; j < height; j++, fby++ ) {
         std::fill_n( framebuffer[fby].chars.begin() + p.x, width, cursecell( "" ) );
     }
@@ -586,6 +588,7 @@ static void invalidate_framebuffer( std::vector<curseline> &framebuffer, point p
 
 static void invalidate_framebuffer( std::vector<curseline> &framebuffer )
 {
+    ZoneScoped;
     for( curseline &i : framebuffer ) {
         std::fill_n( i.chars.begin(), i.chars.size(), cursecell( "" ) );
     }
@@ -593,6 +596,8 @@ static void invalidate_framebuffer( std::vector<curseline> &framebuffer )
 
 void reinitialize_framebuffer( const bool force_invalidate )
 {
+    ZoneScoped;
+
     static int prev_height = -1;
     static int prev_width = -1;
     //Re-initialize the framebuffer with new values.

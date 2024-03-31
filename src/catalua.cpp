@@ -1,6 +1,7 @@
 #include "catalua.h"
 
 #include "debug.h"
+#include "profile.h"
 
 constexpr int LUA_API_VERSION = 2;
 
@@ -387,6 +388,7 @@ void reg_lua_iuse_actors( lua_state &state, Item_factory &ifactory )
 
 void run_on_every_x_hooks( lua_state &state )
 {
+    ZoneScoped;
     std::vector<cata::on_every_x_hooks> &master_table =
         state.lua["game"]["cata_internal"]["on_every_x_hooks"];
     for( const auto &entry : master_table ) {

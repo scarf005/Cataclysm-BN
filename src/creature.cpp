@@ -1277,6 +1277,8 @@ bool Creature::remove_effect( const efftype_id &eff_id, const bodypart_str_id &b
 }
 bool Creature::has_effect( const efftype_id &eff_id, body_part bp ) const
 {
+    ZoneScoped;
+
     return has_effect( eff_id, convert_bp( bp ) );
 }
 bool Creature::has_effect( const efftype_id &eff_id, const bodypart_str_id &bp ) const

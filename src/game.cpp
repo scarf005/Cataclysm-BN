@@ -930,6 +930,7 @@ static std::string generate_memorial_filename( const std::string &char_name )
 
 bool game::cleanup_at_end()
 {
+    ZoneScoped;
     if( uquit == QUIT_DIED || uquit == QUIT_SUICIDE ) {
         // Put (non-hallucinations) into the overmap so they are not lost.
         for( monster &critter : all_monsters() ) {
@@ -1344,6 +1345,7 @@ void game::calc_driving_offset( vehicle *veh )
 // Returns true if game is over (death, saved, quit, etc)
 bool game::do_turn()
 {
+    FrameMark;
     ZoneScoped;
     cleanup_arenas();
     if( is_game_over() ) {
@@ -1408,12 +1410,14 @@ bool game::do_turn()
     process_voluntary_act_interrupt();
     process_activity();
     // Process NPC sound events before they move or they hear themselves talking
-    for( npc &guy : all_npcs() ) {
-        if( rl_dist( guy.pos(), u.pos() ) < MAX_VIEW_DISTANCE ) {
-            sounds::process_sound_markers( &guy );
+    {
+        ZoneScopedN( "process_npc_sounds" );
+        for( npc &guy : all_npcs() ) {
+            if( rl_dist( guy.pos(), u.pos() ) < MAX_VIEW_DISTANCE ) {
+                sounds::process_sound_markers( &guy );
+            }
         }
     }
-
     // Process sound events into sound markers for display to the player.
     sounds::process_sound_markers( &u );
 
@@ -1580,14 +1584,16 @@ bool game::do_turn()
     character_funcs::update_body_wetness( u, get_weather().get_precise() );
     u.apply_wetness_morale( weather.temperature );
 
-    if( !u.is_deaf() ) {
-        sfx::remove_hearing_loss();
+    {
+        ZoneScopedN( "sfx" );
+        if( !u.is_deaf() ) {
+            sfx::remove_hearing_loss();
+        }
+        sfx::do_danger_music();
+        sfx::do_vehicle_engine_sfx();
+        sfx::do_vehicle_exterior_engine_sfx();
+        sfx::do_fatigue();
     }
-    sfx::do_danger_music();
-    sfx::do_vehicle_engine_sfx();
-    sfx::do_vehicle_exterior_engine_sfx();
-    sfx::do_fatigue();
-
     // reset player noise
     u.volume = 0;
 
@@ -1608,6 +1614,7 @@ void game::set_driving_view_offset( point p )
 
 void game::process_voluntary_act_interrupt()
 {
+    ZoneScoped;
     if( u.has_effect( effect_sleep ) ) {
         // Can't interrupt
         return;
@@ -1660,6 +1667,7 @@ void game::process_activity()
 
 void game::autopilot_vehicles()
 {
+    ZoneScoped;
     for( wrapped_vehicle &veh : m.get_vehicles() ) {
         vehicle *&v = veh.v;
         if( v->is_following ) {
@@ -2870,6 +2878,7 @@ void game::disp_NPCs()
     } );
     ui.mark_resize();
     ui.on_redraw( [&]( const ui_adaptor & ) {
+        ZoneScopedN( "disp_NPCs::on_redraw" );
         werase( w );
         mvwprintz( w, point_zero, c_white, _( "Your overmap position: %s" ), ppos.to_string() );
         // NOLINTNEXTLINE(cata-use-named-point-constants)
@@ -3092,6 +3101,7 @@ static shared_ptr_fast<game::draw_callback_t> create_trail_callback(
 
 void game::draw()
 {
+    ZoneScopedN( "game::draw" );
     if( test_mode ) {
         return;
     }
@@ -3103,13 +3113,16 @@ void game::draw()
 
     werase( w_terrain );
     draw_ter();
-    for( auto it = draw_callbacks.begin(); it != draw_callbacks.end(); ) {
-        shared_ptr_fast<draw_callback_t> cb = it->lock();
-        if( cb ) {
-            ( *cb )();
-            ++it;
-        } else {
-            it = draw_callbacks.erase( it );
+    {
+        ZoneScopedN( "draw_callbacks" );
+        for( auto it = draw_callbacks.begin(); it != draw_callbacks.end(); ) {
+            shared_ptr_fast<draw_callback_t> cb = it->lock();
+            if( cb ) {
+                ( *cb )();
+                ++it;
+            } else {
+                it = draw_callbacks.erase( it );
+            }
         }
     }
     wnoutrefresh( w_terrain );
@@ -3239,6 +3252,7 @@ void game::draw_ter( const bool draw_sounds )
 
 void game::draw_ter( const tripoint &center, const bool looking, const bool draw_sounds )
 {
+    ZoneScoped;
     ter_view_p = center;
 
     m.draw( w_terrain, center );
@@ -4039,6 +4053,8 @@ void game::mon_info_update( )
 
 void game::cleanup_dead()
 {
+    ZoneScoped;
+
     // Dead monsters need to stay in the tracker until everything else that needs to die does so
     // This is because dying monsters can still interact with other dying monsters (@ref Creature::killer)
     bool monster_is_dead = critter_tracker->kill_marked_for_death();
@@ -6704,6 +6720,7 @@ look_around_result game::look_around( bool show_window, tripoint &center,
 
     if( show_window && ui ) {
         ui->on_redraw( [&]( const ui_adaptor & ) {
+            ZoneScopedN( "game::look_around" );
             werase( w_info );
             draw_border( w_info );
 
@@ -11355,6 +11372,7 @@ void game::quicksave()
     if( !moves_since_last_save ) {
         return;
     }
+    ZoneScoped;
     add_msg( m_info, _( "Saving game, this may take a while" ) );
 
     static_popup popup;
@@ -12150,6 +12168,7 @@ distribution_grid_tracker &get_distribution_grid_tracker()
 
 void cleanup_arenas()
 {
+    ZoneScoped;
     bool cont = true;
     while( cont ) {
         cont = false;

@@ -425,6 +425,7 @@ static bool describe_sound( sounds::sound_t category, bool from_player_position 
 
 void sounds::process_sound_markers( player *p )
 {
+    ZoneScoped;
     bool is_deaf = p->is_deaf();
     const float volume_multiplier = p->hearing_ability();
     const int weather_vol = get_weather().weather_id->sound_attn;

@@ -765,6 +765,8 @@ map::apparent_light_info map::apparent_light_helper( const level_cache &map_cach
 
 lit_level map::apparent_light_at( const tripoint &p, const visibility_variables &cache ) const
 {
+    ZoneScoped;
+
     const int dist = rl_dist( g->u.pos(), p );
 
     // Clairvoyance overrides everything.

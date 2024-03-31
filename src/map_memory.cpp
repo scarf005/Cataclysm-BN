@@ -9,6 +9,8 @@
 #include "line.h"
 #include "translations.h"
 #include "map.h"
+#include "profile.h"
+
 const memorized_terrain_tile mm_submap::default_tile { "", 0, 0 };
 const int mm_submap::default_symbol = 0;
 
@@ -124,6 +126,8 @@ void map_memory::clear_memorized_tile( const tripoint &pos )
 
 bool map_memory::prepare_region( const tripoint &p1, const tripoint &p2 )
 {
+    ZoneScoped;
+
     assert( p1.z == p2.z );
     assert( p1.x <= p2.x && p1.y <= p2.y );
 

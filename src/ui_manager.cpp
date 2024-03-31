@@ -254,11 +254,11 @@ void ui_adaptor::invalidate( const rectangle<point> &rect, const bool reenable_u
 
 void ui_adaptor::redraw()
 {
+    ZoneScoped;
     if( !ui_stack.empty() ) {
         ui_stack.back().get().invalidated = true;
     }
     redraw_invalidated();
-    FrameMark;
 }
 
 void ui_adaptor::redraw_invalidated()
@@ -298,20 +298,26 @@ void ui_adaptor::redraw_invalidated()
 
         // Apply deferred resizing.
         bool needs_resize = false;
-        for( auto it = first_enabled; !needs_resize && it != ui_stack_orig->end(); ++it ) {
-            ui_adaptor &ui = *it;
-            if( ui.deferred_resize && ui.screen_resized_cb ) {
-                needs_resize = true;
+        {
+            ZoneScopedN( "check_needs_resizing" );
+            for( auto it = first_enabled; !needs_resize && it != ui_stack_orig->end(); ++it ) {
+                ui_adaptor &ui = *it;
+                if( ui.deferred_resize && ui.screen_resized_cb ) {
+                    needs_resize = true;
+                }
             }
         }
         if( needs_resize ) {
+            ZoneScopedN( "needs resize" );
             if( !ui_stack_copy ) {
+                ZoneScopedN( "create_ui_stack_copy" );
                 // Callbacks may modify the UI stack; make a copy of the original one.
                 ui_stack_copy = std::make_unique<ui_stack_t>( *ui_stack_orig );
                 first_enabled = ui_stack_copy->begin() + ( first_enabled - ui_stack_orig->begin() );
                 ui_stack_orig = &*ui_stack_copy;
             }
             for( auto it = first_enabled; !restart_redrawing && it != ui_stack_orig->end(); ++it ) {
+                ZoneScopedN( "apply_deferred_resizing" );
                 ui_adaptor &ui = *it;
                 if( ui.deferred_resize ) {
                     if( ui.screen_resized_cb ) {
@@ -329,6 +335,7 @@ void ui_adaptor::redraw_invalidated()
         // Redraw invalidated UIs.
         bool needs_redraw = false;
         if( !restart_redrawing ) {
+            ZoneScopedN( "redraw_invalidated_uis" );
             for( auto it = first_enabled; !needs_redraw && it != ui_stack_orig->end(); ++it ) {
                 const ui_adaptor &ui = *it;
                 if( ui.invalidated && ui.redraw_cb ) {
@@ -344,9 +351,11 @@ void ui_adaptor::redraw_invalidated()
                 ui_stack_orig = &*ui_stack_copy;
             }
             for( auto it = first_enabled; !restart_redrawing && it != ui_stack_orig->end(); ++it ) {
+                ZoneScopedN( "redraw_all" );
                 const ui_adaptor &ui = *it;
                 if( ui.invalidated ) {
                     if( ui.redraw_cb ) {
+                        ZoneScoped;
                         ui.redraw_cb( ui );
                     }
                     if( !restart_redrawing ) {
@@ -371,6 +380,8 @@ void ui_adaptor::screen_resized()
 
 background_pane::background_pane()
 {
+    ZoneScoped;
+
     ui.on_screen_resize( []( ui_adaptor & ui ) {
         ui.position_from_window( catacurses::stdscr );
     } );

@@ -67,6 +67,7 @@
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
+#include "profile.h"
 
 static const ammo_effect_str_id ammo_effect_NULL_SOURCE( "NULL_SOURCE" );
 
@@ -1895,6 +1896,7 @@ explosion_queue &get_explosion_queue()
 
 void explosion_queue::execute()
 {
+    ZoneScoped;
     while( !elems.empty() ) {
         queued_explosion exp = std::move( elems.front() );
         elems.pop_front();

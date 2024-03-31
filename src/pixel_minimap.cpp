@@ -35,6 +35,7 @@
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
+#include "profile.h"
 
 extern void set_displaybuffer_rendertarget();
 
@@ -363,6 +364,8 @@ pixel_minimap::submap_cache &pixel_minimap::get_cache_at( const tripoint &abs_sm
 
 void pixel_minimap::process_cache( const tripoint &center )
 {
+    ZoneScoped;
+
     prepare_cache_for_updates( center );
 
     for( int y = 0; y < MAPSIZE; ++y ) {
@@ -489,6 +492,8 @@ void pixel_minimap::render_cache( const tripoint &center )
 
 void pixel_minimap::render_critters( const tripoint &center )
 {
+    ZoneScoped;
+
     //handles the enemy faction red highlights
     //this value should be divisible by 200
     const int indicator_length = settings.beacon_blink_interval * 200; //default is 2000 ms, 2 seconds
@@ -542,6 +547,8 @@ void pixel_minimap::render_critters( const tripoint &center )
 //the main call for drawing the pixel minimap to the screen
 void pixel_minimap::draw( const SDL_Rect &screen_rect, const tripoint &center )
 {
+    ZoneScoped;
+
     if( !g ) {
         return;
     }

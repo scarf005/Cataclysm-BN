@@ -5767,6 +5767,8 @@ void map::update_submap_active_item_status( const tripoint &p )
 
 void map::update_visibility_cache( const int zlev )
 {
+    ZoneScoped;
+
     visibility_variables_cache.variables_set = true; // Not used yet
     visibility_variables_cache.g_light_level = static_cast<int>( g->light_level( zlev ) );
     visibility_variables_cache.vision_threshold = g->u.get_vision_threshold(
@@ -5783,7 +5785,7 @@ void map::update_visibility_cache( const int zlev )
     int max_z = fov_3d ? OVERMAP_HEIGHT : zlev;
 
     for( int z = min_z; z <= max_z; z++ ) {
-
+        ZoneScopedN( "update_visibility_cache:submap" );
         auto &visibility_cache = get_cache( z ).visibility_cache;
 
         tripoint p;
@@ -5800,8 +5802,8 @@ void map::update_visibility_cache( const int zlev )
             }
         }
     }
-
     for( int gridx = 0; gridx < my_MAPSIZE; gridx++ ) {
+        ZoneScopedN( "overmap buffer" );
         for( int gridy = 0; gridy < my_MAPSIZE; gridy++ ) {
             if( sm_squares_seen[gridx][gridy] > 36 ) { // 25% of the submap is visible
                 const tripoint sm( gridx, gridy, 0 );
@@ -5871,6 +5873,7 @@ static int get_memory_at( const tripoint &p )
 
 void map::draw( const catacurses::window &w, const tripoint &center )
 {
+    ZoneScopedN( "map::draw" );
     // We only need to draw anything if we're not in tiles mode.
     if( is_draw_tiles_mode() ) {
         return;
@@ -5904,6 +5907,7 @@ void map::draw( const catacurses::window &w, const tripoint &center )
     );
 
     const auto draw_background = [&]( const tripoint & p ) {
+        ZoneScopedN( "lambda: draw_background" );
         int sym = ' ';
         nc_color col = c_black;
         if( has_memory_at( p ) ) {
@@ -5934,65 +5938,68 @@ void map::draw( const catacurses::window &w, const tripoint &center )
         wputch( w, col, sym );
         return true;
     };
+    {
+        ZoneScopedN( "map::draw:display_loop" );
+        drawsq_params params = drawsq_params().memorize( true );
+        for( int wy = 0; wy < wnd_h; wy++ ) {
+            for( int wx = 0; wx < wnd_w; wx++ ) {
+                wmove( w, point( wx, wy ) );
+                const tripoint p = offs + tripoint( wx, wy, 0 );
+                if( !inbounds( p ) ) {
+                    draw_background( p );
+                    continue;
+                }
 
-    drawsq_params params = drawsq_params().memorize( true );
-    for( int wy = 0; wy < wnd_h; wy++ ) {
-        for( int wx = 0; wx < wnd_w; wx++ ) {
-            wmove( w, point( wx, wy ) );
-            const tripoint p = offs + tripoint( wx, wy, 0 );
-            if( !inbounds( p ) ) {
-                draw_background( p );
-                continue;
+                const lit_level lighting = visibility_cache[p.x][p.y];
+                const visibility_type vis = get_visibility( lighting, cache );
+
+                if( draw_vision_effect( vis ) ) {
+                    continue;
+                }
+
+                if( vis == VIS_HIDDEN || vis == VIS_DARK ) {
+                    draw_background( p );
+                    continue;
+                }
+
+                const maptile curr_maptile = maptile_at_internal( p );
+                params
+                .low_light( lighting == lit_level::LOW )
+                .bright_light( lighting == lit_level::BRIGHT );
+                if( draw_maptile( w, p, curr_maptile, params ) ) {
+                    continue;
+                }
+                const maptile tile_below = maptile_at_internal( p - tripoint_above );
+                draw_from_above( w, tripoint( p.xy(), p.z - 1 ), tile_below, params );
             }
-
-            const lit_level lighting = visibility_cache[p.x][p.y];
-            const visibility_type vis = get_visibility( lighting, cache );
-
-            if( draw_vision_effect( vis ) ) {
-                continue;
-            }
-
-            if( vis == VIS_HIDDEN || vis == VIS_DARK ) {
-                draw_background( p );
-                continue;
-            }
-
-            const maptile curr_maptile = maptile_at_internal( p );
-            params
-            .low_light( lighting == lit_level::LOW )
-            .bright_light( lighting == lit_level::BRIGHT );
-            if( draw_maptile( w, p, curr_maptile, params ) ) {
-                continue;
-            }
-            const maptile tile_below = maptile_at_internal( p - tripoint_above );
-            draw_from_above( w, tripoint( p.xy(), p.z - 1 ), tile_below, params );
         }
-    }
+    }{
+        ZoneScopedN( "map::draw:memorize_offscreen" );
+        // Memorize off-screen tiles
+        half_open_rectangle<point> display( offs.xy(), offs.xy() + point( wnd_w, wnd_h ) );
+        drawsq_params mm_params = drawsq_params().memorize( true ).output( false );
+        for( int y = 0; y < MAPSIZE_Y; y++ ) {
+            for( int x = 0; x < MAPSIZE_X; x++ ) {
+                const tripoint p( x, y, center.z );
+                if( display.contains( p.xy() ) ) {
+                    // Have been memorized during display loop
+                    continue;
+                }
 
-    // Memorize off-screen tiles
-    half_open_rectangle<point> display( offs.xy(), offs.xy() + point( wnd_w, wnd_h ) );
-    drawsq_params mm_params = drawsq_params().memorize( true ).output( false );
-    for( int y = 0; y < MAPSIZE_Y; y++ ) {
-        for( int x = 0; x < MAPSIZE_X; x++ ) {
-            const tripoint p( x, y, center.z );
-            if( display.contains( p.xy() ) ) {
-                // Have been memorized during display loop
-                continue;
+                const lit_level lighting = visibility_cache[p.x][p.y];
+                const visibility_type vis = get_visibility( lighting, cache );
+
+                if( vis != VIS_CLEAR ) {
+                    continue;
+                }
+
+                const maptile curr_maptile = maptile_at_internal( p );
+                mm_params
+                .low_light( lighting == lit_level::LOW )
+                .bright_light( lighting == lit_level::BRIGHT );
+
+                draw_maptile( w, p, curr_maptile, mm_params );
             }
-
-            const lit_level lighting = visibility_cache[p.x][p.y];
-            const visibility_type vis = get_visibility( lighting, cache );
-
-            if( vis != VIS_CLEAR ) {
-                continue;
-            }
-
-            const maptile curr_maptile = maptile_at_internal( p );
-            mm_params
-            .low_light( lighting == lit_level::LOW )
-            .bright_light( lighting == lit_level::BRIGHT );
-
-            draw_maptile( w, p, curr_maptile, mm_params );
         }
     }
 }
@@ -6000,6 +6007,8 @@ void map::draw( const catacurses::window &w, const tripoint &center )
 void map::drawsq( const catacurses::window &w, const tripoint &p,
                   const drawsq_params &params ) const
 {
+    ZoneScoped;
+
     // If we are in tiles mode, the only thing we want to potentially draw is a highlight
     if( is_draw_tiles_mode() ) {
         if( params.highlight() ) {
@@ -6037,6 +6046,8 @@ bool map::dont_draw_lower_floor( const tripoint &p )
 bool map::draw_maptile( const catacurses::window &w, const tripoint &p,
                         const maptile &curr_maptile, const drawsq_params &params ) const
 {
+    ZoneScoped;
+
     drawsq_params param = params;
     nc_color tercol;
     const ter_t &curr_ter = curr_maptile.get_ter_t();
@@ -6228,6 +6239,8 @@ bool map::draw_maptile( const catacurses::window &w, const tripoint &p,
 void map::draw_from_above( const catacurses::window &w, const tripoint &p,
                            const maptile &curr_tile, const drawsq_params &params ) const
 {
+    ZoneScoped;
+
     static const int AUTO_WALL_PLACEHOLDER = 2; // this should never appear as a real symbol!
 
     nc_color tercol = c_dark_gray;
@@ -6311,6 +6324,8 @@ bool map::sees( const tripoint &F, const tripoint &T, const int range ) const
 bool map::sees( const tripoint &F, const tripoint &T, const int range,
                 int &bresenham_slope ) const
 {
+    ZoneScoped;
+
     if( ( range >= 0 && range < rl_dist( F, T ) ) ||
         !inbounds( T ) ) {
         bresenham_slope = 0;
@@ -6388,6 +6403,8 @@ bool map::sees( const tripoint &F, const tripoint &T, const int range,
 
 int map::obstacle_coverage( const tripoint &loc1, const tripoint &loc2 ) const
 {
+    ZoneScoped;
+
     // Can't hide if you are standing on furniture, or non-flat slowing-down terrain tile.
     if( furn( loc2 ).obj().id || ( move_cost( loc2 ) > 2 && !has_flag_ter( TFLAG_FLAT, loc2 ) ) ) {
         return 0;
@@ -6415,6 +6432,8 @@ int map::obstacle_coverage( const tripoint &loc1, const tripoint &loc2 ) const
 
 int map::coverage( const tripoint &p ) const
 {
+    ZoneScoped;
+
     if( const auto obstacle_f = furn( p ) ) {
         return obstacle_f->coverage;
     }
@@ -6434,6 +6453,8 @@ int map::coverage( const tripoint &p ) const
 std::vector<tripoint> map::find_clear_path( const tripoint &source,
         const tripoint &destination ) const
 {
+    ZoneScoped;
+
     // TODO: Push this junk down into the Bresenham method, it's already doing it.
     const point d( destination.xy() - source.xy() );
     const point a( std::abs( d.x ) * 2, std::abs( d.y ) * 2 );
@@ -6457,6 +6478,8 @@ std::vector<tripoint> map::find_clear_path( const tripoint &source,
 void map::reachable_flood_steps( std::vector<tripoint> &reachable_pts, const tripoint &f,
                                  int range, const int cost_min, const int cost_max ) const
 {
+    ZoneScoped;
+
     struct pq_item {
         int dist;
         int ndx;
@@ -6567,6 +6590,8 @@ void map::reachable_flood_steps( std::vector<tripoint> &reachable_pts, const tri
 bool map::clear_path( const tripoint &f, const tripoint &t, const int range,
                       const int cost_min, const int cost_max ) const
 {
+    ZoneScoped;
+
     // Ugly `if` for now
     if( !fov_3d && f.z != t.z ) {
         return false;
@@ -6766,6 +6791,8 @@ std::vector<tripoint> map::get_dir_circle( const tripoint &f, const tripoint &t 
 
 void map::save()
 {
+    ZoneScoped;
+
     for( int gridx = 0; gridx < my_MAPSIZE; gridx++ ) {
         for( int gridy = 0; gridy < my_MAPSIZE; gridy++ ) {
             if( zlevels ) {

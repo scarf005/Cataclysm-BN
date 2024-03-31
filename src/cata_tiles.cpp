@@ -80,6 +80,7 @@
 #include "vpart_position.h"
 #include "weather.h"
 #include "weighted_list.h"
+#include "profile.h"
 
 #define dbg(x) DebugLogFL((x),DC::SDL)
 
@@ -1130,6 +1131,8 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
                        std::multimap<point, formatted_text> &overlay_strings,
                        color_block_overlay_container &color_blocks )
 {
+    ZoneScoped;
+
     if( !g ) {
         return;
     }
@@ -1220,6 +1223,7 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
     const point half_tile( tile_width / 2, 0 );
     const point quarter_tile( tile_width / 4, tile_height / 4 );
     if( g->display_overlay_state( ACTION_DISPLAY_VEHICLE_AI ) ) {
+        ZoneScopedN( "Vehicle AI overlay" );
         for( const wrapped_vehicle &elem : here.get_vehicles() ) {
             const vehicle &veh = *elem.v;
             const point veh_pos = veh.global_pos3().xy();
@@ -1238,9 +1242,10 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
     int min_z = OVERMAP_HEIGHT;
 
     for( int row = min_row; row < max_row; row ++ ) {
-
+        ZoneScopedN( "Row" );
         draw_points.clear();
         for( int col = min_col; col < max_col; col ++ ) {
+            ZoneScopedN( "Col" );
             int temp_x;
             int temp_y;
             if( iso_mode ) {
@@ -1383,6 +1388,7 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
             lit_level ll = lit_level::BLANK;
             int last_vis = center.z + 1;
             for( int z = center.z; z >= -OVERMAP_DEPTH; z-- ) {
+                ZoneScopedN( "Z-level" );
                 const auto &ch = here.access_cache( z );
 
                 const tripoint pos( temp_x, temp_y, z );
@@ -1488,6 +1494,7 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
         }
 
         for( int z = min_z; z <= center.z; z++ ) {
+            ZoneScoped;
             for( tile_render_info &p : draw_points ) {
                 if( p.pos.z > z ) {
                     break;
@@ -1513,6 +1520,7 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
         }
 
         for( tile_render_info &p : draw_points ) {
+            ZoneScoped;
             for( decltype( &cata_tiles::draw_furniture ) f : final_drawing_layers ) {
                 ( this->*f )( p.pos, p.ll, p.height_3d, p.invisible, 0 );
             }
@@ -1521,6 +1529,7 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
 
     // display number of monsters to spawn in mapgen preview
     for( const tile_render_info &p : draw_points ) {
+        ZoneScopedN( "Monster spawn preview" );
         const auto mon_override = monster_override.find( p.pos );
         if( mon_override != monster_override.end() ) {
             const int count = std::get<1>( mon_override->second );
@@ -1535,20 +1544,24 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
             }
         }
     }
-    // tile overrides are already drawn in the previous code
-    void_radiation_override();
-    void_terrain_override();
-    void_furniture_override();
-    void_graffiti_override();
-    void_trap_override();
-    void_field_override();
-    void_item_override();
-    void_vpart_override();
-    void_draw_below_override();
-    void_monster_override();
+    {
+        ZoneScopedN( "overrides" );
+        // tile overrides are already drawn in the previous code
+        void_radiation_override();
+        void_terrain_override();
+        void_furniture_override();
+        void_graffiti_override();
+        void_trap_override();
+        void_field_override();
+        void_item_override();
+        void_vpart_override();
+        void_draw_below_override();
+        void_monster_override();
+    }
 
     //Memorize everything the character just saw even if it wasn't displayed.
     for( int mem_y = min_visible_y; mem_y <= max_visible_y; mem_y++ ) {
+        ZoneScoped;
         for( int mem_x = min_visible_x; mem_x <= max_visible_x; mem_x++ ) {
             half_open_rectangle<point> already_drawn(
                 point( min_col, min_row ), point( max_col, max_row ) );
@@ -1677,6 +1690,8 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
                              false, 0 );
     }
     if( g->u.controlling_vehicle ) {
+        ZoneScoped;
+
         if( std::optional<tripoint> indicator_offset = g->get_veh_dir_indicator_location( true ) ) {
             draw_from_id_string( "cursor", C_NONE, empty_string, indicator_offset->xy() + tripoint( g->u.posx(),
                                  g->u.posy(), center.z ),
@@ -1685,6 +1700,8 @@ void cata_tiles::draw( point dest, const tripoint &center, int width, int height
     }
 
     if( g->debug_submap_grid_overlay && !iso_mode ) {
+        ZoneScoped;
+
         point sm_start = ms_to_sm_copy( here.getabs( point( min_col, min_row ) + o ) );
         point sm_end = ms_to_sm_copy( here.getabs( point( max_col, max_row ) + o ) );
 
@@ -2556,6 +2573,8 @@ bool cata_tiles::draw_block( const tripoint &p, SDL_Color color, int scale )
 bool cata_tiles::draw_terrain( const tripoint &p, const lit_level ll, int &height_3d,
                                const bool ( &invisible )[5], int z_drop )
 {
+    ZoneScoped;
+
     map &here = get_map();
     const auto override = terrain_override.find( p );
     const bool overridden = override != terrain_override.end();
@@ -3480,6 +3499,8 @@ bool cata_tiles::has_draw_override( const tripoint &p ) const
 /* -- Animation Renders */
 void cata_tiles::draw_explosion_frame()
 {
+    ZoneScoped;
+
     int subtile = 0;
     int rotation = 0;
 
@@ -3515,6 +3536,8 @@ void cata_tiles::draw_explosion_frame()
 
 void cata_tiles::draw_custom_explosion_frame()
 {
+    ZoneScoped;
+
     // TODO: Make the drawing code handle all the missing tiles: <^>v and *
     // TODO: Add more explosion tiles, like "strong explosion", so that it displays more info
 
@@ -3581,6 +3604,8 @@ void cata_tiles::draw_custom_explosion_frame()
 }
 void cata_tiles::draw_cone_aoe_frame()
 {
+    ZoneScoped;
+
     for( const point_with_value &pv : cone_aoe_layer ) {
         const tripoint diff = pv.pt - cone_aoe_origin;
         int rotation = ( sgn( diff.x ) == sgn( diff.y ) ? 1 : 0 );
@@ -3605,6 +3630,8 @@ void cata_tiles::void_cone_aoe()
 
 void cata_tiles::draw_bullet_frame()
 {
+    ZoneScoped;
+
     static const std::string bullet_fallback {"animation_bullet_normal"};
     const auto supports_directional = find_tile_looks_like( bul_id, C_BULLET );
 
@@ -3614,6 +3641,8 @@ void cata_tiles::draw_bullet_frame()
 }
 void cata_tiles::draw_hit_frame()
 {
+    ZoneScoped;
+
     std::string hit_overlay = "animation_hit";
 
     draw_from_id_string( hit_entity_id, C_HIT_ENTITY, empty_string, hit_pos, 0, 0,
@@ -3622,6 +3651,8 @@ void cata_tiles::draw_hit_frame()
 }
 void cata_tiles::draw_line()
 {
+    ZoneScoped;
+
     if( line_trajectory.empty() ) {
         return;
     }
@@ -3636,18 +3667,23 @@ void cata_tiles::draw_line()
 }
 void cata_tiles::draw_cursor()
 {
+    ZoneScoped;
+
     for( const tripoint &p : cursors ) {
         draw_from_id_string( "cursor", p, 0, 0, lit_level::LIT, false, 0 );
     }
 }
 void cata_tiles::draw_highlight()
 {
+    ZoneScoped;
+
     for( const tripoint &p : highlights ) {
         draw_from_id_string( "highlight", p, 0, 0, lit_level::LIT, false, 0 );
     }
 }
 void cata_tiles::draw_weather_frame()
 {
+    ZoneScoped;
 
     for( auto &vdrop : anim_weather.vdrops ) {
         // TODO: Z-level awareness if weather ever happens on anything but z-level 0.
@@ -3663,6 +3699,8 @@ void cata_tiles::draw_weather_frame()
 
 void cata_tiles::draw_sct_frame( std::multimap<point, formatted_text> &overlay_strings )
 {
+    ZoneScoped;
+
     const bool use_font = get_option<bool>( "ANIMATION_SCT_USE_FONT" );
 
     for( auto iter = SCT.vSCT.begin(); iter != SCT.vSCT.end(); ++iter ) {
@@ -3707,6 +3745,8 @@ void cata_tiles::draw_sct_frame( std::multimap<point, formatted_text> &overlay_s
 
 void cata_tiles::draw_zones_frame()
 {
+    ZoneScoped;
+
     for( int iY = zone_start.y; iY <= zone_end.y; ++ iY ) {
         for( int iX = zone_start.x; iX <= zone_end.x; ++iX ) {
             draw_from_id_string( "highlight", C_NONE, empty_string,
@@ -3719,6 +3759,8 @@ void cata_tiles::draw_zones_frame()
 
 void cata_tiles::draw_footsteps_frame( const tripoint &center )
 {
+    ZoneScoped;
+
     static const std::string id_footstep = "footstep";
     static const std::string id_footstep_above = "footstep_above";
     static const std::string id_footstep_below = "footstep_below";
