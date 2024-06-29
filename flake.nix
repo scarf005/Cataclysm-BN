@@ -19,11 +19,25 @@
           }
           {
             packages = with pkgs; [
+              astyle
               clang-tools
               cmake
               ninja
               ccache
-
+              SDL2
+              SDL2_image
+              SDL2_image
+              SDL2_ttf
+              SDL2_image
+              SDL2_mixer
+              SDL2_sound
+              SDL2_mixer
+              gettext
+              ccache
+              parallel
+              libbacktrace
+              plocate
+              flac
               # cppcheck
               # doxygen
               # gtest
