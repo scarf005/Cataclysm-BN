@@ -28,10 +28,12 @@ jobs:
           timeZone: 0
           format: "YYYY-MM-DD"
 
-      - name: "Pull translations"
-        run: tx pull --force
-        env:
-          TX_TOKEN: ${{ secrets.TX_TOKEN }}
+      # - name: "Pull translations"
+      #   run: tx pull --force
+      #   env:
+      #     TX_TOKEN: ${{ secrets.TX_TOKEN }}
+      - name: "do some random change"
+        run: echo Hello, World >> hello.txt
 
       - name: Show Changes
         run: |
