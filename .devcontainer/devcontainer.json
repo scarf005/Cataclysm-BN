@@ -3,7 +3,7 @@
 {
   "name": "Graphical Dev Environment",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile.ubuntu"
   },
   "customizations": {
     "vscode": {
@@ -11,20 +11,25 @@
         // c++
         "llvm-vs-code-extensions.vscode-clangd",
         "vadimcn.vscode-lldb",
-        // cmake
+        // c++ tooling
         "twxs.cmake",
         "ms-vscode.cmake-tools",
         "cheshirekow.cmake-format",
-        // tooling
         "chiehyu.vscode-astyle",
+        // other tooling
         "denoland.vscode-deno",
         "ms-python.python",
         "EditorConfig.EditorConfig",
         "eamodio.gitlens",
-        // github
+        "dprint.dprint",
+        "cdda-toys.cdda-json-formatter",
         "github.vscode-github-actions",
-        "GitHub.vscode-pull-request-github"
+        "GitHub.vscode-pull-request-github",
+        "mhutchie.git-graph"
       ]
+    },
+    "settings": {
+      "deno.path": "/home/vscode/.local/bin/deno"
     }
   },
 
@@ -35,17 +40,14 @@
   // "forwardPorts": [],
 
   // Use 'postCreateCommand' to run commands after the container is created.
-  // "postCreateCommand": "gcc -v",
-
-  // Configure tool-specific properties.
-  // "customizations": {},
+  "postCreateCommand": "clang++-18 -v; ccache --version; cmake --version; ninja --version; astyle --version; deno --version",
 
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
   // "remoteUser": "root"
 
   // Required For Podman
   "runArgs": [
-   "--userns=keep-id:uid=1000,gid=1000"
+    "--userns=keep-id:uid=1000,gid=1000"
   ],
   "containerUser": "vscode",
   "updateRemoteUserUID": true,
