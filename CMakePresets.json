@@ -22,8 +22,8 @@
         "TESTS": "OFF",
         "CMAKE_INSTALL_MESSAGE": "NEVER",
         "CATA_CCACHE": "ON",
-        "CMAKE_C_COMPILER": "clang-18",
-        "CMAKE_CXX_COMPILER": "clang++18",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_INSTALL_PREFIX": "$env{XDG_DATA_HOME}",
         "JSON_FORMAT": "ON",
         "USE_HOME_DIR": "FALSE",
@@ -68,10 +68,6 @@
     {
       "name": "linux-tiles-sounds-x64",
       "configurePreset": "linux-tiles-sounds-x64"
-    },
-    {
-      "name": "linux-tiles-sounds-x64-vcpkg",
-      "configurePreset": "linux-tiles-sounds-x64-vcpkg"
     }
   ]
 }
