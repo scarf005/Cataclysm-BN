@@ -1,18 +1,23 @@
 FROM mcr.microsoft.com/devcontainers/cpp:1-ubuntu24.04
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-  && apt-get install -y --no-install-recommends \
-  # development tools
-  git astyle python3-pip \
-  libncursesw5-dev ccache gettext \
-  libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev libpulse-dev libflac-dev
+    && apt-get install -y --no-install-recommends \
+    # development tools
+    git astyle python3-pip \
+    libncursesw5-dev ccache gettext \
+    libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev libsdl2-mixer-dev libpulse-dev libflac-dev
 
 # set UID and GID to 1000
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
-RUN mkdir -p /home/vscode/.local && curl -fsSL https://deno.land/x/install/install.sh  | DENO_INSTALL=/home/vscode/.local sh -s -- -y \
-  && chown -R $USER_UID:$USER_GID /home/vscode/.local
+ENV INSTALL_PATH=/home/${USERNAME}/.local/share
+
+RUN mkdir -p $INSTALL_PATH \
+    && curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=$INSTALL_PATH/deno sh -s -- -y \
+    && curl -fsSL https://dprint.dev/install.sh | DPRINT_INSTALL=$INSTALL_PATH/dprint sh \
+    && chown -R $USER_UID:$USER_GID $INSTALL_PATH \
+    && echo "export PATH=\$PATH:$INSTALL_PATH/deno/bin:$INSTALL_PATH/dprint/bin" >> /home/${USERNAME}/.bashrc
 
 RUN pip install --break-system-packages polib luaparser cmake_format

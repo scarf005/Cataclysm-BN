@@ -46,11 +46,12 @@
   // "remoteUser": "root"
 
   // Required For Podman
+  // https://github.com/microsoft/vscode-remote-release/issues/1333#issuecomment-2345370220
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
   "runArgs": [
-    "--userns=keep-id:uid=1000,gid=1000"
+    "--userns=keep-id",
+    "--security-opt=label=disable"
   ],
-  "containerUser": "vscode",
-  "updateRemoteUserUID": true,
   "containerEnv": {
     "HOME": "/home/vscode"
   }
