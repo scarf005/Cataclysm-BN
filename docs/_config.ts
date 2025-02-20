@@ -14,6 +14,7 @@ const site = lume()
 site
   .data("layout", "_includes/layouts/main.tsx")
   .data("lang", "en")
+  .ignore("README.md", "LICENSE")
 
 site
   .use(jsx_preact())
