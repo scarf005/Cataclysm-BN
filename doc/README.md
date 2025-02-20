@@ -1,5 +1,8 @@
 # Documentation Site
 
+> [!WARNING]
+> V1 doc is deprecated, please visit [v2 docs here](../docs/)
+
 ![image](https://github.com/cataclysmbnteam/Cataclysm-BN/assets/54838975/b96a856a-9937-4f45-a508-b27766e2004b)
 
 Visit <docs.cataclysmbn.org/> to see the deployed version of this site.
@@ -14,5 +17,5 @@ Visit <docs.cataclysmbn.org/> to see the deployed version of this site.
 
 ## License
 
-[AGPL 3.0 only](./LICENSE), except `doc/src/content/docs`, which follows the same license as the
-game. See [License.txt](../LICENSE.txt) for details.
+[AGPL 3.0 only](./LICENSE), except `doc/src/content/docs`, which follows the
+same license as the game. See [License.txt](../LICENSE.txt) for details.
