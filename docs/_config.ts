@@ -8,6 +8,7 @@ import relative_urls from "lume/plugins/relative_urls.ts"
 import resolve_urls from "lume/plugins/resolve_urls.ts"
 import source_maps from "lume/plugins/source_maps.ts"
 import multilanguage from "lume/plugins/multilanguage.ts"
+import nav from "lume/plugins/nav.ts"
 
 const site = lume()
 
@@ -18,8 +19,9 @@ site
 
 site
   .use(jsx_preact())
-  .use(code_highlight())
   .use(mdx())
+  .use(nav())
+  .use(code_highlight())
   .use(minify_html())
   .use(on_demand())
   .use(relative_urls())
