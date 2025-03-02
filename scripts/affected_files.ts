@@ -68,19 +68,29 @@ const getAllDependencies = async (xs: WalkEntry[]): Promise<Deps> => {
   return deps
 }
 
+export const getDependencies = (): Promise<Deps> => getAllSourceFiles().then(getAllDependencies)
+
+interface GetAffectedOptions {
+  src: string[]
+  headers: string[]
+  deps: Deps
+}
+export const getAffected = ({ src, headers, deps }: GetAffectedOptions) =>
+  new Set(src.concat(headers.flatMap((x) => Array.from(deps.get(x) ?? []))))
+
 const main = new Command()
   .description("gets list of all affected files for use in clang-tidy.")
   .arguments("<pr:number>")
   .option("-o, --output <file>", "Output file to save template to")
   .action(async ({ output }, pr) => {
     const [deps, [headers, src]] = await Promise.all([
-      getAllSourceFiles().then(getAllDependencies),
+      getDependencies(),
       getDiffs(pr).then((xs) => partition(xs, (x) => x.endsWith(".h"))),
     ])
     // console.log(deps)
     console.log({ src, headers })
 
-    const affected = new Set(src.concat(headers.flatMap((x) => Array.from(deps.get(x) ?? []))))
+    const affected = getAffected({ src, headers, deps })
     console.log(affected)
 
     if (output) await Deno.writeTextFile(output, Array.from(affected).join("\n"))
