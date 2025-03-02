@@ -7,7 +7,7 @@
  */
 
 import { walk, type WalkEntry, type WalkOptions } from "jsr:@std/fs"
-import { MuxAsyncIterator } from "jsr:@std/async"
+import { MuxAsyncIterator } from "jsr:@std/async/unstable-mux-async-iterator"
 import { partition } from "jsr:@std/collections"
 import { Octokit, type RestEndpointMethodTypes } from "https://esm.sh/@octokit/rest@21.0.2"
 import { Command } from "@cliffy/command"
@@ -45,8 +45,7 @@ const getSourceDependencies = (nameToPath: Map<string, string>) => async ({ path
 const getAllSourceFiles = async (): Promise<WalkEntry[]> => {
   const walkOption: WalkOptions = { includeDirs: false, exts: [".cpp", ".h"], skip: [/\.tmp/] }
 
-  const reader = new MuxAsyncIterator<WalkEntry>()
-  paths.forEach((path) => reader.add(walk(path, walkOption)))
+  const reader = new MuxAsyncIterator(...paths.map((path) => walk(path, walkOption)))
 
   return await Array.fromAsync(reader)
 }
