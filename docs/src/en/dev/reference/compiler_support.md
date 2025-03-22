@@ -29,7 +29,7 @@ the tests and for the Windows release binaries.
 
 ## MSYS2
 
-MSYS2 is [a way to build the project](../guides/building/msys) on Windows. It currently offers gcc
+MSYS2 is [a way to build the project](../building/msys) on Windows. It currently offers gcc
 at versions 7 or higher.
 
 MSYS also provides clang. We don't currently support using clang here, but work to that end is
@@ -37,4 +37,4 @@ welcome.
 
 ## Visual Studio
 
-We also support [Visual Studio](../guides/building/vs_vcpkg) 2015 Update 3 and above.
+We also support [Visual Studio](../building/vs_vcpkg) 2015 Update 3 and above.
