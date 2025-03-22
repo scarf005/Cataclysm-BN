@@ -1,0 +1,11 @@
+[book]
+authors = ["Cataclysm: Bright Nights Contributors"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Cataclysm: Bright Nights Development Wiki"
+description = "The official development wiki for Cataclysm: Bright Nights."
+
+[output.html]
+git-repository-url = "https://github.com/cataclysmbnteam/Cataclysm-BN"
+edit-url-template = "https://github.com/cataclysmbnteam/Cataclysm-BN/edit/main/docs/{path}"
