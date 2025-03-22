@@ -1,6 +1,4 @@
----
-title: German Style Guide
----
+# German Style Guide
 
 Diese Datei enthält Anmerkungen für alle, die das Spiel ins Deutsche übersetzen wollen.
 
