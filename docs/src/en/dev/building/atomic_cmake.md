@@ -1,30 +1,22 @@
----
-title: CMake builds on Atomic Distros
----
+# CMake builds on Atomic Distros
 
 This article goes over building BN on distros that are immutable, and thus where containerization is
 the desired solution rather than layering the dependencies onto your base install.
 
 # Example: Fedora Atomic-based (Bazzite)
 
-:::caution
+> [!CAUTION]
+> As of writing this, Bazzite's default container image is fedora-toolbox:38, which _may_ result in
+> having to edit the dependencies installation script. On distros that grab a more modern version of
+> Fedora as their image (or by manually grabbing one yourself), you can be more certain in just using
+> the standard Fedora script
 
-As of writing this, Bazzite's default container image is fedora-toolbox:38, which _may_ result in
-having to edit the dependencies installation script. On distros that grab a more modern version of
-Fedora as their image (or by manually grabbing one yourself), you can be more certain in just using
-the standard Fedora script
-
-:::
-
-:::caution
-
-when using [distrobox](https://distrobox.it), using
-[exported](https://github.com/89luca89/distrobox/blob/main/docs/usage/distrobox-export.md) compiler
-(e.g `~/.local/bin/clang`)
-[won't work as it cannot access `/usr`.](https://github.com/89luca89/distrobox/issues/1548) instead,
-use absolute path for compilers like `/usr/bin/clang`.
-
-:::
+> [!CAUTION]
+> when using [distrobox](https://distrobox.it), using
+> [exported](https://github.com/89luca89/distrobox/blob/main/docs/usage/distrobox-export.md) compiler
+> (e.g `~/.local/bin/clang`)
+> [won't work as it cannot access `/usr`.](https://github.com/89luca89/distrobox/issues/1548) instead,
+> use absolute path for compilers like `/usr/bin/clang`.
 
 ## Setting up the container
 
@@ -34,7 +26,7 @@ Toolbx pre-installed. As such, it is the method we will be using for this exampl
 To start, create a toolbox with:
 
 ```sh
-$ toolbox create
+toolbox create
 ```
 
 This will likely prompt you to download an image to base the container on. If this asks about
@@ -47,7 +39,7 @@ your local copy of the github repo or your downloaded source code). There, you c
 toolbox with a simple command:
 
 ```sh
-$ toolbox enter
+toolbox enter
 ```
 
 You'll need to run this command every time you intend on building in order to enter into your
@@ -57,7 +49,7 @@ Once you're in your toolbox, you can install your dependencies with a Fedora-bas
 installation script. For Bazzite, that script looks like:
 
 ```sh
-$ sudo dnf install git cmake clang ninja-build mold ccache \
+sudo dnf install git cmake clang ninja-build mold ccache \
   SDL2-devel SDL2_image-devel SDL2_ttf-devel SDL2_mixer-devel \
   freetype glibc bzip2 zlib-ng libvorbis ncurses gettext flac-devel \
   sqlite-devel zlib-devel
@@ -104,7 +96,7 @@ Assuming all goes well, you should now have your CMake files generated! Now, all
 run the Ninja command to actually build.
 
 ```sh
-$ ninja -C build -j $(nproc) -k 0 cataclysm-bn-tiles
+ninja -C build -j $(nproc) -k 0 cataclysm-bn-tiles
 ```
 
 `$(nproc)` just grabs the number of "threads" your CPU has, but you can specify a lower number if

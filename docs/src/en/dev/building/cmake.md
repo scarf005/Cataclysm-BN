@@ -1,14 +1,9 @@
----
-title: CMake
----
+# CMake
 
-:::caution
+> [!NOTE]
+> CMake build is work-in-progress.
 
-CMake build is work-in-progress.
-
-:::
-
-For official way to build CataclysmBN see [Compiler Support](../../reference/compiler_support.md).
+For official way to build CataclysmBN see [Compiler Support](../reference/compiler_support.md).
 
 ## Prerequisites
 
@@ -49,7 +44,7 @@ Obtain packages specified above with your system package manager.
 - For Ubuntu-based distros (24.04 onwards):
 
 ```sh
-$ sudo apt install git cmake ninja-build mold clang ccache \ 
+sudo apt install git cmake ninja-build mold clang ccache \ 
   libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev \ 
   freetype glibc bzip2 zlib libvorbis ncurses gettext libflac++-dev \
   libsqlite3-dev zlib1g-dev
@@ -58,7 +53,7 @@ $ sudo apt install git cmake ninja-build mold clang ccache \
 - For Fedora-based distros:
 
 ```sh
-$ sudo dnf install git cmake ninja-build mold clang ccache \
+sudo dnf install git cmake ninja-build mold clang ccache \
   SDL2-devel SDL2_image-devel SDL2_ttf-devel SDL2_mixer-devel \
   freetype glibc bzip2 zlib-ng libvorbis ncurses gettext flac-devel \
   sqlite-devel zlib-devel
@@ -345,7 +340,7 @@ much faster.
 
 - USE_TRACY=`<boolean>`
 
-Use tracy profiler. See [Profiling with tracy](../tracy.md) for more information.
+Use tracy profiler. See [Profiling with tracy](../guides/tracy.md) for more information.
 
 - GIT_BINARY=`<str>`
 

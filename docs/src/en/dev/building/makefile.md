@@ -1,6 +1,4 @@
----
-title: Makefile
----
+# Makefile
 
 To build Cataclysm from source you will need at least a C++ compiler, some basic developer tools,
 and necessary build dependencies. The exact package names vary greatly from distro to distro, so

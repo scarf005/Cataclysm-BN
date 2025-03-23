@@ -1,6 +1,4 @@
----
-title: MSYS2
----
+# MSYS2
 
 This guide contains instructions for compiling Cataclysm-BN on 64bit Windows under MSYS2.
 

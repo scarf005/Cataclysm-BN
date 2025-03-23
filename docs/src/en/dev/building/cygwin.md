@@ -1,17 +1,12 @@
----
-title: Cygwin
----
+# Cygwin
 
 This guide contains instructions for compiling Cataclysm-BN on Windows under Cygwin.
 
-:::note
-
-These instructions _are not intended_ to produce a redistributable copy of CBN. Please download the
-official builds from the website or
-[cross-compile from Linux](./makefile.md#cross-compile-to-windows-from-linux) if that is your
-intention.
-
-:::
+> [!NOTE]
+> These instructions _are not intended_ to produce a redistributable copy of CBN. Please download the
+> official builds from the website or
+> [cross-compile from Linux](./makefile.md#cross-compile-to-windows-from-linux) if that is your
+> intention.
 
 These instructions were written using 64-bit Windows 7 and the 64-bit version of Cygwin; the steps
 should be the same for other versions of Windows.
