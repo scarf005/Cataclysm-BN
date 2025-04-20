@@ -706,7 +706,7 @@ void pet_food_data::deserialize( JsonIn &jsin )
 
 void mtype::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     MonsterGenerator &gen = MonsterGenerator::generator();
 
@@ -1329,14 +1329,14 @@ mtype_special_attack MonsterGenerator::create_actor( const JsonObject &obj,
 
 void mattack_actor::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     // Legacy support
     if( !jo.has_string( "id" ) ) {
         id = jo.get_string( "type" );
     } else {
         // Loading ids can't be strict at the moment, since it has to match the stored version
-        assign( jo, "id", id, false );
+        assign( jo, "id", id, strict_level::NONE );
     }
 
     assign( jo, "cooldown", cooldown, strict );

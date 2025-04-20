@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "assign.h"
+#include "assign_options.h"
 #include "bodypart.h"
 #include "cata_utility.h"
 #include "color.h"
@@ -1116,7 +1117,7 @@ void it_artifact_tool::deserialize( const JsonObject &jo )
         sym = jo.get_string( "sym" );
     }
     jo.read( "color", color );
-    assign( jo, "price", price, false, 0_cent );
+    assign( jo, "price", price, strict_level::NONE, 0_cent );
     // LEGACY: Since it seems artifacts get serialized out to disk, and they're
     // dynamic, we need to allow for them to be read from disk for, oh, I guess
     // quite some time. Loading and saving once will write things out as a JSON
@@ -1226,7 +1227,7 @@ void it_artifact_armor::deserialize( const JsonObject &jo )
         sym = jo.get_string( "sym" );
     }
     jo.read( "color", color );
-    assign( jo, "price", price, false, 0_cent );
+    assign( jo, "price", price, strict_level::NONE, 0_cent );
     // LEGACY: Since it seems artifacts get serialized out to disk, and they're
     // dynamic, we need to allow for them to be read from disk for, oh, I guess
     // quite some time. Loading and saving once will write things out as a JSON

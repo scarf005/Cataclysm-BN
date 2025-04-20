@@ -13,7 +13,7 @@ void report_strict_violation( const JsonObject &jo, const std::string &message,
 }
 
 
-bool assign( const JsonObject &jo, const std::string &name, bool &val, bool strict )
+bool assign( const JsonObject &jo, const std::string &name, bool &val, strict_level strict )
 {
     bool out;
 
@@ -21,7 +21,7 @@ bool assign( const JsonObject &jo, const std::string &name, bool &val, bool stri
         return false;
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( jo, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -32,7 +32,7 @@ bool assign( const JsonObject &jo, const std::string &name, bool &val, bool stri
 }
 
 bool assign( const JsonObject &jo, const std::string &name, units::volume &val,
-             bool strict,
+             strict_level strict,
              const units::volume lo,
              const units::volume hi )
 {
@@ -82,7 +82,7 @@ bool assign( const JsonObject &jo, const std::string &name, units::volume &val,
         if( !parse( err, tmp ) ) {
             err.throw_error( "invalid relative value specified", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val + tmp;
 
     } else if( proportional.has_member( name ) ) {
@@ -91,7 +91,7 @@ bool assign( const JsonObject &jo, const std::string &name, units::volume &val,
         if( !err.read( name, scalar ) || scalar <= 0 || scalar == 1 ) {
             err.throw_error( "multiplier must be a positive number other than 1", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val * scalar;
 
     } else if( !parse( jo, out ) ) {
@@ -102,7 +102,7 @@ bool assign( const JsonObject &jo, const std::string &name, units::volume &val,
         err.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -115,7 +115,7 @@ bool assign( const JsonObject &jo, const std::string &name, units::volume &val,
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::mass &val,
-             bool strict,
+             strict_level strict,
              const units::mass lo,
              const units::mass hi )
 {
@@ -152,7 +152,7 @@ bool assign( const JsonObject &jo,
         if( !parse( err, tmp ) ) {
             err.throw_error( "invalid relative value specified", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val + tmp;
 
     } else if( proportional.has_member( name ) ) {
@@ -162,7 +162,7 @@ bool assign( const JsonObject &jo,
             err.throw_error( "multiplier must be a positive number other than 1",
                              name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val * scalar;
 
     } else if( !parse( jo, out ) ) {
@@ -173,7 +173,7 @@ bool assign( const JsonObject &jo,
         err.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err,
                                  "cannot assign explicit value the same as "
                                  "default or inherited value",
@@ -188,7 +188,7 @@ bool assign( const JsonObject &jo,
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::money &val,
-             bool strict,
+             strict_level strict,
              const units::money lo,
              const units::money hi )
 {
@@ -225,7 +225,7 @@ bool assign( const JsonObject &jo,
         if( !parse( err, tmp ) ) {
             err.throw_error( "invalid relative value specified", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val + tmp;
 
     } else if( proportional.has_member( name ) ) {
@@ -235,7 +235,7 @@ bool assign( const JsonObject &jo,
             err.throw_error( "multiplier must be a positive number other than 1",
                              name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val * scalar;
 
     } else if( !parse( jo, out ) ) {
@@ -246,7 +246,7 @@ bool assign( const JsonObject &jo,
         err.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err,
                                  "cannot assign explicit value the same as "
                                  "default or inherited value",
@@ -261,7 +261,7 @@ bool assign( const JsonObject &jo,
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::energy &val,
-             bool strict,
+             strict_level strict,
              const units::energy lo,
              const units::energy hi )
 {
@@ -303,7 +303,7 @@ bool assign( const JsonObject &jo,
         if( !parse( err, tmp ) ) {
             err.throw_error( "invalid relative value specified", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val + tmp;
 
     } else if( proportional.has_member( name ) ) {
@@ -313,7 +313,7 @@ bool assign( const JsonObject &jo,
             err.throw_error( "multiplier must be a positive number other than 1",
                              name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val * scalar;
 
     } else if( !parse( jo, out ) ) {
@@ -324,7 +324,7 @@ bool assign( const JsonObject &jo,
         err.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err,
                                  "cannot assign explicit value the same as "
                                  "default or inherited value",
@@ -339,7 +339,7 @@ bool assign( const JsonObject &jo,
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::probability &val,
-             bool strict,
+             strict_level strict,
              const units::probability lo,
              const units::probability hi )
 {
@@ -373,7 +373,7 @@ bool assign( const JsonObject &jo,
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::temperature &val,
-             bool strict,
+             strict_level strict,
              const units::temperature lo,
              const units::temperature hi )
 {
@@ -412,7 +412,7 @@ bool assign( const JsonObject &jo,
 bool assign( const JsonObject &jo,
              const std::string &name,
              nc_color &val,
-             const bool strict )
+             const strict_level strict )
 {
     if( !jo.has_member( name ) ) {
         return false;
@@ -421,7 +421,7 @@ bool assign( const JsonObject &jo,
     if( out == c_unset ) {
         jo.throw_error( "invalid color name", name );
     }
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( jo,
                                  "cannot assign explicit value the same as "
                                  "default or inherited value",
@@ -434,7 +434,7 @@ bool assign( const JsonObject &jo,
 bool assign( const JsonObject &jo,
              const std::string &name,
              damage_instance &val,
-             bool strict,
+             strict_level strict,
              const damage_instance &lo,
              const damage_instance &hi )
 {
@@ -544,12 +544,12 @@ bool assign( const JsonObject &jo,
     } else if( !jo.has_member( name ) && !jo.has_member( "prop_damage" ) ) {
         // Straight copy-from, not modified by proportional or relative
         out = val;
-        strict = false;
+        strict = strict_level::NONE;
     }
 
     check_assigned_dmg( err, name, out, lo, hi );
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err,
                                  "cannot assign explicit damage value the same "
                                  "as default or inherited value",
@@ -629,7 +629,7 @@ void assign_dmg_proportional( const JsonObject &jo,
                               damage_instance &out,
                               const damage_instance &val,
                               damage_instance proportional,
-                              bool &strict )
+                              strict_level &strict )
 {
     for( const damage_unit &val_dmg : val.damage_units ) {
         for( damage_unit &scalar : proportional.damage_units ) {
@@ -640,7 +640,7 @@ void assign_dmg_proportional( const JsonObject &jo,
             // Do not require strict parsing for relative and proportional
             // values as rules such as +10% are well-formed independent of
             // whether they affect base value
-            strict = false;
+            strict = strict_level::NONE;
 
             // Can't have negative percent, and 100% is pointless
             // If it's 0, it wasn't loaded
@@ -701,7 +701,7 @@ void assign_dmg_proportional( const JsonObject &jo,
 void assign_dmg_relative( damage_instance &out,
                           const damage_instance &val,
                           damage_instance relative,
-                          bool &strict )
+                          strict_level &strict )
 {
     for( const damage_unit &val_dmg : val.damage_units ) {
         for( damage_unit &tmp : relative.damage_units ) {
@@ -712,7 +712,7 @@ void assign_dmg_relative( damage_instance &out,
             // Do not require strict parsing for relative and proportional
             // values as rules such as +10% are well-formed independent of
             // whether they affect base value
-            strict = false;
+            strict = strict_level::NONE;
 
             // res_mult is set to 1 if it's not specified. Set it to zero so we
             // don't accidentally add to it

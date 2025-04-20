@@ -1487,7 +1487,7 @@ void ter_t::check() const
     if( bash.ter_set_bashed_from_above && bash.ter_set_bashed_from_above == id ) {
         debugmsg( "%s turns into itself when bashed from above", id.c_str() );
     }
-    if( json_report_strict
+    if( json_report_strict == strict_level::STRICT
         && ( bash.ter_set == t_open_air.id() || bash.ter_set_bashed_from_above == t_open_air.id() ) ) {
         debugmsg( "%s explicitly turns into \"t_open_air\", but \"t_null\" is preferred",
                   id.c_str() );
@@ -1505,7 +1505,7 @@ void ter_t::check() const
         debugmsg( "%s has bash.ter_set_bashed_from_above %s, which is unpassable but has no roof",
                   id.str(), bash.ter_set_bashed_from_above.str() );
     }
-    if( json_report_strict && deconstruct.ter_set == t_open_air.id() ) {
+    if( json_report_strict == strict_level::STRICT && deconstruct.ter_set == t_open_air.id() ) {
         debugmsg( "%s deconstructs into \"t_open_air\", but \"t_null\" is preferred",
                   id.str() );
     }

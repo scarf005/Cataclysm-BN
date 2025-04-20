@@ -67,7 +67,7 @@ bool harvest_list::has_entry_type( const std::string &type ) const
 
 harvest_entry harvest_entry::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     harvest_entry ret;
     assign( jo, "drop", ret.drop, strict );

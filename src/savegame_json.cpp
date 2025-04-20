@@ -686,8 +686,8 @@ void Character::load( const JsonObject &data )
     recalc_sight_limits();
     reset_encumbrance();
 
-    assign( data, "power_level", power_level, false, 0_kJ );
-    assign( data, "max_power_level", max_power_level, false, 0_kJ );
+    assign( data, "power_level", power_level, strict_level::NONE, 0_kJ );
+    assign( data, "max_power_level", max_power_level, strict_level::NONE, 0_kJ );
 
     // Bionic power should not be negative!
     if( power_level < 0_J ) {

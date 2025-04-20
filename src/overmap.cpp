@@ -417,7 +417,7 @@ std::string overmap_land_use_code::get_symbol() const
 
 void overmap_land_use_code::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
     assign( jo, "land_use_code", land_use_code, strict );
     assign( jo, "name", name, strict );
     assign( jo, "detailed_definition", detailed_definition, strict );
@@ -475,7 +475,7 @@ void overmap_special_connection::deserialize( const JsonObject &jo )
     if( jo.has_string( "terrain" ) ) {
         // Legacy migration.
         // TODO: remove after BN 0.F or 0.E (or whatever it's gonna be)
-        if( json_report_strict ) {
+        if( json_report_strict == strict_level::STRICT ) {
             try {
                 jo.throw_error( "Defining connection by terrain is deprecated, use explicit 'connection' instead.",
                                 "terrain" );
@@ -697,7 +697,7 @@ std::string oter_type_t::get_symbol() const
 
 void oter_type_t::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     optional( jo, was_loaded, "sym", symbol, unicode_codepoint_from_symbol_reader, NULL_UNICODE );
 
@@ -2666,7 +2666,7 @@ mapgen_arguments overmap_special::get_args( const mapgendata &md ) const
 
 void overmap_special::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
     // city_building is just an alias of overmap_special
     // TODO: This comparison is a hack. Separate them properly.
     const bool is_special = jo.get_string( "type", "" ) == "overmap_special";

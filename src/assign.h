@@ -8,6 +8,7 @@
 #include <vector>
 #include <optional>
 
+#include "assign_options.h"
 #include "calendar.h"
 #include "color.h"
 #include "damage.h"
@@ -37,13 +38,14 @@ class is_optional : public detail::is_optional_helper<std::decay_t<T>>
 /**
  * Check whether strict checks are enabled for given mod.
  */
-bool is_strict_enabled( const std::string &src );
+auto is_strict_enabled( const std::string &src ) -> strict_level;
 
 void report_strict_violation( const JsonObject &jo, const std::string &message,
                               const std::string &name );
 
 template <Arithmetic T>
-bool assign( const JsonObject &jo, const std::string &name, T &val, bool strict = false,
+bool assign( const JsonObject &jo, const std::string &name, T &val,
+             strict_level strict = strict_level::NONE,
              T lo = std::numeric_limits<T>::lowest(), T hi = std::numeric_limits<T>::max() )
 {
     T out;
@@ -61,7 +63,7 @@ bool assign( const JsonObject &jo, const std::string &name, T &val, bool strict 
     // such as +10% are well-formed independent of whether they affect base value
     if( relative.read( name, out ) ) {
         err = relative;
-        strict = false;
+        strict = strict_level::NONE;
         out += val;
 
     } else if( proportional.read( name, scalar ) ) {
@@ -69,7 +71,7 @@ bool assign( const JsonObject &jo, const std::string &name, T &val, bool strict 
         if( scalar <= 0 || scalar == 1 ) {
             err.throw_error( "multiplier must be a positive number other than 1", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val * scalar;
 
     } else if( !jo.read( name, out ) ) {
@@ -80,7 +82,7 @@ bool assign( const JsonObject &jo, const std::string &name, T &val, bool strict 
         err.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -92,11 +94,13 @@ bool assign( const JsonObject &jo, const std::string &name, T &val, bool strict 
 
 // Overload assign specifically for bool to avoid warnings,
 // and also to avoid potentially nonsensical interactions between relative and proportional.
-bool assign( const JsonObject &jo, const std::string &name, bool &val, bool strict = false );
+bool assign( const JsonObject &jo, const std::string &name, bool &val,
+             strict_level strict = strict_level::NONE );
 
 template <Arithmetic T>
 bool assign( const JsonObject &jo, const std::string &name, std::pair<T, T> &val,
-             bool strict = false, T lo = std::numeric_limits<T>::lowest(), T hi = std::numeric_limits<T>::max() )
+             strict_level strict = strict_level::NONE, T lo = std::numeric_limits<T>::lowest(),
+             T hi = std::numeric_limits<T>::max() )
 {
     std::pair<T, T> out;
 
@@ -120,7 +124,7 @@ bool assign( const JsonObject &jo, const std::string &name, std::pair<T, T> &val
         jo.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( jo, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -133,7 +137,8 @@ bool assign( const JsonObject &jo, const std::string &name, std::pair<T, T> &val
 // Note: is_optional excludes any types based on std::optional, which is
 // handled below in a separate function.
 template < typename T>
-bool assign( const JsonObject &jo, const std::string &name, T &val, bool strict = false )
+bool assign( const JsonObject &jo, const std::string &name, T &val,
+             strict_level strict = strict_level::NONE )
 requires( std::is_class_v<T> && !is_optional<T>::value ) //*NOPAD*
 {
     T out;
@@ -141,7 +146,7 @@ requires( std::is_class_v<T> && !is_optional<T>::value ) //*NOPAD*
         return false;
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( jo, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -191,29 +196,27 @@ bool assign_set( const JsonObject &jo, const std::string &name, Set &val )
 }
 } // namespace details
 
-
 template <typename T>
-typename std::enable_if<std::is_constructible<T, std::string>::value, bool>::type assign(
+concept StringLike = std::is_constructible_v<T, std::string>;
+
+template <StringLike T>
+bool assign(
     const JsonObject &jo, const std::string &name, std::set<T> &val, bool = false )
 {
-    return details::assign_set<T, std::set<T>>( jo, name, val );
+    return details::assign_set<T, std::set<T>> ( jo, name, val );
 }
 
-template <typename T>
-typename std::enable_if<std::is_constructible<T, std::string>::value, bool>::type assign(
+template <StringLike T>
+bool assign(
     const JsonObject &jo, const std::string &name, cata::flat_set<T> &val, bool = false )
 {
-    return details::assign_set<T, cata::flat_set<T>>( jo, name, val );
+    return details::assign_set<T, cata::flat_set<T>> ( jo, name, val );
 }
 
 // Map of sets, like in the case of magazines for a gun
-template <typename T1, typename T2>
-typename std::enable_if <
-std::is_constructible<T1, std::string>::value &&
-std::is_constructible<T2, std::string>::value,
-    bool
-    >::type assign(
-        const JsonObject &jo, const std::string &name, std::map<T1, std::set<T2>> &val, bool = false )
+template <StringLike T1, StringLike T2>
+bool assign(
+    const JsonObject &jo, const std::string &name, std::map<T1, std::set<T2 >> &val, bool = false )
 {
     JsonObject add = jo.get_object( "extend" );
     add.allow_omitted_members();
@@ -279,7 +282,8 @@ std::is_constructible<T2, std::string>::value,
  * Supports extend by pair and delete by key.
  */
 template <typename T>
-bool assign_map_from_array( const JsonObject &jo, const std::string &name, T &val, bool = false )
+bool assign_map_from_array( const JsonObject &jo, const std::string &name, T &val,
+                            strict_level = strict_level::NONE )
 {
     using K = typename T::key_type;
     using V = typename T::mapped_type;
@@ -292,7 +296,7 @@ bool assign_map_from_array( const JsonObject &jo, const std::string &name, T &va
     if( jo.has_array( name ) ) {
         val.clear();
 
-        std::vector<std::pair<K, V>> tmp;
+        std::vector<std::pair<K, V >> tmp;
         jo.get_raw( name )->read( tmp, true );
         for( const auto &it : tmp ) {
             val.insert( std::move( it ) );
@@ -309,7 +313,7 @@ bool assign_map_from_array( const JsonObject &jo, const std::string &name, T &va
     bool res = false;
 
     if( add.has_array( name ) ) {
-        std::vector<std::pair<K, V>> tmp;
+        std::vector<std::pair<K, V >> tmp;
         add.get_raw( name )->read( tmp, true );
 
         for( const auto &it : tmp ) {
@@ -334,28 +338,28 @@ bool assign_map_from_array( const JsonObject &jo, const std::string &name, T &va
 }
 
 bool assign( const JsonObject &jo, const std::string &name, units::volume &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const units::volume lo = units::volume_min,
              const units::volume hi = units::volume_max );
 
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::mass &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const units::mass lo = units::mass_min,
              const units::mass hi = units::mass_max );
 
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::money &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const units::money lo = units::money_min,
              const units::money hi = units::money_max );
 
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::energy &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const units::energy lo = units::energy_min,
              const units::energy hi = units::energy_max );
 
@@ -379,7 +383,7 @@ requires( !units::quantity_details<ut>::common_zero_point::value )
 
 template<typename T, typename F>
 inline bool assign_unit_common( const JsonObject &jo, const std::string &name, T &val, F parse,
-                                bool strict, const T lo, const T hi )
+                                strict_level strict, const T lo, const T hi )
 {
     T out;
 
@@ -399,7 +403,7 @@ inline bool assign_unit_common( const JsonObject &jo, const std::string &name, T
         if( !parse( err, tmp ) ) {
             err.throw_error( "invalid relative value specified", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val + tmp;
 
     } else if( proportional.has_member( name ) ) {
@@ -408,7 +412,7 @@ inline bool assign_unit_common( const JsonObject &jo, const std::string &name, T
         if( !err.read( name, scalar ) || scalar <= 0 || scalar == 1 ) {
             err.throw_error( "multiplier must be a positive number other than 1", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = mult_unit( err, name, val, scalar );
 
     } else if( !parse( jo, out ) ) {
@@ -419,7 +423,7 @@ inline bool assign_unit_common( const JsonObject &jo, const std::string &name, T
         err.throw_error( "value outside supported range", name );
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -432,21 +436,21 @@ inline bool assign_unit_common( const JsonObject &jo, const std::string &name, T
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::probability &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const units::probability lo = units::probability_min,
              const units::probability hi = units::probability_max );
 
 bool assign( const JsonObject &jo,
              const std::string &name,
              units::temperature &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const units::temperature lo = units::temperature_min,
              const units::temperature hi = units::temperature_max );
 
 bool assign( const JsonObject &jo,
              const std::string &name,
              nc_color &val,
-             const bool strict = false );
+             const strict_level strict = strict_level::NONE );
 
 class time_duration;
 
@@ -469,15 +473,17 @@ requires std::is_same_v<std::decay_t<T>, time_duration> {
     return false;
 }
 
+template<typename T>
+concept IsTimeDuration = std::is_same_v<std::decay_t<T>, time_duration>;
+
 // This is a function template not a real function as that allows it to be defined
 // even when time_duration is *not* defined yet. When called with anything else but
 // time_duration as `val`, SFINAE (the enable_if) will disable this function and it
 // will be ignored. If it is called with time_duration, it is available and the
 // *caller* is responsible for including the "calendar.h" header.
-template<typename T>
-inline typename
-std::enable_if<std::is_same<typename std::decay<T>::type, time_duration>::value, bool>::type assign(
-    const JsonObject &jo, const std::string &name, T &val, bool strict, const T &factor )
+template<IsTimeDuration T>
+inline bool assign( const JsonObject &jo, const std::string &name, T &val, strict_level strict,
+                    const T &factor )
 {
     T out{};
     double scalar;
@@ -494,7 +500,7 @@ std::enable_if<std::is_same<typename std::decay<T>::type, time_duration>::value,
     // such as +10% are well-formed independent of whether they affect base value
     if( read_with_factor( relative, name, out, factor ) ) {
         err = relative;
-        strict = false;
+        strict = strict_level::NONE;
         out = out + val;
 
     } else if( proportional.read( name, scalar ) ) {
@@ -502,14 +508,14 @@ std::enable_if<std::is_same<typename std::decay<T>::type, time_duration>::value,
         if( scalar <= 0 || scalar == 1 ) {
             err.throw_error( "multiplier must be a positive number other than 1", name );
         }
-        strict = false;
+        strict = strict_level::NONE;
         out = val * scalar;
 
     } else if( !read_with_factor( jo, name, out, factor ) ) {
         return false;
     }
 
-    if( strict && out == val ) {
+    if( strict == strict_level::PEDANTIC && out == val ) {
         report_strict_violation( err, "cannot assign explicit value the same as default or inherited value",
                                  name );
     }
@@ -522,11 +528,11 @@ std::enable_if<std::is_same<typename std::decay<T>::type, time_duration>::value,
 bool assign( const JsonObject &jo,
              const std::string &name,
              resistances &val,
-             bool strict = false );
+             strict_level strict = strict_level::NONE );
 
 template<typename T>
 inline bool assign( const JsonObject &jo, const std::string &name, std::optional<T> &val,
-                    const bool strict = false )
+                    const strict_level strict = strict_level::NONE )
 {
     if( !jo.has_member( name ) ) {
         return false;
@@ -546,14 +552,14 @@ constexpr float float_max = std::numeric_limits<float>::max();
 void assign_dmg_relative( damage_instance &out,
                           const damage_instance &val,
                           damage_instance relative,
-                          bool &strict );
+                          strict_level &strict );
 
 void assign_dmg_proportional( const JsonObject &jo,
                               const std::string &name,
                               damage_instance &out,
                               const damage_instance &val,
                               damage_instance proportional,
-                              bool &strict );
+                              strict_level &strict );
 
 void check_assigned_dmg( const JsonObject &err,
                          const std::string &name,
@@ -564,7 +570,7 @@ void check_assigned_dmg( const JsonObject &err,
 bool assign( const JsonObject &jo,
              const std::string &name,
              damage_instance &val,
-             bool strict = false,
+             strict_level strict = strict_level::NONE,
              const damage_instance &lo =
                  damage_instance( DT_NULL, 0.0f, 0.0f, 0.0f, 0.0f ),
              const damage_instance &hi = damage_instance( DT_NULL,

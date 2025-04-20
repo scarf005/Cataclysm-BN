@@ -122,7 +122,7 @@ static bool assign_coverage_from_json( const JsonObject &jo, const std::string &
                                        body_part_set &parts, bool &sided )
 {
     auto parse = [&parts, &sided]( const std::string & val_in ) {
-        const std::string &val = json_report_strict
+        const std::string &val = json_report_strict != strict_level::NONE
                                  ? val_in
                                  : to_lower_case( val_in );
         if( val == "arms" || val == "arm_either" ) {
@@ -1820,7 +1820,7 @@ void Item_factory::load_wheel( const JsonObject &jo, const std::string &src )
 
 void Item_factory::load( islot_fuel &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     assign( jo, "energy", slot.energy, strict, 0.001f );
     if( jo.has_member( "pump_terrain" ) ) {
@@ -1848,7 +1848,7 @@ void Item_factory::load_fuel( const JsonObject &jo, const std::string &src )
 
 void Item_factory::load( islot_gun &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     if( jo.has_member( "burst" ) && jo.has_member( "modes" ) ) {
         jo.throw_error( "cannot specify both burst and modes", "burst" );
@@ -1954,7 +1954,7 @@ std::string enum_to_string<layer_level>( layer_level data )
 
 void Item_factory::load( islot_armor &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     assign( jo, "resistance", slot.resistance, strict );
     assign( jo, "material_thickness", slot.thickness, strict, 0 );
@@ -2062,7 +2062,7 @@ void Item_factory::load( islot_armor &slot, const JsonObject &jo, const std::str
 
 void Item_factory::load( islot_pet_armor &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     assign( jo, "material_thickness", slot.thickness, strict, 0 );
     assign( jo, "max_pet_vol", slot.max_vol, strict, 0_ml );
@@ -2075,7 +2075,7 @@ void Item_factory::load( islot_pet_armor &slot, const JsonObject &jo, const std:
 
 void Item_factory::load( islot_tool &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     if( jo.has_array( "ammo" ) ) {
         for( const std::string id : jo.get_array( "ammo" ) ) {
@@ -2126,7 +2126,7 @@ void Item_factory::load( relic &slot, const JsonObject &jo, const std::string & 
 
 void Item_factory::load( islot_mod &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     if( jo.has_array( "ammo_modifier" ) ) {
         for( const std::string id : jo.get_array( "ammo_modifier" ) ) {
@@ -2178,7 +2178,7 @@ void Item_factory::load_tool_armor( const JsonObject &jo, const std::string &src
 
 void Item_factory::load( islot_book &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     assign( jo, "max_level", slot.level, strict, 0, MAX_SKILL );
     assign( jo, "required_level", slot.req, strict, 0, MAX_SKILL );
@@ -2206,7 +2206,7 @@ void Item_factory::load_book( const JsonObject &jo, const std::string &src )
 
 void Item_factory::load( islot_comestible &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     JsonObject relative = jo.get_object( "relative" );
     JsonObject proportional = jo.get_object( "proportional" );
@@ -2331,7 +2331,7 @@ void Item_factory::load( islot_comestible &slot, const JsonObject &jo, const std
 
 void Item_factory::load( islot_brewable &slot, const JsonObject &jo, const std::string & )
 {
-    assign( jo, "time", slot.time, false, 1_turns );
+    assign( jo, "time", slot.time, strict_level::NONE, 1_turns );
     jo.read( "results", slot.results, true );
 }
 
@@ -2356,8 +2356,8 @@ void Item_factory::load_container( const JsonObject &jo, const std::string &src 
 
 void Item_factory::load( islot_seed &slot, const JsonObject &jo, const std::string & )
 {
-    assign( jo, "grow", slot.grow, false, 1_days );
-    assign( jo, "fruit_div", slot.fruit_div, false, 1 );
+    assign( jo, "grow", slot.grow, strict_level::NONE, 1_days );
+    assign( jo, "fruit_div", slot.fruit_div, strict_level::NONE, 1 );
     assign( jo, "plant_name", slot.plant_name );
     assign( jo, "fruit", slot.fruit_id );
     assign( jo, "seeds", slot.spawn_seeds );
@@ -2376,7 +2376,7 @@ void Item_factory::load( islot_container &slot, const JsonObject &jo, const std:
 
 void Item_factory::load( islot_gunmod &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     assign( jo, "damage_modifier", slot.damage, strict, damage_instance( DT_NULL, -20, -20, -20,
             -20 ) );
@@ -2432,7 +2432,7 @@ void Item_factory::load_gunmod( const JsonObject &jo, const std::string &src )
 
 void Item_factory::load( islot_magazine &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
     if( jo.has_array( "ammo_type" ) ) {
         slot.type.clear();
         for( const std::string &id : jo.get_array( "ammo_type" ) ) {
@@ -2476,7 +2476,7 @@ void Item_factory::load_battery( const JsonObject &jo, const std::string &src )
 
 void Item_factory::load( islot_bionic &slot, const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     if( jo.has_member( "bionic_id" ) ) {
         assign( jo, "bionic_id", slot.id, strict );
@@ -2594,14 +2594,14 @@ void Item_factory::npc_implied_flags( itype &item_template )
 
 void Item_factory::load_basic_info( const JsonObject &jo, itype &def, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     assign( jo, "category", def.category_force, strict );
     assign( jo, "weight", def.weight, strict, 0_gram );
     assign( jo, "integral_weight", def.integral_weight, strict, 0_gram );
     assign( jo, "volume", def.volume );
-    assign( jo, "price", def.price, false, 0_cent );
-    assign( jo, "price_postapoc", def.price_post, false, 0_cent );
+    assign( jo, "price", def.price, strict_level::NONE, 0_cent );
+    assign( jo, "price_postapoc", def.price_post, strict_level::NONE, 0_cent );
     assign( jo, "stackable", def.stackable_, strict );
     assign( jo, "integral_volume", def.integral_volume );
     assign( jo, "bashing", def.melee[DT_BASH], strict, 0 );

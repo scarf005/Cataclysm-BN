@@ -280,11 +280,11 @@ void body_part_type::load( const JsonObject &jo, const std::string & )
 
     mandatory( jo, was_loaded, "sort_order", sort_order );
 
-    assign( jo, "hit_size", hit_size, true );
-    assign( jo, "hit_difficulty", hit_difficulty, true );
-    assign( jo, "hit_size_relative", hit_size_relative, true );
+    assign( jo, "hit_size", hit_size, strict_level::STRICT );
+    assign( jo, "hit_difficulty", hit_difficulty, strict_level::STRICT );
+    assign( jo, "hit_size_relative", hit_size_relative, strict_level::STRICT );
 
-    assign( jo, "base_hp", base_hp, true );
+    assign( jo, "base_hp", base_hp, strict_level::STRICT );
 
     assign( jo, "legacy_id", legacy_id );
     token = legacy_id_to_enum( legacy_id );
@@ -294,7 +294,7 @@ void body_part_type::load( const JsonObject &jo, const std::string & )
 
     optional( jo, was_loaded, "essential", essential, false );
 
-    assign( jo, "drench_capacity", drench_capacity, true );
+    assign( jo, "drench_capacity", drench_capacity, strict_level::STRICT );
 
     optional( jo, was_loaded, "hot_morale_mod", hot_morale_mod, 0.0 );
     optional( jo, was_loaded, "cold_morale_mod", cold_morale_mod, 0.0 );

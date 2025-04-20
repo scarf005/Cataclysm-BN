@@ -2160,8 +2160,11 @@ void options_manager::add_options_debug()
     };
 
     add( "STRICT_JSON_CHECKS", debug, translate_marker( "Strict JSON checks" ),
-         translate_marker( "If true, will show additional warnings for JSON data correctness." ),
-         true
+    translate_marker( "Configure how many additional warnings for JSON data correctness will be emitted." ), {
+        { "none", translate_marker( "None" ) },
+        { "strict", translate_marker( "Strict" ) },
+        { "pedantic", translate_marker( "Pedantic" ) },
+    }, "none"
        );
 
     add( "FORCE_TILESET_RELOAD", debug, translate_marker( "Force tileset reload" ),

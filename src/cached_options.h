@@ -1,5 +1,7 @@
 #pragma once
 
+#include "assign_options.h"
+
 // A collection of options which are accessed frequently enough that we don't
 // want to pay the overhead of a string lookup each time one is tested.
 // They should be updated when the corresponding option is changed (in options.cpp).
@@ -22,7 +24,7 @@ extern bool debug_mode;
  * Report extra problems in JSONs.
  * Because either @ref test_mode or @ref json_report_unused_fields is set.
  */
-extern bool json_report_strict;
+extern strict_level json_report_strict;
 
 /**
  * Use tiles for display. Always false for ncurses build,

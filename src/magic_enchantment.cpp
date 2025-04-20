@@ -276,7 +276,7 @@ void enchantment::load( const JsonObject &jo, const std::string & )
         for( const JsonObject value_obj : jo.get_array( "values" ) ) {
             std::string value_raw = value_obj.get_string( "value" );
             std::string value_new = migrate_ench_vals_enums( value_raw );
-            if( json_report_strict && value_new != value_raw ) {
+            if( json_report_strict == strict_level::STRICT && value_new != value_raw ) {
                 value_obj.show_warning(
                     string_format( "%s has been renamed to %s", value_raw, value_new ), "value" );
             }

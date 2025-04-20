@@ -213,7 +213,7 @@ void check_consistency()
             c.post_terrain = ter_str_id();
             did_migrate = true;
         }
-        if( did_migrate && json_report_strict ) {
+        if( did_migrate && json_report_strict == strict_level::STRICT ) {
             debugmsg( "Construction '%s' uses pre_/post_terrain to set furniture id.  Use pre_/post_furniture instead.",
                       c.id );
         }

@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "assign.h"
+#include "assign_options.h"
 #include "cata_utility.h"
 #include "debug.h"
 #include "dependency_tree.h"
@@ -367,9 +368,11 @@ mod_id get_default_core_content_pack()
 
 } // namespace mod_management
 
-bool is_strict_enabled( const std::string &src )
+auto is_strict_enabled( const std::string &src ) -> strict_level
 {
-    return src == mod_management::get_default_core_content_pack().str();
+    return src == mod_management::get_default_core_content_pack().str()
+           ? strict_level::STRICT
+           : strict_level::NONE;
 }
 
 void mod_manager::add_mods( std::vector<MOD_INFORMATION> &&list )

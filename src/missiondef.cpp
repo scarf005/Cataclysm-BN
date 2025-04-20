@@ -236,7 +236,7 @@ void assign_function( const JsonObject &jo, const std::string &id, Fun &target,
 
 void mission_type::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     mandatory( jo, was_loaded, "name", name );
 
@@ -305,8 +305,8 @@ void mission_type::load( const JsonObject &jo, const std::string &src )
         return;
     }
 
-    assign( jo, "deadline_low", deadline_low, false, 1_days );
-    assign( jo, "deadline_high", deadline_high, false, 1_days );
+    assign( jo, "deadline_low", deadline_low, strict_level::NONE, 1_days );
+    assign( jo, "deadline_high", deadline_high, strict_level::NONE, 1_days );
 
     optional( jo, was_loaded, "followup", follow_up, mission_type_id::NULL_ID() );
     optional( jo, was_loaded, "monster_species", monster_species );
@@ -343,7 +343,7 @@ void mission_type::check_consistency()
         }
         // 40 is an arbitrary limit, but it's enough to convey the meaning.
         // Any extra details and such belong in the 'description' field.
-        if( json_report_strict && m.name.debug_get_raw().length() > 40 ) {
+        if( json_report_strict == strict_level::STRICT && m.name.debug_get_raw().length() > 40 ) {
             debugmsg( "Mission %s has name that exceeds recommended width of 40 characters (\"%s\").  "
                       "Consider moving the details into 'description' field.",
                       m.id, m.name.debug_get_raw() );

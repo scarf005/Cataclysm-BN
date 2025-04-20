@@ -1966,7 +1966,7 @@ void talk_effect_fun_t::set_add_effect( const JsonObject &jo, const std::string 
         const std::string dur_string = jo.get_string( "duration" );
         if( dur_string == "PERMANENT" ) {
             permanent = true;
-            if( json_report_strict ) {
+            if( json_report_strict == strict_level::STRICT ) {
                 // This is immensely ugly, we need json.just_warn_with_context
                 try {
                     jo.throw_error( "Effect permanence has been moved to effect_type.  Set permanence there.",

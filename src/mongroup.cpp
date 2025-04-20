@@ -383,7 +383,7 @@ void MonsterGroupManager::LoadMonsterGroup( const JsonObject &jo )
     g.replace_monster_group = jo.get_bool( "replace_monster_group", false );
     g.new_monster_group = mongroup_id( jo.get_string( "new_monster_group_id",
                                        mongroup_id::NULL_ID().str() ) );
-    assign( jo, "replacement_time", g.monster_group_time, false, 1_days );
+    assign( jo, "replacement_time", g.monster_group_time, strict_level::NONE, 1_days );
     g.is_safe = jo.get_bool( "is_safe", false );
 
     g.freq_total = jo.get_int( "freq_total", ( extending ? g.freq_total : 1000 ) );

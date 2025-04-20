@@ -756,7 +756,7 @@ static effect_data load_effect_data( const JsonObject &e )
         effect_data ret( efftype_id( e.get_string( "id" ) ), time,
                          get_body_part_token( e.get_string( "bp", "NUM_BP" ) ) );
         ret.permanent = true;
-        if( json_report_strict ) {
+        if( json_report_strict == strict_level::STRICT ) {
             try {
                 e.throw_error( "Effect permanence has been moved to effect_type.  Set permanence there.",
                                "permanent" );

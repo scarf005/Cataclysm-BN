@@ -7,6 +7,7 @@
 #include "activity_actor.h"
 #include "activity_handlers.h"
 #include "assign.h"
+#include "assign_options.h"
 #include "debug.h"
 #include "enum_conversions.h"
 #include "json.h"
@@ -45,16 +46,16 @@ void activity_type::load( const JsonObject &jo )
     activity_type result;
 
     result.id_ = activity_id( jo.get_string( "id" ) );
-    assign( jo, "rooted", result.rooted_, true );
-    assign( jo, "verb", result.verb_, true );
-    assign( jo, "suspendable", result.suspendable_, true );
-    assign( jo, "no_resume", result.no_resume_, true );
-    assign( jo, "special", result.special_, false );
-    assign( jo, "multi_activity", result.multi_activity_, false );
-    assign( jo, "refuel_fires", result.refuel_fires, false );
-    assign( jo, "auto_needs", result.auto_needs, false );
-    assign( jo, "morale_blocked", result.morale_blocked_, false );
-    assign( jo, "verbose_tooltip", result.verbose_tooltip_, false );
+    assign( jo, "rooted", result.rooted_, strict_level::STRICT );
+    assign( jo, "verb", result.verb_, strict_level::STRICT );
+    assign( jo, "suspendable", result.suspendable_, strict_level::STRICT );
+    assign( jo, "no_resume", result.no_resume_, strict_level::STRICT );
+    assign( jo, "special", result.special_, strict_level::NONE );
+    assign( jo, "multi_activity", result.multi_activity_, strict_level::NONE );
+    assign( jo, "refuel_fires", result.refuel_fires, strict_level::NONE );
+    assign( jo, "auto_needs", result.auto_needs, strict_level::NONE );
+    assign( jo, "morale_blocked", result.morale_blocked_, strict_level::NONE );
+    assign( jo, "verbose_tooltip", result.verbose_tooltip_, strict_level::NONE );
     if( jo.has_member( "complex_moves" ) ) {
         result.complex_moves_ = true;
         auto c_moves = jo.get_object( "complex_moves" );
@@ -72,7 +73,7 @@ void activity_type::load( const JsonObject &jo )
 
         c_moves.allow_omitted_members();
         if( c_moves.has_bool( "skills" ) ) {
-            assign( c_moves, "skills", result.skill_affected_, false );
+            assign( c_moves, "skills", result.skill_affected_, strict_level::STRICT );
         } else if( c_moves.has_array( "skills" ) ) {
             result.skill_affected_ = true;
             for( JsonArray skillobj : c_moves.get_array( "skills" ) ) {
@@ -93,7 +94,7 @@ void activity_type::load( const JsonObject &jo )
         }
 
         if( c_moves.has_bool( "qualities" ) ) {
-            assign( c_moves, "qualities", result.tools_affected_, false );
+            assign( c_moves, "qualities", result.tools_affected_, strict_level::STRICT );
         } else if( c_moves.has_array( "qualities" ) ) {
             result.tools_affected_ = true;
             for( JsonArray q_obj : c_moves.get_array( "qualities" ) ) {
@@ -114,7 +115,7 @@ void activity_type::load( const JsonObject &jo )
         }
 
         if( c_moves.has_bool( "stats" ) ) {
-            assign( c_moves, "stats", result.stats_affected_, false );
+            assign( c_moves, "stats", result.stats_affected_, strict_level::STRICT );
         } else if( c_moves.has_array( "stats" ) ) {
             result.stats_affected_ = true;
             for( JsonArray stat_obj : c_moves.get_array( "stats" ) ) {

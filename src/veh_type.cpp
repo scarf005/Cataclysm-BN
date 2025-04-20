@@ -984,10 +984,10 @@ void vehicle_prototype::load( const JsonObject &jo )
         pt.pos = pos;
         pt.part = vpart_id( part.get_string( "part" ) );
 
-        assign( part, "ammo", pt.with_ammo, true, 0, 100 );
-        assign( part, "ammo_types", pt.ammo_types, true );
-        assign( part, "ammo_qty", pt.ammo_qty, true, 0 );
-        assign( part, "fuel", pt.fuel, true );
+        assign( part, "ammo", pt.with_ammo, strict_level::STRICT, 0, 100 );
+        assign( part, "ammo_types", pt.ammo_types, strict_level::STRICT );
+        assign( part, "ammo_qty", pt.ammo_qty, strict_level::STRICT, 0 );
+        assign( part, "fuel", pt.fuel, strict_level::STRICT );
 
         vproto.parts.push_back( pt );
     };

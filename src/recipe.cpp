@@ -98,7 +98,7 @@ bool recipe::has_flag( const std::string &flag_name ) const
 
 void recipe::load( const JsonObject &jo, const std::string &src )
 {
-    const bool strict = is_strict_enabled( src );
+    const auto strict = is_strict_enabled( src );
 
     abstract = jo.has_string( "abstract" );
 
@@ -288,7 +288,7 @@ void recipe::finalize()
         if( it != flags.end() ) {
             flags.erase( it );
             charges = 1;
-            if( json_report_strict || !result_->count_by_charges() ) {
+            if( json_report_strict == strict_level::STRICT || !result_->count_by_charges() ) {
                 debugmsg( "recipe %s uses obsolete flag UNCRAFT_SINGLE_CHARGE, replace with \"charges\": 1",
                           ident() );
             }
@@ -298,7 +298,7 @@ void recipe::finalize()
         auto it = flags.find( "UNCRAFT_BY_QUANTITY" );
         if( it != flags.end() ) {
             flags.erase( it );
-            if( json_report_strict ) {
+            if( json_report_strict == strict_level::STRICT ) {
                 debugmsg( "recipe %s uses obsolete flag UNCRAFT_BY_QUANTITY",
                           ident() );
             }
