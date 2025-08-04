@@ -4053,10 +4053,14 @@ bool mattack::multi_robot( monster *z )
     }
 
     int dist = rl_dist( z->pos(), target->pos() );
-    if( dist <= 15 ) {
+    if( dist == 1 && one_in( 2 ) ) {
         mode = 1;
-    } else if( dist <= 30 ) {
+    } else if( dist <= 5 ) {
         mode = 2;
+    } else if( dist <= 20 ) {
+        mode = 3;
+    } else if( dist <= 30 ) {
+        mode = 4;
     } else if( ( target == &g->u && g->u.in_vehicle ) ||
                z->friendly != 0 ||
                cap > 4 ) {
@@ -4074,18 +4078,31 @@ bool mattack::multi_robot( monster *z )
         return false;
     }
 
-    if( mode > cap ) {
-        mode = cap;
-    }
+    mode = std::min( mode, cap );
     switch( mode ) {
         case 1:
-            if( dist <= 15 ) {
-                rifle( z, target );
+            if( dist <= 1 ) {
+                taze( z, target );
             }
             break;
         case 2:
+            if( dist <= 5 ) {
+                flame( z, target );
+            }
+            break;
+        case 3:
+            if( dist <= 20 ) {
+                rifle( z, target );
+            }
+            break;
+        case 4:
             if( dist <= 30 ) {
                 frag( z, target );
+            }
+            break;
+        case 5:
+            if( dist <= 50 ) {
+                tankgun( z, target );
             }
             break;
         default:
