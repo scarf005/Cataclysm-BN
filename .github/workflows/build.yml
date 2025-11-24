@@ -1,0 +1,255 @@
+# https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows
+name: "Build Workflow"
+
+on:
+  workflow_call:
+    inputs:
+      artifact:
+        description: "Artifact name"
+        required: true
+        type: string
+      os:
+        description: "Operating system"
+        required: true
+        type: string
+      tiles:
+        description: "Build with tiles"
+        required: false
+        type: boolean
+        default: true
+      sound:
+        description: "Build with sound"
+        required: false
+        type: boolean
+        default: true
+      android:
+        description: "Android build type (none/arm64/bundle)"
+        required: false
+        type: string
+        default: "none"
+      arch:
+        description: "Architecture for Windows builds (x64)"
+        required: false
+        type: string
+        default: "x64"
+      ext:
+        description: "File extension for artifact"
+        required: true
+        type: string
+      content-type:
+        description: "Content type for artifact"
+        required: true
+        type: string
+      version-label:
+        description: "Version label for the build (experimental, nightly, or semver)"
+        required: true
+        type: string
+      upload-to-release:
+        description: "Upload to GitHub release"
+        required: false
+        type: boolean
+        default: false
+      release-tag:
+        description: "Release tag to upload to"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      KEYSTORE:
+        description: "Android keystore"
+        required: false
+      KEYSTORE_PASSWORD:
+        description: "Android keystore password"
+        required: false
+      KEYSTORE_PROPERTIES:
+        description: "Android keystore properties"
+        required: false
+
+env:
+  ZSTD_CLEVEL: 17
+  VCPKG_BINARY_SOURCES: "default"
+
+jobs:
+  build:
+    name: ${{ inputs.artifact }}
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create VERSION.TXT
+        shell: bash
+        run: |
+          cat >VERSION.txt <<EOL
+          build type: ${{ inputs.artifact }}
+          build number: ${{ inputs.version-label }}
+          commit sha: ${{ github.sha }}
+          commit url: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+          EOL
+
+      # Windows MSVC setup
+      - name: Setup msys2 (windows msvc)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          install: gettext
+
+      - name: Compile translations (windows msvc)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: lang/compile_mo.sh all
+
+      - name: Install MSBuild (windows msvc)
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: 17.13
+
+      - name: Install stable CMake
+        if: runner.os == 'Windows'
+        uses: lukka/get-cmake@v3.31.6
+
+      - name: Install vcpkg
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@main
+        id: runvcpkg
+        with:
+          vcpkgDirectory: "${{ github.workspace }}/../b/vcpkg"
+
+      - name: Integrate vcpkg
+        if: runner.os == 'Windows'
+        run: vcpkg integrate install
+
+      # Linux setup
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux' && inputs.android == 'none'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-14 libncursesw5-dev libsdl2-dev libsdl2-ttf-dev libsdl2-image-dev \
+            libsdl2-mixer-dev libpulse-dev ccache gettext parallel libsqlite3-dev zlib1g-dev
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
+          g++ --version
+
+      # macOS setup
+      - name: Install runtime dependencies (mac)
+        if: runner.os == 'macOS'
+        uses: BrettDong/setup-sdl2-frameworks@v1
+        with:
+          sdl2: 2.30.11
+          sdl2-ttf: 2.24.0
+          sdl2-image: 2.8.4
+          sdl2-mixer: 2.8.0
+
+      - name: Install build dependencies (mac)
+        if: runner.os == 'macOS'
+        run: |
+          HOMEBREW_NO_AUTO_UPDATE=yes HOMEBREW_NO_INSTALL_CLEANUP=yes brew install gettext ccache parallel llvm@20 astyle sqlite3 zlib cmake ninja
+          python3 -m venv ./venv
+          source ./venv/bin/activate
+          pip3 install mac_alias==2.2.0 dmgbuild==1.6.1 biplist polib luaparser
+
+      # Build with CMake (Linux)
+      - name: Configure with CMake (Linux)
+        if: runner.os == 'Linux' && inputs.android == 'none'
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DTILES=${{ inputs.tiles && 'ON' || 'OFF' }} \
+            -DCURSES=${{ !inputs.tiles && 'ON' || 'OFF' }} \
+            -DSOUND=${{ inputs.sound && 'ON' || 'OFF' }} \
+            -DLOCALIZE=ON \
+            -DBACKTRACE=ON \
+            -DLIBBACKTRACE=ON \
+            -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build with CMake (Linux)
+        if: runner.os == 'Linux' && inputs.android == 'none'
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Create distribution package (Linux)
+        if: runner.os == 'Linux' && inputs.android == 'none'
+        run: |
+          DESTDIR=install cmake --install build
+          cd install
+          tar -czf ../cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.tar.gz .
+          cd ..
+
+      # Build with CMake (Windows MSVC)
+      - name: Build CBN (windows msvc)
+        if: runner.os == 'Windows'
+        env:
+          VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\.github\vcpkg_triplets
+        run: |
+          msbuild -m -p:Configuration=Release -p:Platform=${{ inputs.arch }} "-target:Cataclysm-vcpkg-static;JsonFormatter-vcpkg-static" msvc-full-features\Cataclysm-vcpkg-static.sln
+          .\build-scripts\windist.ps1
+          mv cataclysmbn.zip cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.zip
+
+      # Build with Make (macOS) - TODO: migrate to CMake once dmgdist target is implemented
+      - name: Build CBN (osx)
+        if: runner.os == 'macOS'
+        run: |
+          source ./venv/bin/activate
+          make -j3 TILES=${{ inputs.tiles && '1' || '0' }} SOUND=${{ inputs.sound && '1' || '0' }} RELEASE=1 LOCALIZE=1 LANGUAGES=all BACKTRACE=0 PCH=0 USE_HOME_DIR=1 OSX_MIN=11 FRAMEWORK=1 COMPILER=$(brew --prefix llvm@20)/bin/clang++ dmgdist
+          mv CataclysmBN-*.dmg cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.dmg
+
+      # Android builds
+      - name: Set up JDK 11 (android)
+        if: runner.os == 'Linux' && inputs.android != 'none'
+        uses: actions/setup-java@v4.1.0
+        with:
+          java-version: "11"
+          distribution: "adopt"
+
+      - name: Setup Build and Dependencies (android)
+        if: runner.os == 'Linux' && inputs.android != 'none'
+        run: |
+          sudo apt-get update
+          sudo apt-get install gettext
+
+      - name: Build CBN (android)
+        if: runner.os == 'Linux' && inputs.android != 'none'
+        working-directory: ./android
+        run: |
+          echo "${{ secrets.KEYSTORE }}" > release.keystore.asc
+          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch release.keystore.asc > app/release.keystore
+          echo "${{ secrets.KEYSTORE_PROPERTIES }}" > keystore.properties.asc
+          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.properties.asc > keystore.properties
+          chmod +x gradlew
+
+          # Determine build variant based on version label
+          if [ "${{ inputs.version-label }}" = "experimental" ]; then
+            VARIANT="Experimental"
+            VARIANT_LOWER="experimental"
+            export UPSTREAM_BUILD_NUMBER="$((2037 + ${{ github.run_number }}))"
+          else
+            VARIANT="Stable"
+            VARIANT_LOWER="stable"
+            VERSION_ARG="-Poverride_version=${{ inputs.version-label }}"
+          fi
+
+          if [ ${{ inputs.android }} = arm64 ]
+          then
+               ./gradlew -Pj=$(nproc) -Pabi_arm_32=false assemble${VARIANT}Release ${VERSION_ARG}
+               mv ./app/build/outputs/apk/${VARIANT_LOWER}/release/*.apk ../cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.apk
+          elif [ ${{ inputs.android }} = bundle ]
+          then
+               ./gradlew -Pj=$(nproc) bundle${VARIANT}Release ${VERSION_ARG}
+               mv ./app/build/outputs/bundle/${VARIANT_LOWER}Release/*.aab ../cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.aab
+          fi
+
+      # Upload artifacts
+      - name: Upload to release
+        if: inputs.upload-to-release
+        run: |
+          if [ "${{ inputs.version-label }}" = "experimental" ]; then
+            SHA_SHORT=$(git rev-parse --short HEAD)
+            TIMESTAMP=$(date "+%F %T")
+            gh release upload experimental --clobber cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.${{ inputs.ext }}
+            gh release edit experimental --title "Experimental @ $TIMESTAMP ($SHA_SHORT)" --notes "Experimental build for commit $SHA_SHORT on $TIMESTAMP"
+          else
+            gh release upload ${{ inputs.release-tag }} --clobber cbn-${{ inputs.artifact }}-${{ inputs.version-label }}.${{ inputs.ext }}
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
