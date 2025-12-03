@@ -215,8 +215,13 @@ void recipe::load( const JsonObject &jo, const std::string &src )
 
     const std::string type = jo.get_string( "type" );
 
-    // inline requirements are always replaced (cannot be inherited)
-    reqs_internal.clear();
+    // inline requirements are only replaced if any are specified in the JSON
+    const bool has_inline_requirements = jo.has_member( "components" ) ||
+                                         jo.has_member( "tools" ) ||
+                                         jo.has_member( "qualities" );
+    if( has_inline_requirements ) {
+        reqs_internal.clear();
+    }
 
     if( type == "recipe" ) {
         if( jo.has_string( "id_suffix" ) ) {
@@ -250,9 +255,11 @@ void recipe::load( const JsonObject &jo, const std::string &src )
         jo.throw_error( "Non-zero time mandatory for reversible recipe or uncraft" );
     }
 
-    const requirement_id req_id( "inline_" + type + "_" + ident_.str() );
-    requirement_data::load_requirement( jo, req_id );
-    reqs_internal.emplace_back( req_id, 1 );
+    if( has_inline_requirements ) {
+        const requirement_id req_id( "inline_" + type + "_" + ident_.str() );
+        requirement_data::load_requirement( jo, req_id );
+        reqs_internal.emplace_back( req_id, 1 );
+    }
 }
 
 void recipe::finalize()
