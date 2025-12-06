@@ -267,6 +267,12 @@ cata_tiles::cata_tiles( const SDL_Renderer_Ptr &renderer, const GeometryRenderer
 
 cata_tiles::~cata_tiles() = default;
 
+void cata_tiles::clear_sprite_lookup_cache() const
+{
+    sprite_lookup_cache.clear();
+    overlay_lookup_cache.clear();
+}
+
 void cata_tiles::on_options_changed()
 {
     memory_map_mode = get_option <std::string>( "MEMORY_MAP_MODE" );
@@ -364,6 +370,9 @@ void cata_tiles::load_tileset(
     // TODO: move into clear or somewhere else.
     // reset the overlay ordering from the previous loaded tileset
     tileset_mutation_overlay_ordering.clear();
+
+    // Clear sprite lookup caches when tileset changes
+    clear_sprite_lookup_cache();
 
     // Load the tileset into a separate instance and only set this->tileset_ptr
     // when the loading has succeeded.
@@ -1095,11 +1104,29 @@ void cata_tiles::set_draw_scale( float scale )
     tile_ratioy = ( static_cast<float>( tile_height ) / static_cast<float>( fontheight ) );
 }
 
-std::optional<tile_search_result> cata_tiles::tile_type_search( const tile_search_params &tile )
+auto cata_tiles::tile_type_search(
+    const tile_search_params &tile
+) -> std::optional<tile_search_result>
 {
     ZoneScoped;
     auto [id, category, subcategory, subtile, rota] = tile;
-    std::optional<tile_lookup_res> res = find_tile_looks_like( id, category );
+
+    // Check if season changed and invalidate cache if needed
+    const auto current_season = season_of_year( calendar::turn );
+    if( current_season != cached_season ) {
+        clear_sprite_lookup_cache();
+        cached_season = current_season;
+    }
+
+    // Check the cache first
+    const auto cache_key = sprite_lookup_key{ .id = id, .category = category, .subcategory = subcategory };
+    const auto cache_it = sprite_lookup_cache.find( cache_key );
+    if( cache_it != sprite_lookup_cache.end() ) {
+        return cache_it->second;
+    }
+
+    // Cache miss - perform the expensive lookup
+    auto res = find_tile_looks_like( id, category );
     const tile_type *tt = nullptr;
     if( res ) {
         tt = &( res->tile() );
@@ -1280,10 +1307,13 @@ std::optional<tile_search_result> cata_tiles::tile_type_search( const tile_searc
 
     //  this really shouldn't happen, but the tileset creator might have forgotten to define an unknown tile
     if( !tt ) {
+        sprite_lookup_cache[cache_key] = std::nullopt;
         return std::nullopt;
     }
 
-    return std::optional{tile_search_result{tt, found_id}};
+    const auto result = std::optional{ tile_search_result{ tt, found_id } };
+    sprite_lookup_cache[cache_key] = result;
+    return result;
 }
 
 void tileset_loader::load( const std::string &tileset_id, const bool precheck,
@@ -2590,6 +2620,19 @@ cata_tiles::find_tile_looks_like( const std::string &id, TILE_CATEGORY category,
 bool cata_tiles::find_overlay_looks_like( const bool male, const std::string &overlay,
         std::string &draw_id )
 {
+    // Check the cache first
+    const overlay_lookup_key cache_key{ male, overlay };
+    const auto cache_it = overlay_lookup_cache.find( cache_key );
+    if( cache_it != overlay_lookup_cache.end() ) {
+        // Cache hit
+        if( cache_it->second.has_value() ) {
+            draw_id = cache_it->second.value();
+            return true;
+        }
+        return false;
+    }
+
+    // Cache miss - perform the expensive lookup
     bool exists = false;
 
     std::string looks_like;
@@ -2626,6 +2669,14 @@ bool cata_tiles::find_overlay_looks_like( const bool male, const std::string &ov
         }
         looks_like = iid->looks_like.str();
     }
+
+    // Populate the cache
+    if( exists ) {
+        overlay_lookup_cache[cache_key] = draw_id;
+    } else {
+        overlay_lookup_cache[cache_key] = std::nullopt;
+    }
+
     return exists;
 }
 
@@ -3966,10 +4017,10 @@ void tileset_loader::ensure_default_item_highlight()
 
     ts.tile_ids[ITEM_HIGHLIGHT].sprite.fg.add( std::vector<int>( {index} ), 1 );
     ts.tile_lookup.emplace( tileset_lookup_key{
-        index,
-        TILESET_NO_MASK,
-        tileset_fx_type::none,
-        TILESET_NO_COLOR
+        .sprite_index = index,
+        .mask_index = TILESET_NO_MASK,
+        .effect = tileset_fx_type::none,
+        .color = TILESET_NO_COLOR
     }, texture( tex, rect ) );
 #else
     const Uint8 highlight_alpha = 127;

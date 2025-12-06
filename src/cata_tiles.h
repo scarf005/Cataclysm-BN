@@ -175,18 +175,13 @@ struct tileset_lookup_key {
     tileset_fx_type effect;
     SDL_Color color;
 
-    bool operator==( const tileset_lookup_key &other ) const {
-        return sprite_index == other.sprite_index
-               && mask_index == other.mask_index
-               && effect == other.effect
-               && color == other.color;
-    }
+    auto operator==( const tileset_lookup_key &other ) const -> bool = default;
 };
 
 template <>
 struct std::hash<tileset_lookup_key> {
-    size_t operator()( const tileset_lookup_key &v ) const noexcept {
-        std::size_t seed = 0;
+    auto operator()( const tileset_lookup_key &v ) const noexcept -> size_t {
+        auto seed = std::size_t{0};
         cata::hash_combine( seed, v.sprite_index );
         cata::hash_combine( seed, v.mask_index );
         cata::hash_combine( seed, v.effect );
@@ -200,7 +195,7 @@ struct std::hash<tileset_lookup_key> {
 };
 
 constexpr int TILESET_NO_MASK = -1;
-constexpr SDL_Color TILESET_NO_COLOR = {0, 0, 0, 0};
+constexpr auto TILESET_NO_COLOR = SDL_Color {.r = 0, .g = 0, .b = 0, .a = 0};
 
 class tileset
 {
@@ -454,6 +449,44 @@ struct tile_search_params {
     int rota;
 };
 
+/// Key for caching sprite substitution lookups (id + category + subcategory)
+struct sprite_lookup_key {
+    std::string id;
+    TILE_CATEGORY category;
+    std::string subcategory;
+
+    auto operator==( const sprite_lookup_key &other ) const -> bool = default;
+};
+
+template<>
+struct std::hash<sprite_lookup_key> {
+    auto operator()( const sprite_lookup_key &v ) const noexcept -> size_t {
+        std::size_t seed = 0;
+        cata::hash_combine( seed, v.id );
+        cata::hash_combine( seed, static_cast<int>( v.category ) );
+        cata::hash_combine( seed, v.subcategory );
+        return seed;
+    }
+};
+
+/// Key for caching overlay looks_like lookups (male + overlay_id)
+struct overlay_lookup_key {
+    bool male;
+    std::string overlay;
+
+    auto operator==( const overlay_lookup_key &other ) const -> bool = default;
+};
+
+template<>
+struct std::hash<overlay_lookup_key> {
+    size_t operator()( const overlay_lookup_key &v ) const noexcept {
+        std::size_t seed = 0;
+        cata::hash_combine( seed, v.male );
+        cata::hash_combine( seed, v.overlay );
+        return seed;
+    }
+};
+
 class cata_tiles
 {
     public:
@@ -466,9 +499,12 @@ class cata_tiles
         void set_draw_scale( float scale );
 
         /** Tries to find tile with specified parameters and return it if exists **/
-        std::optional<tile_search_result> tile_type_search( const tile_search_params &tile );
+        auto tile_type_search( const tile_search_params &tile ) -> std::optional<tile_search_result>;
 
         void on_options_changed();
+
+        /** Clear the sprite lookup caches. Called when tileset is reloaded or season changes. */
+        void clear_sprite_lookup_cache() const;
 
         /** Draw to screen */
         void draw( point dest, const tripoint &center, int width, int height,
@@ -962,6 +998,17 @@ class cata_tiles
         // int represents spawn count
         std::map<tripoint, std::tuple<mtype_id, int, bool, Attitude>> monster_override;
         pimpl<std::vector<tile_render_info>> draw_points_cache;
+
+        // Cache for sprite substitution lookups (find_tile_looks_like results)
+        // Maps (id, category, subcategory) -> optional<tile_search_result>
+        // std::nullopt in the cache means "lookup was done but no tile found"
+        mutable std::unordered_map<sprite_lookup_key, std::optional<tile_search_result>>
+                sprite_lookup_cache;
+        // Cache for overlay looks_like lookups
+        // Maps (male, overlay_id) -> optional<draw_id> (nullopt means not found)
+        mutable std::unordered_map<overlay_lookup_key, std::optional<std::string>> overlay_lookup_cache;
+        // Track the season for cache invalidation
+        mutable season_type cached_season = season_type::SPRING;
 
     private:
         /**
