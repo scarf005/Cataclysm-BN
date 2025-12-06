@@ -1097,6 +1097,7 @@ void cata_tiles::set_draw_scale( float scale )
 
 std::optional<tile_search_result> cata_tiles::tile_type_search( const tile_search_params &tile )
 {
+    ZoneScoped;
     auto [id, category, subcategory, subtile, rota] = tile;
     std::optional<tile_lookup_res> res = find_tile_looks_like( id, category );
     const tile_type *tt = nullptr;
