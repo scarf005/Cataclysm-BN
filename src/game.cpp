@@ -2546,6 +2546,34 @@ bool game::is_game_over()
             return false;
         }
 
+        auto followers = get_follower_list()
+        | std::views::transform( [&]( const auto & elem ) { return overmap_buffer.find_npc( elem ); } )
+        | std::views::filter( []( const auto & follower ) { return follower && !follower->is_dead_state(); } )
+        | std::ranges::to<std::vector>();
+
+        if( !followers.empty() ) {
+            uilist charmenu;
+            charmenu.text = _( "Continue as one of your followers?" );
+            int charnum = 0;
+            for( const auto &follower : followers ) {
+                charmenu.addentry( charnum++, true, MENU_AUTOASSIGN, follower->get_name() );
+            }
+            charmenu.addentry( charnum, true, 'q', _( "No, end the game" ) );
+            charmenu.query();
+            if( charmenu.ret >= 0 && static_cast<size_t>( charmenu.ret ) < followers.size() ) {
+                // Place corpse of current avatar before swapping
+                if( u.in_vehicle ) {
+                    m.unboard_vehicle( u.pos() );
+                }
+                u.place_corpse();
+                // Swap to selected follower
+                get_avatar().control_npc( *followers.at( charmenu.ret ) );
+                // Reset state to continue playing
+                uquit = QUIT_NO;
+                return false;
+            }
+        }
+
         Messages::deactivate();
         if( get_option<std::string>( "DEATHCAM" ) == "always" ) {
             uquit = QUIT_WATCH;

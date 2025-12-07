@@ -1140,5 +1140,39 @@
     "color": "light_gray",
     "looks_like": "bwirebat",
     "extend": { "flags": [ "DURABLE_MELEE", "NONCONDUCTIVE" ] }
+  },
+  {
+    "id": "mudgal",
+    "type": "TOOL",
+    "category": "weapons",
+    "weapon_category": [ "CLUBS" ],
+    "name": { "str": "mudgal" },
+    "description": "An Indian training club with a weighted bulbous end, used since ancient times to train the muscles needed for melee combat. Swinging it in controlled routines builds strength and coordination. Activate to use it for exercise.",
+    "weight": "2 kg",
+    "volume": "1500 ml",
+    "price": "25 USD",
+    "price_postapoc": "2 USD",
+    "to_hit": 1,
+    "bashing": 20,
+    "material": [ "wood" ],
+    "symbol": "/",
+    "color": "brown",
+    "looks_like": "cudgel",
+    "techniques": [ "WBLOCK_1" ],
+    "flags": [ "BELT_CLIP" ],
+    "use_action": [
+      {
+        "//": "Trains melee skill through exercise routines.  Tier 1, 0-3 skill.",
+        "type": "train_skill",
+        "training_msg": "You swing the mudgal in controlled arcs, training your muscles for melee combat.",
+        "training_skill": "melee",
+        "training_skill_min_level": 0,
+        "training_skill_xp": 6,
+        "training_skill_max_level": 3,
+        "training_skill_fatigue": 2,
+        "training_skill_interval": 12,
+        "training_skill_xp_chance": 90
+      }
+    ]
   }
 ]

@@ -139,6 +139,9 @@ void avatar::control_npc( npc &np )
         debugmsg( "control_npc() called on non-allied npc %s", np.name );
         return;
     }
+    // Cancel NPC's current activity before swapping to prevent issues
+    // like ACT_ASSIST persisting and causing freezes
+    np.cancel_activity();
     if( !shadow_npc ) {
         shadow_npc = std::make_unique<npc>();
         shadow_npc->op_of_u.trust = 10;
