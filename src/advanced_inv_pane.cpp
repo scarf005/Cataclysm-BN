@@ -133,6 +133,10 @@ void advanced_inventory_pane::add_items_from_area( advanced_inv_area &square,
             square.desc[0] = cont->tname( 1, false );
         }
     } else {
+        // AIM_DRAGGED with no valid cargo should show nothing, not ground items
+        if( square.id == AIM_DRAGGED && !square.can_store_in_vehicle() ) {
+            return;
+        }
         bool is_in_vehicle = square.can_store_in_vehicle() && ( in_vehicle() || vehicle_override );
         const advanced_inv_area::itemstack &stacks = is_in_vehicle ?
                 square.i_stacked( square.veh->get_items( square.vstor ) ) :
