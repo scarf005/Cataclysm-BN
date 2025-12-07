@@ -62,6 +62,7 @@ class time_point;
 class tinymap;
 class uilist;
 class relic;
+class vehicle_stack;
 struct body_part_type;
 struct damage_instance;
 struct damage_unit;
@@ -193,6 +194,7 @@ LUNA_VAL( units::angle, "Angle" );
 LUNA_VAL( units::energy, "Energy" );
 LUNA_VAL( units::mass, "Mass" );
 LUNA_VAL( units::volume, "Volume" );
+LUNA_VAL( vehicle_stack, "VehicleStack" );
 LUNA_VAL( relic, "Relic" )
 LUNA_VAL( book_recipe, "BookRecipe" );
 LUNA_VAL( common_ranged_data, "RangedData" );

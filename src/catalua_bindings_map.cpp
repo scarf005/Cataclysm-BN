@@ -9,6 +9,9 @@
 #include "map_iterator.h"
 #include "trap.h"
 #include "detached_ptr.h"
+#include "veh_type.h"
+#include "vehicle.h"
+#include "vpart_position.h"
 
 namespace sol
 {
@@ -16,6 +19,8 @@ template <>
 struct is_container<item_stack> : std::false_type {};
 template <>
 struct is_container<map_stack> : std::false_type {};
+template <>
+struct is_container<vehicle_stack> : std::false_type {};
 } // namespace sol
 
 namespace
@@ -154,6 +159,19 @@ void cata::detail::reg_map( sol::state &lua )
             return items;
         } );
 
+        DOC( "Returns items in vehicle cargo at position, or nil if no vehicle cargo exists there" );
+        luna::set_fx( ut, "get_vehicle_items_at", []( map & m, const tripoint & p )
+        -> std::optional<vehicle_stack> {
+            const optional_vpart_position vp = m.veh_at( p );
+            if( !vp ) { return std::nullopt; }
+
+            vehicle &veh = vp->vehicle();
+            const int index = veh.part_with_feature( vp->part_index(), VPFLAG_CARGO, false );
+            if( index < 0 ) { return std::nullopt; }
+
+            return veh.get_items( index );
+        } );
+
         luna::set_fx( ut, "get_ter_at", sol::resolve<ter_id( const tripoint & )const>( &map::ter ) );
         luna::set_fx( ut, "set_ter_at",
                       sol::resolve<bool( const tripoint &, const ter_id & )>( &map::ter_set ) );
@@ -228,6 +246,18 @@ void cata::detail::reg_map( sol::state &lua )
                                       luna::no_constructor );
 
         luna::set_fx( ut, "as_item_stack", []( map_stack & ref ) -> item_stack& { return ref; } );
+
+        luna::set_fx( ut, sol::meta_function::pairs, item_stack_lua_pairs );
+        luna::set_fx( ut, sol::meta_function::length, item_stack_lua_length );
+        luna::set_fx( ut, sol::meta_function::index, item_stack_lua_index );
+    }
+
+    // Register 'vehicle_stack' class to be used in Lua
+    {
+        sol::usertype<vehicle_stack> ut = luna::new_usertype<vehicle_stack>( lua, luna::bases<item_stack>(),
+                                          luna::no_constructor );
+
+        luna::set_fx( ut, "as_item_stack", []( vehicle_stack & ref ) -> item_stack& { return ref; } );
 
         luna::set_fx( ut, sol::meta_function::pairs, item_stack_lua_pairs );
         luna::set_fx( ut, sol::meta_function::length, item_stack_lua_length );
