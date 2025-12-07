@@ -1393,49 +1393,41 @@ item::sizing item::get_sizing( const Character &who ) const
     if( !armor_data ) {
         return sizing::ignore;
     }
-    bool to_ignore = true;
-    for( const armor_portion_data &piece : armor_data->data ) {
-        if( piece.encumber != 0 ) {
-            to_ignore = false;
-        }
-    }
-    if( to_ignore ) {
-        return sizing::ignore;
-    } else {
-        const bool small = who.get_size() == creature_size::tiny;
-        const bool big = who.get_size() == creature_size::huge;
+    // All armor should have sizing checks regardless of encumbrance.
+    // A tiny creature shouldn't fit in power armor just because it has 0 encumbrance.
+    const bool small = who.get_size() == creature_size::tiny;
+    const bool big = who.get_size() == creature_size::huge;
 
-        // due to the iterative nature of these features, something can fit and be undersized/oversized
-        // but that is fine because we have separate logic to adjust encumberance per each. One day we
-        // may want to have fit be a flag that only applies if a piece of clothing is sized for you as there
-        // is a bit of cognitive dissonance when something 'fits' and is 'oversized' and the same time
-        const bool undersize = has_flag( flag_UNDERSIZE ) || has_flag( flag_resized_small );
-        const bool oversize = has_flag( flag_OVERSIZE ) || has_flag( flag_resized_large );
+    // due to the iterative nature of these features, something can fit and be undersized/oversized
+    // but that is fine because we have separate logic to adjust encumberance per each. One day we
+    // may want to have fit be a flag that only applies if a piece of clothing is sized for you as there
+    // is a bit of cognitive dissonance when something 'fits' and is 'oversized' and the same time
+    const bool undersize = has_flag( flag_UNDERSIZE ) || has_flag( flag_resized_small );
+    const bool oversize = has_flag( flag_OVERSIZE ) || has_flag( flag_resized_large );
 
-        if( undersize ) {
-            if( small ) {
-                return sizing::small_sized_small_char;
-            } else if( big ) {
-                return sizing::small_sized_big_char;
-            } else {
-                return sizing::small_sized_human_char;
-            }
-        } else if( oversize ) {
-            if( big ) {
-                return sizing::big_sized_big_char;
-            } else if( small ) {
-                return sizing::big_sized_small_char;
-            } else {
-                return sizing::big_sized_human_char;
-            }
+    if( undersize ) {
+        if( small ) {
+            return sizing::small_sized_small_char;
+        } else if( big ) {
+            return sizing::small_sized_big_char;
         } else {
-            if( big ) {
-                return sizing::human_sized_big_char;
-            } else if( small ) {
-                return sizing::human_sized_small_char;
-            } else {
-                return sizing::human_sized_human_char;
-            }
+            return sizing::small_sized_human_char;
+        }
+    } else if( oversize ) {
+        if( big ) {
+            return sizing::big_sized_big_char;
+        } else if( small ) {
+            return sizing::big_sized_small_char;
+        } else {
+            return sizing::big_sized_human_char;
+        }
+    } else {
+        if( big ) {
+            return sizing::human_sized_big_char;
+        } else if( small ) {
+            return sizing::human_sized_small_char;
+        } else {
+            return sizing::human_sized_human_char;
         }
     }
 }
