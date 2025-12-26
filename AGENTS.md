@@ -1,5 +1,8 @@
 # Cataclysm: Bright Nights - Agent Guidelines
 
+> **⚠️ CRITICAL**: Follow this guide EXACTLY. Use the exact commands shown below, not alternatives.
+> Do NOT search for alternative build tools or improvise. The commands are tested and work.
+
 ## C++23 & Style
 
 - **Standard**: Use C++23: `auto`, trailing returns (`->`), designated initializers, `std::ranges`, `std::optional`, `std::expected`, `<=>`.
