@@ -2153,6 +2153,13 @@ void monster::apply_damage( Creature *source, item *source_weapon, item *source_
     if( is_dead_state() ) {
         return;
     }
+
+    if( dam > 0 && source != nullptr && source->is_monster() ) {
+        const int monster_damage = get_option<int>( "MONSTER_DAMAGE" );
+        if( monster_damage != 100 ) {
+            dam = roll_remainder( dam * monster_damage / 100.0f );
+        }
+    }
     hp -= dam;
     if( hp < 1 ) {
         set_killer( source );

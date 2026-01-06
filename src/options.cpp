@@ -2726,6 +2726,11 @@ void options_manager::add_options_world_default()
          1, 1000, 100, COPT_NO_HIDE, "%i%%"
        );
 
+    add( "MONSTER_DAMAGE", world_default, translate_marker( "Monster damage percentage" ),
+         translate_marker( "Determines how much damage monsters deal.  A higher value makes monsters hit harder and a lower makes them hit softer." ),
+         1, 1000, 100, COPT_NO_HIDE, "%i%%"
+       );
+
     add_empty_line();
 
     add( "DEFAULT_REGION", world_default, translate_marker( "Default region type" ),

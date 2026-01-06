@@ -9289,6 +9289,13 @@ void Character::apply_damage( Creature *source, item *source_weapon, item *sourc
         return;
     }
 
+    if( dam > 0 && source != nullptr && source->is_monster() ) {
+        const int monster_damage = get_option<int>( "MONSTER_DAMAGE" );
+        if( monster_damage != 100 ) {
+            dam = roll_remainder( dam * monster_damage / 100.0f );
+        }
+    }
+
     if( hurt.id().is_null() ) {
         debugmsg( "Wacky body part hurt!" );
         hurt = bodypart_id( "torso" );
