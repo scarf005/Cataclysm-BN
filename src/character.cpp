@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <ostream>
@@ -119,6 +120,13 @@
 #include "vpart_range.h"
 #include "weather.h"
 #include "weather_gen.h"
+
+namespace
+{
+
+constexpr auto float_inf = std::numeric_limits<float>::infinity();
+
+} // namespace
 
 struct dealt_projectile_attack;
 
@@ -10988,14 +10996,14 @@ std::pair<PathfindingSettings, RouteSettings> Character::get_pathfinding_pair() 
     path_settings.door_open_cost = 2.0;
     path_settings.mob_presence_penalty = 16.0;
     path_settings.rough_terrain_cost = 0.0;
-    path_settings.sharp_terrain_cost = INFINITY;
-    path_settings.trap_cost = INFINITY;
+    path_settings.sharp_terrain_cost = float_inf;
+    path_settings.trap_cost = float_inf;
     path_settings.can_climb_stairs = true;
     path_settings.bash_strength_val = 0;
 
     const int climb = std::min( 20, get_dex() );
     if( climb <= 1 ) {
-        path_settings.climb_cost = INFINITY;
+        path_settings.climb_cost = float_inf;
     } else {
         const float climb_success_prob = 1.0 - 1.0 / climb;
         path_settings.climb_cost = 5 / climb_success_prob;
@@ -11005,12 +11013,12 @@ std::pair<PathfindingSettings, RouteSettings> Character::get_pathfinding_pair() 
     // TODO: Make it assign a stockfish preset instead
     route_settings.alpha = 1.0;
     route_settings.h_coeff = 1.0;
-    route_settings.max_dist = INFINITY;
-    route_settings.max_f_coeff = INFINITY;
-    route_settings.max_s_coeff = INFINITY;
+    route_settings.max_dist = float_inf;
+    route_settings.max_f_coeff = float_inf;
+    route_settings.max_s_coeff = float_inf;
     route_settings.f_limit_based_on_max_dist = false;
     route_settings.search_cone_angle = 180.0;
-    route_settings.search_radius_coeff = INFINITY;
+    route_settings.search_radius_coeff = float_inf;
 
     return { path_settings, route_settings };
 }

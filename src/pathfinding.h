@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -33,14 +34,14 @@ struct PathfindingSettings {
     // >1 to make bashes less attractive, <1 to make them more attractive. Do not use negative values.
     float bash_cost = 2.0;
 
-    // Cost of climbing terrain. INFINITY if we can't
-    float climb_cost = INFINITY;
+    // Cost of climbing terrain. infinity if we can't
+    float climb_cost = std::numeric_limits<float>::infinity();
 
-    // Cost of moving through a trap tile, INFINITY to avoid completely. `can_fly == true` overrides this value to be 0.
+    // Cost of moving through a trap tile, infinity to avoid completely. `can_fly == true` overrides this value to be 0.
     float trap_cost = 0.;
 
-    // Cost of opening a door. INFINITY to never open doors, otherwise 2 to open and then move in.
-    float door_open_cost = INFINITY;
+    // Cost of opening a door. infinity to never open doors, otherwise 2 to open and then move in.
+    float door_open_cost = std::numeric_limits<float>::infinity();
 
     // Extra penalty for moving through rough terrain
     float rough_terrain_cost = 0.;
@@ -48,7 +49,7 @@ struct PathfindingSettings {
     // Extra penalty for moving through sharp terrain
     float sharp_terrain_cost = 0.;
 
-    // If a mob is in the way currently, add this extra cost. INFINITY to always path around other critters.
+    // If a mob is in the way currently, add this extra cost. infinity to always path around other critters.
     float mob_presence_penalty = 0.;
 
     // Can we fly? This implies we can climb stairs (`can_climb_stairs = true`),
@@ -114,7 +115,7 @@ struct RouteSettings {
       which is the worst case for pathfinding as it forces a complete scan of the whole search area though we have workarounds for that.
     Use only if needed.
     */
-    float search_radius_coeff = INFINITY;
+    float search_radius_coeff = std::numeric_limits<float>::infinity();
     // Test if `pos` is in the circle of radius distance from `start` to `end` by `search_radius_coeff` centered at `end`
     constexpr bool is_in_search_radius( const point start, const point pos,
                                         const point end ) const;
@@ -150,17 +151,17 @@ struct RouteSettings {
     Be aware this does **not** limit search domain, which means if nothing else limits it,
       the whole map will be explored and a longer in terms of steps, but less expensive of terms of time path will be rejected even if a valid shorter path exists.
     */
-    float max_s_coeff = INFINITY;
+    float max_s_coeff = std::numeric_limits<float>::infinity();
 
     /* Limit our search only to paths whose unbiased f-value is less than
     this coefficient multiplied by the distance between start and end
     if `f_limit_based_on_max_dist` is false
     otherwise we multiply `max_dist` value instead.
     */
-    float max_f_coeff = INFINITY;
+    float max_f_coeff = std::numeric_limits<float>::infinity();
 
     // Don't pathfind if target is more than this distance away.
-    float max_dist = INFINITY;
+    float max_dist = std::numeric_limits<float>::infinity();
 
     // Do we use distance between start and end or do we use `max_dist`
     //   for f-value limited search domain?
@@ -337,4 +338,3 @@ class Pathfinding
         //   such as change in terrain
         static void mark_dirty_z_cache();
 };
-

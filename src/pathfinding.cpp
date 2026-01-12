@@ -1,6 +1,8 @@
 #include "pathfinding.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <queue>
@@ -16,6 +18,13 @@
 #include "vehicle.h"
 #include "vehicle_part.h"
 #include "vpart_position.h"
+
+namespace
+{
+
+constexpr auto float_inf = std::numeric_limits<float>::infinity();
+
+} // namespace
 
 static constexpr std::array<point, 8> DIRS_2D = {
     point_north_east,
@@ -49,7 +58,7 @@ static constexpr bool is_nan( float x )
 static constexpr bool is_inf( float x )
 {
 #if defined(_MSC_VER)
-    return x == INFINITY || x == -INFINITY;
+    return x == float_inf || x == -float_inf;
 #else
     return std::isinf( x );
 #endif
@@ -151,7 +160,7 @@ bool Pathfinding::in_bounds( const point &p )
 bool Pathfinding::is_in_limited_domain(
     const point &start, const point &p, const RouteSettings &route_settings )
 {
-    // Could be NaN if max_f_coeff = INFINITY * 0
+    // Could be NaN if max_f_coeff = float_inf * 0
     const float max_f = route_settings.max_f_coeff * (
                             route_settings.f_limit_based_on_max_dist ?
                             route_settings.max_dist :
@@ -652,7 +661,7 @@ Pathfinding::ExpansionOutcome Pathfinding::expand_2d_up_to(
                 const bool is_ledge = here.has_zlevels() && terrain.has_flag( TFLAG_NO_FLOOR );
                 if( is_ledge && !this->settings.can_fly ) {
                     // Close ledges outright for non-fliers
-                    cur_g += INFINITY;
+                    cur_g += float_inf;
                 }
 
                 // And finally, add a potential field extra
@@ -688,7 +697,7 @@ Pathfinding::ExpansionOutcome Pathfinding::expand_2d_up_to(
                                                 DT_BASH );
                                 if( htd == 0 ) {
                                     // We cannot bash down this part
-                                    obstacle_g = INFINITY;
+                                    obstacle_g = float_inf;
                                     break;
                                 } else {
                                     obstacle_g = this->settings.bash_cost * htd;
@@ -696,7 +705,7 @@ Pathfinding::ExpansionOutcome Pathfinding::expand_2d_up_to(
                                 }
                             } else {
                                 // Nothing can be done here. Don't bother with other checks since vehicles take priority.
-                                obstacle_g = INFINITY;
+                                obstacle_g = float_inf;
                                 break;
                             }
                         }
@@ -735,7 +744,7 @@ Pathfinding::ExpansionOutcome Pathfinding::expand_2d_up_to(
 
                     }
                     // We can do nothing anymore, close the tile
-                    obstacle_g = INFINITY;
+                    obstacle_g = float_inf;
                     break;
                 }
 
@@ -960,7 +969,7 @@ std::vector<tripoint> Pathfinding::get_route_3d(
                     }
                 }
 
-                float best_distance = INFINITY;
+                auto best_distance = float_inf;
                 for( const auto &z_change : candidates ) {
                     if( z_change.from.z != best_next_z_level ) {
                         continue;

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <optional>
 #include <set>
 #include <utility>
@@ -34,6 +35,13 @@
 #include "string_id.h"
 #include "translations.h"
 #include "units.h"
+
+namespace
+{
+
+constexpr auto float_inf = std::numeric_limits<float>::infinity();
+
+} // namespace
 
 namespace io
 {
@@ -1129,17 +1137,17 @@ void mtype::setup_pathfinding_deferred()
     {
         bool allow_open_doors;
         extract_into_with_default( "allow_open_doors", allow_open_doors, false );
-        this->path_settings.door_open_cost = allow_open_doors ? 2.0 : INFINITY;
+        this->path_settings.door_open_cost = allow_open_doors ? 2.0 : float_inf;
     }
     {
         bool avoid_traps;
         extract_into_with_default( "avoid_traps", avoid_traps, false );
-        this->path_settings.trap_cost = avoid_traps ? INFINITY : 0.0;
+        this->path_settings.trap_cost = avoid_traps ? float_inf : 0.0;
     }
     {
         bool avoid_sharp;
         extract_into_with_default( "avoid_sharp", avoid_sharp, false );
-        this->path_settings.sharp_terrain_cost = avoid_sharp ? INFINITY : 0.0;
+        this->path_settings.sharp_terrain_cost = avoid_sharp ? float_inf : 0.0;
     }
     {
         int max_dist;
@@ -1161,7 +1169,7 @@ void mtype::setup_pathfinding_deferred()
             }
         }
     }
-    this->path_settings.move_cost_coeff = this->speed != 0 ? 1.0 / this->speed : INFINITY;
+    this->path_settings.move_cost_coeff = this->speed != 0 ? 1.0 / this->speed : float_inf;
 
     // Entirely new settings that are not present in legacy pathfinding
     {
@@ -1182,7 +1190,7 @@ void mtype::setup_pathfinding_deferred()
     if( range_mult < 0 ) {
         this->legacy_path_settings.max_dist = INT_MAX;
         this->legacy_path_settings.max_length = INT_MAX;
-        this->route_settings.max_dist = INFINITY;
+        this->route_settings.max_dist = float_inf;
     } else {
         this->legacy_path_settings.max_dist *= range_mult;
         this->legacy_path_settings.max_length *= range_mult;
@@ -1192,13 +1200,13 @@ void mtype::setup_pathfinding_deferred()
         }
     }
     if( this->route_settings.max_f_coeff < 0 ) {
-        this->route_settings.max_f_coeff = INFINITY;
+        this->route_settings.max_f_coeff = float_inf;
     }
     if( this->route_settings.search_radius_coeff < 0 ) {
-        this->route_settings.search_radius_coeff = INFINITY;
+        this->route_settings.search_radius_coeff = float_inf;
     }
     if( this->path_settings.mob_presence_penalty < 0 ) {
-        this->path_settings.mob_presence_penalty = INFINITY;
+        this->path_settings.mob_presence_penalty = float_inf;
     }
 
     // Set up buffed settings
@@ -1216,14 +1224,14 @@ void mtype::setup_pathfinding_deferred()
     RouteSettings buffed_route_settings = this->route_settings;
     // TODO: Make it assign a stockfish preset instead
     buffed_path_settings.bash_cost = 1.0;
-    buffed_path_settings.trap_cost = INFINITY;
-    buffed_path_settings.sharp_terrain_cost = INFINITY;
+    buffed_path_settings.trap_cost = float_inf;
+    buffed_path_settings.sharp_terrain_cost = float_inf;
     buffed_path_settings.can_climb_stairs = true;
-    buffed_route_settings.max_dist = INFINITY;
-    buffed_route_settings.max_f_coeff = INFINITY;
-    buffed_route_settings.max_s_coeff = INFINITY;
+    buffed_route_settings.max_dist = float_inf;
+    buffed_route_settings.max_f_coeff = float_inf;
+    buffed_route_settings.max_s_coeff = float_inf;
     buffed_route_settings.search_cone_angle = 180.0;
-    buffed_route_settings.search_radius_coeff = INFINITY;
+    buffed_route_settings.search_radius_coeff = float_inf;
 
     this->path_settings_buffed = buffed_path_settings;
     this->route_settings_buffed = buffed_route_settings;
