@@ -48,6 +48,7 @@ env:
   VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\.github\vcpkg_triplets
   ZSTD_CLEVEL: 17
   CMAKE_PRESET: windows-tiles-sounds-x64-msvc
+  BUILD_CONFIG: ${{ github.event_name == 'pull_request' && 'Debug' || 'RelWithDebInfo' }}
 
 jobs:
   build_catatclysm:
@@ -128,7 +129,7 @@ jobs:
         with:
           configurePreset: ${{ env.CMAKE_PRESET }}
           buildPreset: windows-msvc-build
-          buildPresetAdditionalArgs: "['--config', 'RelWithDebInfo']"
+          buildPresetAdditionalArgs: "['--config', '${{ env.BUILD_CONFIG }}']"
 
       - name: Dump logs if build failed
         if: failure()
@@ -139,7 +140,7 @@ jobs:
 
       - name: Compile .mo files for localization
         run: |
-          cmake --build out/build/$env:CMAKE_PRESET --target translations_compile --config RelWithDebInfo
+          cmake --build out/build/$env:CMAKE_PRESET --target translations_compile --config $env:BUILD_CONFIG
 
       - name: ccache stats
         run: |
@@ -147,4 +148,23 @@ jobs:
 
       - name: Run tests
         run: |
-          & "out/build/$env:CMAKE_PRESET/tests/RelWithDebInfo/cata_test-tiles.exe" --rng-seed time
+          & "out/build/$env:CMAKE_PRESET/tests/$env:BUILD_CONFIG/cata_test-tiles.exe" --rng-seed time
+
+      - name: Create PR debug distribution zip
+        if: ${{ github.event_name == 'pull_request' && success() }}
+        shell: pwsh
+        run: |
+          $suffix = "pr-${{ github.event.pull_request.number }}-$($env:GITHUB_SHA.Substring(0,7))"
+          $distDir = "cataclysmbn-$suffix"
+
+          cmake --install "out/build/$env:CMAKE_PRESET" --prefix "$distDir" --config $env:BUILD_CONFIG
+          Compress-Archive -Force -Path "$distDir/*" -DestinationPath "cbn-windows-tiles-debug-$suffix.zip"
+
+      - name: Upload PR debug distribution zip
+        if: ${{ github.event_name == 'pull_request' && success() }}
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: cbn-windows-tiles-debug-pr-${{ github.event.pull_request.number }}
+          path: cbn-windows-tiles-debug-*.zip
+          if-no-files-found: error
+          retention-days: 14
