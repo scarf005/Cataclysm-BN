@@ -68,8 +68,8 @@ auto print_button( const catacurses::window &w, const button_options &opts ) -> 
 
 ### WHEN given a link to an issue
 
-- **Context**: Fetch issue details via GitHub MCP.
-- **Branch**: Use `coderabbitai/git-worktree-runner` to create branch: `git gtr new <type>/<issue-id>/<issue-slug>`
+- **Context**: Fetch issue details via `gh` CLI.
+- **Branch**: Check current branch with `git branch`. If no branch for the task exists, create one using `coderabbitai/git-worktree-runner`: `git gtr new <type>/<issue-id>/<issue-slug>`
   - type MUST be one of: `feat`, `fix`, `refactor`, `chore`, `build`, `ci`
 - **Code**: Refer to [code changes](#when-working-on-code-changes).
 - **PR**: Use [Template](./.github/pull_request_template.md). **DO NOT ADD fluff**. create via `git push && gh pr create --web --fill`.
