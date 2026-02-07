@@ -6,6 +6,14 @@ add_definitions(-DCATA_IN_TOOL)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
+# Link against cataclysm common library to resolve dependencies like string_utils::replace_all
+# The old MSVC build linked against Cataclysm-lib which contained all sources
+if (TARGET cataclysm-bn-tiles-common)
+    target_link_libraries(json_formatter PRIVATE cataclysm-bn-tiles-common)
+elseif (TARGET cataclysm-bn-common)
+    target_link_libraries(json_formatter PRIVATE cataclysm-bn-common)
+endif()
+
 if (RELEASE)
     if (USE_PREFIX_DATA_DIR)
         install(TARGETS json_formatter RUNTIME)
