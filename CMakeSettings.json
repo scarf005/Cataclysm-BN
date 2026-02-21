@@ -19,7 +19,6 @@
         { "name": "SOUND",                           "value": "True",                  "type": "BOOL"   },
         { "name": "TESTS",                           "value": "False",                 "type": "BOOL"   },
         { "name": "JSON_FORMAT",                     "value": "ON",                    "type": "BOOL"   },
-        { "name": "CMAKE_RUNTIME_OUTPUT_DIRECTORY",  "value": "${projectDir}",          "type": "PATH"   },
         { "name": "CMAKE_INSTALL_MESSAGE",           "value": "NEVER",                 "type": "STRING" }
       ]
     },
@@ -42,7 +41,6 @@
         { "name": "SOUND",                           "value": "True",                  "type": "BOOL"   },
         { "name": "TESTS",                           "value": "False",                 "type": "BOOL"   },
         { "name": "JSON_FORMAT",                     "value": "ON",                    "type": "BOOL"   },
-        { "name": "CMAKE_RUNTIME_OUTPUT_DIRECTORY",  "value": "${projectDir}",          "type": "PATH"   },
         { "name": "CMAKE_INSTALL_MESSAGE",           "value": "NEVER",                 "type": "STRING" }
       ]
     },
@@ -65,7 +63,6 @@
         { "name": "SOUND",                           "value": "True",                  "type": "BOOL"   },
         { "name": "TESTS",                           "value": "False",                 "type": "BOOL"   },
         { "name": "JSON_FORMAT",                     "value": "ON",                    "type": "BOOL"   },
-        { "name": "CMAKE_RUNTIME_OUTPUT_DIRECTORY",  "value": "${projectDir}",          "type": "PATH"   },
         { "name": "CMAKE_INSTALL_MESSAGE",           "value": "NEVER",                 "type": "STRING" }
       ]
     },
@@ -88,7 +85,6 @@
         { "name": "SOUND",                           "value": "True",                  "type": "BOOL"   },
         { "name": "TESTS",                           "value": "True",                  "type": "BOOL"   },
         { "name": "JSON_FORMAT",                     "value": "OFF",                   "type": "BOOL"   },
-        { "name": "CMAKE_RUNTIME_OUTPUT_DIRECTORY",  "value": "${projectDir}",          "type": "PATH"   },
         { "name": "CMAKE_INSTALL_MESSAGE",           "value": "NEVER",                 "type": "STRING" }
       ]
     },
@@ -111,7 +107,6 @@
         { "name": "SOUND",                           "value": "True",                  "type": "BOOL"   },
         { "name": "TESTS",                           "value": "False",                 "type": "BOOL"   },
         { "name": "JSON_FORMAT",                     "value": "OFF",                   "type": "BOOL"   },
-        { "name": "CMAKE_RUNTIME_OUTPUT_DIRECTORY",  "value": "${projectDir}",          "type": "PATH"   },
         { "name": "CMAKE_INSTALL_MESSAGE",           "value": "NEVER",                 "type": "STRING" },
         { "name": "USE_TRACY",                       "value": "True",                  "type": "BOOL"   },
         { "name": "TRACY_ON_DEMAND",                 "value": "True",                  "type": "BOOL"   },
