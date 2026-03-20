@@ -29,15 +29,15 @@
 # DelFe, 2025
 # 47a81cb9738d39622e1b1fde74c42b2a_791bd4f <20fb875a401cb03ba4fd8103e46da6b9_1176784>, 2026
 # Coolthulhu <Coolthulhu@gmail.com>, 2026
-# CatCoffee, 2026
 # Tae Heon Lim, 2026
 # Choi Dong-uk, 2026
+# CatCoffee, 2026
 # 
 msgid ""
 msgstr ""
 "Project-Id-Version: cataclysm-bn\n"
-"POT-Creation-Date: 2026-02-06 21:33+0000\n"
-"Last-Translator: Choi Dong-uk, 2026\n"
+"POT-Creation-Date: 2026-02-12 01:08+0000\n"
+"Last-Translator: CatCoffee, 2026\n"
 "Language-Team: Korean (https://app.transifex.com/bn-team/teams/113585/ko/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3026,47 +3026,47 @@ msgstr "없음"
 
 #: data/json/artifact_analyzer.lua
 msgid "Unable to read artifact data."
-msgstr ""
+msgstr "아티팩트 데이터를 읽을 수 없습니다."
 
 #: data/json/artifact_analyzer.lua
 msgid "This item has no artifact effects."
-msgstr ""
+msgstr "이 물품에는 아티팩트 효과가 없습니다."
 
 #: data/json/artifact_analyzer.lua
 msgid "SUBJECT"
-msgstr ""
+msgstr "대상"
 
 #: data/json/artifact_analyzer.lua
 msgid "Charge"
-msgstr ""
+msgstr "충전"
 
 #: data/json/artifact_analyzer.lua
 msgid "Charge Requirement"
-msgstr ""
+msgstr "충전 요구사항"
 
 #: data/json/artifact_analyzer.lua
 msgid "Activated"
-msgstr ""
+msgstr "활성화됨"
 
 #: data/json/artifact_analyzer.lua
 msgid "Wielded"
-msgstr ""
+msgstr "손에 들고 있음"
 
 #: data/json/artifact_analyzer.lua
 msgid "Worn"
-msgstr ""
+msgstr "착용"
 
 #: data/json/artifact_analyzer.lua
 msgid "Carried"
-msgstr ""
+msgstr "소지"
 
 #: data/json/artifact_analyzer.lua
 msgid "You have no artifacts to analyze."
-msgstr ""
+msgstr "분석할 아티팩트가 없습니다."
 
 #: data/json/artifact_analyzer.lua
 msgid "Artifact Analyzer"
-msgstr ""
+msgstr "아티팩트 분석기"
 
 #: data/json/bionics.json
 msgid "Adrenaline Pump"
@@ -4623,10 +4623,11 @@ msgstr "소형 반응로"
 msgid ""
 "This stripped down mini-reactor generates impressive amounts of bionic power"
 " but slowly irradiates the user when in use.  1 plutonium fuel cell provides"
-" 1000 charges producing 10kW of power a turn."
+" 1000 charges producing 10kW of power.  Produces 50W of power while "
+"inactive."
 msgstr ""
 "상당한 양의 전력을 생산하지만 사용자를 서서히 방사능에 중독시키는 분해된 소형반응로입니다. 플루토늄 연료 전지 1개가 1000 충전량으로"
-" 전환되어 매 턴마다 전력을 10kJ만큼 생산합니다."
+" 전환되어 전력을 10kW만큼 생산합니다. 비활성화 상태일 때는 지속적으로 전력을 50W씩 생산합니다."
 
 #: data/json/bionics.json
 msgid "Advanced Micro Reactor"
@@ -4637,10 +4638,10 @@ msgstr "개선된 소형 반응로"
 msgid ""
 "This stripped down mini-reactor has been heavily modified and is more "
 "efficient and safer than the base model.  1 plutonium fuel cell provides "
-"1500 charges producing 10kW of power."
+"1500 charges producing 10kW of power.  Produces 75W of power while inactive."
 msgstr ""
 "대폭 개조되어 구형에 비해 효율이 높고 안전한 분해된 소형반응로입니다. 플루토늄 연료 전지 1개가 1500 충전량으로 전환되어 전력을 "
-"10kJ 생산합니다."
+"10kW만큼 생산합니다. 비활성화 상태일 때는 지속적으로 전력을 75W씩 생산합니다."
 
 #: data/json/bionics.json
 msgid "Micro Reactor Safety Override"
@@ -4664,11 +4665,9 @@ msgstr "원자력 배터리"
 #: data/json/bionics.json
 msgid ""
 "A compact alphavoltaic power source, producing a steady source of limitless "
-"bionic power at the cost of minimal radiation while in use.  Produces 50W of"
-" power while active."
+"bionic power.  Produces 50W of power while active."
 msgstr ""
-"휴대용 알파붕괴 전력원입니다. 작동 중일 때 최소한의 방사능 노출만으로 바이오닉 전력을 지속적으로, 무한히 생산합니다. 작동 중일 때 "
-"바이오닉 전력을 50W 생산합니다."
+"바이오닉 전력을 지속적으로, 무한히 생산하는 휴대용 알파붕괴 전력원입니다. 작동 중일 때 바이오닉 전력을 50W씩 생산합니다."
 
 #: data/json/bionics.json
 msgid "Intravenous Needletip"
@@ -5890,6 +5889,10 @@ msgid "Build Warehouse Shelf"
 msgstr "창고 선반 제작"
 
 #: data/json/construction_group.json
+msgid "Build Rain Collector"
+msgstr "빗물 수집기 제작"
+
+#: data/json/construction_group.json
 msgid "Build Water Well"
 msgstr "우물 건설"
 
@@ -6636,6 +6639,118 @@ msgstr "캔버스 벽 건설"
 #: data/json/construction_group.json
 msgid "Build canvas door"
 msgstr "캔버스 문 건설"
+
+#: data/json/construction_group.json
+msgid "Replant Peanut Bush"
+msgstr "땅콩 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Peanut Bush"
+msgstr "땅콩 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Peanut Bush"
+msgstr "수확한 땅콩 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Peanut Bush"
+msgstr "수확한 땅콩 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Blueberry Bush"
+msgstr "블루베리 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Blueberry Bush"
+msgstr "블루베리 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Blueberry Bush"
+msgstr "수확한 블루베리 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Blueberry Bush"
+msgstr "수확한 블루베리 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Strawberry Bush"
+msgstr "딸기 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Strawberry Bush"
+msgstr "딸기 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Strawberry Bush"
+msgstr "수확한 딸기 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Strawberry Bush"
+msgstr "수확한 딸기 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Blackberry Bush"
+msgstr "블랙베리 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Blackberry Bush"
+msgstr "블랙베리 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Blackberry Bush"
+msgstr "수확한 블랙베리 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Blackberry Bush"
+msgstr "수확한 블랙베리 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Huckleberry Bush"
+msgstr "허클베리 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Huckleberry Bush"
+msgstr "허클베리 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Huckleberry Bush"
+msgstr "수확한 허클베리 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Huckleberry Bush"
+msgstr "수확한 허클베리 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Raspberry Bush"
+msgstr "산딸기 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Raspberry Bush"
+msgstr "산딸기 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Raspberry Bush"
+msgstr "수확한 산딸기 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Raspberry Bush"
+msgstr "수확한 산딸기 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Grape Bush"
+msgstr "포도 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Grape Bush"
+msgstr "포도 덤불 파내기"
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Grape Bush"
+msgstr "수확한 포도 덤불 심기"
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Grape Bush"
+msgstr "수확한 포도 덤불 파내기"
 
 #: data/json/construction_group.json
 msgid "Place Exercise Bench"
@@ -11780,6 +11895,13 @@ msgstr "이 물품에서 생성된 개체는 <info>항상</info> <good>당신에
 
 #. ~ Please leave anything in <angle brackets> unchanged.
 #: data/json/flags.json
+msgid ""
+"Any creature spawned from this item will <info>always</info> emerge "
+"<bad>against you</good>."
+msgstr "이 물품으로 생성된 개체는 <info>항상</info> <bad>당신에게 적대적인 상태</good>로 나타납니다."
+
+#. ~ Please leave anything in <angle brackets> unchanged.
+#: data/json/flags.json
 msgid "This comestible can be <good>eaten even on full stomach</good>."
 msgstr "이 식품은 <good>배가 완전히 부른 상태에서도 먹을 수 있습니다</good>."
 
@@ -12947,8 +13069,16 @@ msgid "Check grid connections"
 msgstr "전력망 연결 확인"
 
 #: data/json/item_actions.json
+msgid "Check fluid grid connections"
+msgstr "수도망 연결 확인"
+
+#: data/json/item_actions.json
 msgid "Modify grid connections"
 msgstr "전력망 연결 변경"
+
+#: data/json/item_actions.json
+msgid "Modify fluid grid connections"
+msgstr "수도망 연결 변경"
 
 #: data/json/item_actions.json
 msgid "Measure grid power"
@@ -12956,7 +13086,7 @@ msgstr "전력망 측정"
 
 #: data/json/item_actions.json
 msgid "Analyze artifact"
-msgstr ""
+msgstr "아티팩트 분석"
 
 #: data/json/item_actions.json
 msgid "Dry/clean yourself"
@@ -17218,7 +17348,7 @@ msgstr "잘려진"
 
 #: data/json/materials.json src/locations.cpp
 msgid "worn"
-msgstr "닳은"
+msgstr "착용"
 
 #: data/json/materials.json
 msgid "ruined"
@@ -18032,7 +18162,7 @@ msgstr "비료 폭탄의 뇌관에 불이 붙어 소리를 내고 있습니다. 
 #: data/json/not_really_obsolete.json
 msgid "fragment bomb"
 msgid_plural "fragment bombs"
-msgstr[0] "파편폭탄"
+msgstr[0] "파편 폭탄"
 
 #. ~ Use action msg for {'str': 'fragment bomb'}.
 #. ~ Use action msg for {'str': 'nail bomb'}.
@@ -26695,44 +26825,6 @@ msgctxt "start_name"
 msgid "Lake Surface"
 msgstr "호수 수면"
 
-#. ~ Name for scenario 'Large Building' for a male character
-#: data/json/scenarios.json
-msgctxt "scenario_male"
-msgid "Large Building"
-msgstr "커다란 건물"
-
-#. ~ Name for scenario 'Large Building' for a female character
-#: data/json/scenarios.json
-msgctxt "scenario_female"
-msgid "Large Building"
-msgstr "커다란 건물"
-
-#. ~ Description for scenario 'Large Building' for a male character.
-#: data/json/scenarios.json
-msgctxt "scen_desc_male"
-msgid ""
-"Whether due to stubbornness, ignorance, or just plain bad luck, you missed "
-"the evacuation, and are stuck in a large building full of the risen dead."
-msgstr ""
-"완고함, 무지, 혹은 운이 나빴거나. 이유가 무엇이든 간에 당신은 대피하지 못했고 되살아난 시체들이 가득찬 커다란 건물에 갇히고 "
-"말았습니다."
-
-#. ~ Description for scenario 'Large Building' for a female character.
-#: data/json/scenarios.json
-msgctxt "scen_desc_female"
-msgid ""
-"Whether due to stubbornness, ignorance, or just plain bad luck, you missed "
-"the evacuation, and are stuck in a large building full of the risen dead."
-msgstr ""
-"완고함, 무지, 혹은 운이 나빴거나. 이유가 무엇이든 간에 당신은 대피하지 못했고 되살아난 시체들이 가득찬 커다란 건물에 갇히고 "
-"말았습니다."
-
-#. ~ Starting location for scenario 'Large Building'.
-#: data/json/scenarios.json
-msgctxt "start_name"
-msgid "In Large Building"
-msgstr "커다란 건물 안"
-
 #. ~ Name for scenario 'Surrounded' for a male character
 #: data/json/scenarios.json
 msgctxt "scenario_male"
@@ -26794,6 +26886,40 @@ msgstr "당신은 살아있는 시체들이 없는 멀리 떨어진 안전한 �
 msgctxt "start_name"
 msgid "Safe Building"
 msgstr "안전가옥"
+
+#. ~ Name for scenario 'Survivor Holdout' for a male character
+#: data/json/scenarios.json
+msgctxt "scenario_male"
+msgid "Survivor Holdout"
+msgstr "생존자의 은신처"
+
+#. ~ Name for scenario 'Survivor Holdout' for a female character
+#: data/json/scenarios.json
+msgctxt "scenario_female"
+msgid "Survivor Holdout"
+msgstr "생존자의 은신처"
+
+#. ~ Description for scenario 'Survivor Holdout' for a male character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_male"
+msgid ""
+"A few days after fleeing the chaos of the cities, you've finally found a "
+"place still inhabited by the living."
+msgstr "도시에서 벌어진 혼돈으로부터 도망치고 며칠이 지난 뒤, 당신은 마침내 아직 살아있는 사람들이 살고 있는 곳에 다다랐습니다."
+
+#. ~ Description for scenario 'Survivor Holdout' for a female character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_female"
+msgid ""
+"A few days after fleeing the chaos of the cities, you've finally found a "
+"place still inhabited by the living."
+msgstr "도시에서 벌어진 혼돈으로부터 도망치고 며칠이 지난 뒤, 당신은 마침내 아직 살아있는 사람들이 살고 있는 곳에 다다랐습니다."
+
+#. ~ Starting location for scenario 'Survivor Holdout'.
+#: data/json/scenarios.json
+msgctxt "start_name"
+msgid "Inhabited Refuge"
+msgstr "사람이 있는 피난처"
 
 #. ~ Name for scenario 'Infected' for a male character
 #: data/json/scenarios.json
@@ -27687,6 +27813,40 @@ msgstr ""
 msgctxt "start_name"
 msgid "Emergency Landing Site"
 msgstr "비상 착륙 지점"
+
+#. ~ Name for scenario 'Basement Dweller' for a male character
+#: data/json/scenarios.json
+msgctxt "scenario_male"
+msgid "Basement Dweller"
+msgstr "지하실 거주자"
+
+#. ~ Name for scenario 'Basement Dweller' for a female character
+#: data/json/scenarios.json
+msgctxt "scenario_female"
+msgid "Basement Dweller"
+msgstr "지하실 거주자"
+
+#. ~ Description for scenario 'Basement Dweller' for a male character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_male"
+msgid ""
+"You were happiest tucked away below street level, tinkering and hiding in "
+"your basement."
+msgstr "당신은 지표 아래의 지하실에 숨어 무언가를 뚱땅거릴 때 가장 행복했습니다."
+
+#. ~ Description for scenario 'Basement Dweller' for a female character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_female"
+msgid ""
+"You were happiest tucked away below street level, tinkering and hiding in "
+"your basement."
+msgstr "당신은 지표 아래의 지하실에 숨어 무언가를 뚱땅거릴 때 가장 행복했습니다."
+
+#. ~ Starting location for scenario 'Basement Dweller'.
+#: data/json/scenarios.json
+msgctxt "start_name"
+msgid "Basement Hideout"
+msgstr "지하실 은신처"
 
 #. ~ Name for scenario 'High Tech, Low Life' for a male character
 #: data/json/scenarios.json
@@ -30965,6 +31125,10 @@ msgstr "서점"
 msgid "Cabin"
 msgstr "오두막"
 
+#: data/json/start_locations.json
+msgid "Warrener's Cabin"
+msgstr "농장주의 오두막"
+
 #: data/json/start_locations.json src/gamemode_defense.cpp
 msgid "Hospital"
 msgstr "병원"
@@ -31011,6 +31175,10 @@ msgstr "얼어붙은 과학 연구소"
 #: data/json/start_locations.json
 msgid "Deep-frozen science lab"
 msgstr "얼어붙은 과학 연구소 최하층"
+
+#: data/json/start_locations.json data/json/npcs/factions.json
+msgid "Hub 01"
+msgstr "허브 01"
 
 #: data/json/start_locations.json
 msgid "Mall (loading area)"
@@ -31073,6 +31241,10 @@ msgid "Farm"
 msgstr "농장"
 
 #: data/json/start_locations.json
+msgid "Isherwood Farms"
+msgstr "이셔우드 농장"
+
+#: data/json/start_locations.json
 msgid "Church"
 msgstr "교회"
 
@@ -31084,6 +31256,34 @@ msgstr "묘지"
 #: data/json/start_locations.json
 msgid "Shady Basement"
 msgstr "어두운 지하실"
+
+#: data/json/start_locations.json
+msgid "Game Room Basement"
+msgstr "지하실 게임방"
+
+#: data/json/start_locations.json
+msgid "Chemistry Basement"
+msgstr "지하실 화학 연구방"
+
+#: data/json/start_locations.json
+msgid "Hidden Lab Stairs"
+msgstr "숨겨진 연구소 계단"
+
+#: data/json/start_locations.json
+msgid "Meth Lab Basement"
+msgstr "지하실 약쟁이 연구소"
+
+#: data/json/start_locations.json
+msgid "Ruined Basement"
+msgstr "무너진 지하실"
+
+#: data/json/start_locations.json
+msgid "Prepper Basement"
+msgstr "생존주의자의 지하실"
+
+#: data/json/start_locations.json
+msgid "Grow Operation Basement"
+msgstr "지하실 재배 시설"
 
 #: data/json/start_locations.json
 msgid "Zoo (Giftshop)"
@@ -31112,6 +31312,18 @@ msgstr "아파트 (거주지)"
 #: data/json/start_locations.json
 msgid "Horse Ranch"
 msgstr "말 목장"
+
+#: data/json/start_locations.json
+msgid "Chemist's Cabin"
+msgstr "제약사의 오두막"
+
+#: data/json/start_locations.json
+msgid "Inhabited Scrap Yard"
+msgstr "사람이 있는 고철 하치장"
+
+#: data/json/start_locations.json
+msgid "Inhabited Lumbermill"
+msgstr "사람이 있는 제재소"
 
 #: data/json/start_locations.json
 msgid "Lake Cabin"
@@ -34487,7 +34699,10 @@ msgstr "추상화 실내용 전등"
 #. ~ Description for abstract air conditioner
 #. ~ Description for abstract space heater
 #. ~ Description for overhead light
+#. ~ Description for abstract water purifier
+#. ~ Description for abstract electric well pump
 #: data/json/furniture_and_terrain/furniture-appliances.json
+#: data/json/furniture_and_terrain/furniture-plumbing.json
 msgid "Abstract furniture.  If you see this, something went wrong."
 msgstr "추상적 가구입니다. 이걸 보고 있다는건 뭔가 잘못됐다는 뜻입니다."
 
@@ -37770,6 +37985,33 @@ msgid ""
 msgstr "맑은 물을 제공하는 수도꼭지가 달린, 정수기로도 불리는 기계입니다. 탱크에 물이 있다는 전제 하에 쓸모가 있을겁니다."
 
 #: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "abstract water purifier"
+msgstr "추상화 정수기"
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "water purifier (off)"
+msgstr "정수기 (꺼짐)"
+
+#. ~ Description for water purifier (off)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid ""
+"This removes ions dissolved in the water, making it pretty clean, if you "
+"care about that kind of thing.  It is hooked into a fluid grid and switched "
+"off."
+msgstr ""
+"이 장치는 물에 용해된 이온을 제거해 그럭저럭 깨끗하게 만듭니다. 그런 것에 신경쓴다면 말입니다. 현재 수도망에 연결되어 있으며 전원이 "
+"꺼져있습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch on the water purifier."
+msgstr "정수기 켜기"
+
+#. ~ Message for furniture 'water purifier (off)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch on the water purifier."
+msgstr "정수기를 켰습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
 #: data/json/items/tool/cooking.json data/json/vehicleparts/vehicle_parts.json
 msgid "water purifier"
 msgid_plural "water purifiers"
@@ -37779,8 +38021,92 @@ msgstr[0] "정수기"
 #: data/json/furniture_and_terrain/furniture-plumbing.json
 msgid ""
 "This removes ions dissolved in the water, making it pretty clean, if you "
-"care about that kind of thing."
-msgstr "이 장치는 물에 용해된 이온을 제거해, 그럭저럭 깨끗하게 만듭니다. 그런 것에 신경쓴다면 말이죠."
+"care about that kind of thing.  It is hooked into a fluid grid."
+msgstr ""
+"이 장치는 물에 용해된 이온을 제거해 그럭저럭 깨끗하게 만듭니다. 그런 것에 신경쓴다면 말입니다. 현재 수도망에 연결되어 있습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch off the water purifier."
+msgstr "정수기 끄기"
+
+#. ~ Message for furniture 'water purifier'
+#. ~ Message for furniture 'water purifier (on)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch off the water purifier."
+msgstr "정수기를 껐습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "water purifier (on)"
+msgstr "정수기 (켜짐)"
+
+#. ~ Description for water purifier (on)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid ""
+"This removes ions dissolved in the water, making it pretty clean, if you "
+"care about that kind of thing.  It is hooked into a fluid grid and switched "
+"on."
+msgstr ""
+"이 장치는 물에 용해된 이온을 제거해 그럭저럭 깨끗하게 만듭니다. 그런 것에 신경쓴다면 말입니다. 현재 수도망에 연결되어 있으며 전원이 "
+"켜져있습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "abstract electric well pump"
+msgstr "추상화 전동 우물 펌프"
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "electric well pump (off)"
+msgstr "전동 우물 펌프 (꺼짐)"
+
+#. ~ Description for electric well pump (off)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "An electric well pump connected to a fluid grid.  It is switched off."
+msgstr "수도망에 연결된 전동 우물 펌프입니다. 현재 전원이 꺼져있습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch on the electric well pump."
+msgstr "전동 우물 펌프 켜기"
+
+#. ~ Message for furniture 'electric well pump (off)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch on the electric well pump."
+msgstr "전동 우물 펌프를 켰습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "electric well pump"
+msgstr "전동 우물 펌프"
+
+#. ~ Description for electric well pump
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "An electric well pump connected to a fluid grid.  It has no power."
+msgstr "수도망에 연결된 전동 우물 펌프입니다. 현재 전력이 공급되지 않고 있습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch off the electric well pump."
+msgstr "전동 우물 펌프 끄기"
+
+#. ~ Message for furniture 'electric well pump'
+#. ~ Message for furniture 'electric well pump (on)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch off the electric well pump."
+msgstr "전동 우물 펌프를 껐습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "electric well pump (on)"
+msgstr "전동 우물 펌프 (켜짐)"
+
+#. ~ Description for electric well pump (on)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "An electric well pump connected to a fluid grid.  It is switched on."
+msgstr "수도망에 연결된 전동 우물 펌프입니다. 현재 전원이 켜져있습니다."
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "rain collector (plumbed)"
+msgstr "빗물 수집기 (연결됨)"
+
+#. ~ Description for rain collector (plumbed)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "A plumbed rain collector that feeds a fluid grid when it is raining."
+msgstr "비가 올 때 빗물을 받아 수도망에 채우는 빗물 수집기입니다. 현재 수도망에 연결되어 있습니다."
 
 #: data/json/furniture_and_terrain/furniture-recreation.json
 #: data/json/items/fake.json data/json/items/furniture.json
@@ -38938,6 +39264,15 @@ msgid "A large freestanding metal tank, useful for holding liquids."
 msgstr "받침대 없는 커다란 금속 탱크로, 액체를 보관하는데 좋습니다."
 
 #: data/json/furniture_and_terrain/furniture-storage.json
+msgid "standing tank (plumbed)"
+msgstr "망 연결된 물탱크"
+
+#. ~ Description for standing tank (plumbed)
+#: data/json/furniture_and_terrain/furniture-storage.json
+msgid "A large freestanding metal tank hooked into a fluid grid."
+msgstr "수도망에 연결된 받침대 없는 커다란 금속 탱크입니다."
+
+#: data/json/furniture_and_terrain/furniture-storage.json
 msgid "clay water pots"
 msgstr "점토 물통"
 
@@ -39795,14 +40130,14 @@ msgstr ""
 #: data/json/items/fake.json
 msgid "artifact analyzer console"
 msgid_plural "artifact analyzer consoles"
-msgstr[0] ""
+msgstr[0] "아티팩트 분석기 콘솔"
 
 #. ~ Description for artifact analyzer console
 #: data/json/furniture_and_terrain/furniture-tools.json
 msgid ""
 "A research console configured to analyze artifacts.  Use it to scan any "
 "artifacts you are carrying."
-msgstr ""
+msgstr "아티팩트를 분석하도록 설정된 연구용 콘솔입니다. 사용하여 소지 중인 아티팩트를 스캔할 수 있습니다."
 
 #: data/json/furniture_and_terrain/furniture-tools.json
 msgid "forge"
@@ -48008,7 +48343,7 @@ msgstr "7.62x39mm"
 
 #: data/json/items/ammo_types.json
 msgid "5.56x45mm"
-msgstr "5.56x45mm 탄"
+msgstr "5.56x45mm"
 
 #: data/json/items/ammo_types.json
 msgid ".30-06"
@@ -49531,10 +49866,11 @@ msgstr[0] "CBM:내장 소형반응로"
 msgid ""
 "This stripped down mini-reactor will generate impressive amounts of bionic "
 "power, but may not be the safest thing to install.  1 plutonium fuel cell "
-"provides 1000 charges producing 10kW of power."
+"provides 1000 charges producing 10kW of power.  Produces 50W of power while "
+"inactive."
 msgstr ""
 "상당한 양의 전력을 생산하지만 설치하기에 썩 안전해보이지는 않는 분해된 소형반응로입니다. 플루토늄 연료 전지 1개가 1000 충전량으로 "
-"전환되어 전력을 10kJ만큼 생산합니다."
+"전환되어 전력을 10kW만큼 생산합니다. 비활성화 상태일 때는 지속적으로 전력을 50W씩 생산합니다."
 
 #: data/json/items/bionics.json
 msgid "Advanced Microreactor CBM"
@@ -49546,10 +49882,11 @@ msgstr[0] "CBM:개선형 소형반응로"
 msgid ""
 "This module upgrades a pre-installed microreactor with enhanced maximum "
 "yield and limited automatic radiation scrubbing capabilities.  1 plutonium "
-"fuel cell provides 1500 charges producing 10kW of power."
+"fuel cell provides 1500 charges producing 10kW of power.  Produces 75W of "
+"power while inactive."
 msgstr ""
-"기존에 설치된 소형반응로를 업그레이드하여 전력 생산량을 높이고 제한적인 자동 방사능 제염 기능을 추가합니다. 플루토늄 연료 전지 1개가 "
-"1500 충전량으로 전환되어 전력을 10kJ 만큼 생산합니다."
+"기존에 설치된 소형반응로를 업그레이드하여 전력 생산량을 높이고 제한적인 자동 방사능 제염 기능을 추가하는 모듈입니다. 플루토늄 연료 전지"
+" 1개가 1500 충전량으로 전환되어 전력을 10kW 만큼 생산합니다. 비활성화 상태일 때는 지속적으로 전력을 75W씩 생산합니다."
 
 #: data/json/items/bionics.json
 msgid "Micro Reactor Safety Override CBM"
@@ -49578,8 +49915,23 @@ msgid ""
 "this bionic will provide a limitless source of power at a steady 50 watts "
 "when active, with only minimal exposure to radiation while in use."
 msgstr ""
-"이 바이오닉은 본질적으로 알파붕괴 배터리로 변환시킨 플루토늄 연료 전지입니다. 작동 중일 때 지속적으로, 무한히 50와트씩 전력을 "
-"생산하며 사용 중 방사능 노출을 최소화합니다."
+"이 바이오닉은 본질적으로 알파붕괴 배터리로 변환시킨 플루토늄 연료 전지입니다. 작동 중일 때 지속적으로, 무한히 50W씩 전력을 생산하며"
+" 사용 중 방사능 노출을 최소화합니다."
+
+#: data/json/items/bionics.json
+msgid "Atomic Battery Upgrade CBM"
+msgid_plural "Atomic Battery Upgrade CBMs"
+msgstr[0] "CBM:원자력 배터리 업그레이드"
+
+#. ~ Description for {'str': 'Atomic Battery Upgrade CBM'}
+#: data/json/items/bionics.json
+msgid ""
+"A kit for upgrading a pre-installed atomic battery into a Microreactor, "
+"providing options for significantly more power generation potential and fuel"
+" capacity at the cost of increased radiation exposure."
+msgstr ""
+"기존에 설치된 원자력 배터리를 소형 반응로로 업그레이드하는데 필요한 부품모음입니다. 전력 생산략과 연료 용량이 증가하지만, 방사능 노출의"
+" 위험도 커집니다."
 
 #: data/json/items/bionics.json
 msgid "Microreactor Upgrade CBM"
@@ -56605,6 +56957,116 @@ msgstr ""
 "여러 주요 제조사에서 유래한 무수한 IC 회로 데이터시트의 커다란 보관소입니다. 제대로 쓸 수 있는 사람에게는 귀중하겠지만, 그런 사람이"
 " 없다면 이걸 해체하여 재활용하는건 힘들어보입니다."
 
+#: data/json/items/terrain.json
+msgid "food bush"
+msgid_plural "food bushs"
+msgstr[0] "음식 덤불"
+
+#. ~ Description for food bush
+#: data/json/items/terrain.json
+msgid "A bush that is made of veggy and food. Seeing this is a bug."
+msgstr "야채와 음식으로 가득한 덤불입니다. 이걸 보고 있다면 버그입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted peanut bush"
+msgid_plural "uprooted peanut bushs"
+msgstr[0] "이식용 땅콩 덤불"
+
+#. ~ Description for uprooted peanut bush
+#: data/json/items/terrain.json
+msgid "A peanut bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 땅콩 덤불입니다."
+
+#. ~ Description for uprooted peanut bush
+#: data/json/items/terrain.json
+msgid "A harvested peanut bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 수확한 땅콩 덤불입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted blueberry bush"
+msgid_plural "uprooted blueberry bushs"
+msgstr[0] "이식용 블루베리 덤불"
+
+#. ~ Description for uprooted blueberry bush
+#: data/json/items/terrain.json
+msgid "A blueberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 블루베리 덤불입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted strawberry bush"
+msgid_plural "uprooted strawberry bushs"
+msgstr[0] "이식용 딸기 덤불"
+
+#. ~ Description for uprooted strawberry bush
+#: data/json/items/terrain.json
+msgid "A strawberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 딸기 덤불입니다."
+
+#. ~ Description for uprooted strawberry bush
+#: data/json/items/terrain.json
+msgid "A harvested strawberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 수확한 딸기 덤불입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted blackberry bush"
+msgid_plural "uprooted blackberry bushs"
+msgstr[0] "이식용 블랙베리 덤불"
+
+#. ~ Description for uprooted blackberry bush
+#: data/json/items/terrain.json
+msgid "A blackberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 블랙베리 덤불입니다."
+
+#. ~ Description for uprooted blackberry bush
+#: data/json/items/terrain.json
+msgid "A harvested blackberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 수확한 블랙베리 덤불입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted huckleberry bush"
+msgid_plural "uprooted huckleberry bushs"
+msgstr[0] "이식용 허클베리 덤불"
+
+#. ~ Description for uprooted huckleberry bush
+#: data/json/items/terrain.json
+msgid "A huckleberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 허클베리 덤불입니다."
+
+#. ~ Description for uprooted huckleberry bush
+#: data/json/items/terrain.json
+msgid "A harvested huckleberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 수확한 허클베리 덤불입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted raspberry bush"
+msgid_plural "uprooted raspberry bushs"
+msgstr[0] "이식용 산딸기 덤불"
+
+#. ~ Description for uprooted raspberry bush
+#: data/json/items/terrain.json
+msgid "A raspberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 산딸기 덤불입니다."
+
+#. ~ Description for uprooted raspberry bush
+#: data/json/items/terrain.json
+msgid "A harvested raspberry bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 수확한 산딸기 덤불입니다."
+
+#: data/json/items/terrain.json
+msgid "uprooted grape bush"
+msgid_plural "uprooted grape bushs"
+msgstr[0] "이식용 포도 덤불"
+
+#. ~ Description for uprooted grape bush
+#: data/json/items/terrain.json
+msgid "A grape bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 포도 덤불입니다."
+
+#. ~ Description for uprooted grape bush
+#: data/json/items/terrain.json
+msgid "A harvested grape bush that's ready for transplanting."
+msgstr "다른 곳에 옮겨심을 수 있도록 파낸 수확한 포도 덤불입니다."
+
 #: data/json/items/tool_armor.json
 msgid "arm splint"
 msgid_plural "arm splints"
@@ -59077,7 +59539,7 @@ msgstr[0] ".22 LR, 흑색화약"
 #: data/json/items/ammo/223.json
 msgid "5.56x45mm '.223 Remington'"
 msgid_plural "5.56x45mm '.223 Remington's"
-msgstr[0] "5.56x45mm 223구경 레밍턴 탄"
+msgstr[0] "5.56x45mm 223구경 레밍턴"
 
 #. ~ Description for {'str': "5.56x45mm '.223 Remington'"}
 #: data/json/items/ammo/223.json
@@ -59093,7 +59555,7 @@ msgstr ""
 #: data/json/items/ammo/223.json
 msgid "5.56x45mm NATO M855A1"
 msgid_plural "5.56x45mm NATO M855A1s"
-msgstr[0] "5.56x45mm NATO M855A1 탄"
+msgstr[0] "5.56x45mm NATO M855A1"
 
 #. ~ Description for {'str': '5.56x45mm NATO M855A1'}
 #: data/json/items/ammo/223.json
@@ -59122,12 +59584,12 @@ msgstr ""
 #: data/json/items/ammo/223.json
 msgid "5.56x45mm '.223 Remington', black powder"
 msgid_plural "5.56x45mm '.223 Remington', black powders"
-msgstr[0] "5.56x45mm 223 레밍턴 탄, 흑색화약"
+msgstr[0] "5.56x45mm 223 레밍턴, 흑색화약"
 
 #: data/json/items/ammo/223.json
 msgid "5.56x45mm NATO, black powder"
 msgid_plural "5.56x45mm NATO, black powders"
-msgstr[0] "5.56x45mm NATO 탄, 흑색화약"
+msgstr[0] "5.56x45mm NATO, 흑색화약"
 
 #: data/json/items/ammo/223.json
 msgid "5.56x45mm NATO tracer, black powder"
@@ -73306,7 +73768,7 @@ msgstr "얇고 가벼운 노멕스 방화 직물로 만들어진 편안한 바�
 #: data/json/items/armor/suits_protection.json
 msgid "Hub 01 environmental suit"
 msgid_plural "Hub 01 environmental suits"
-msgstr[0] "Hub 01 환경차폐복"
+msgstr[0] "Hub 01 환경 차폐복"
 
 #. ~ Description for {'str': 'Hub 01 environmental suit'}
 #: data/json/items/armor/suits_protection.json
@@ -75568,7 +76030,7 @@ msgstr ""
 #: data/json/items/book/cooking.json data/json/items/book/misc.json
 msgid "standpipe maintenance log"
 msgid_plural "standpipe maintenance logs"
-msgstr[0] "배관 유지 보수 기록"
+msgstr[0] "배관 유지보수 기록"
 
 #. ~ Description for {'str': 'standpipe maintenance log'}
 #: data/json/items/book/cooking.json
@@ -75577,7 +76039,7 @@ msgid ""
 "throughout the facility.  However, some of the log sheets seem to be filled "
 "with… a chemical formula?"
 msgstr ""
-"이 서류철에는 시설 내 여러 배관에 대한 유지 보수 예정이 적혀있습니다. 그렇지만, 기록 중 일부에는... 화학공식이 적혀있는데요?"
+"이 서류철에는 시설 내 여러 배관에 대한 유지보수 일정이 적혀있습니다. 그런데 기록 중 일부를 살펴보니... 화학 공식이 적혀있습니다?"
 
 #: data/json/items/book/cooking.json
 msgid "chemical reference-CLASSIFIED"
@@ -102459,6 +102921,21 @@ msgstr ""
 "준비할 때 조금 더 오래 걸립니다."
 
 #: data/json/items/gunmod/accessories.json
+msgid "crossbow draw motor"
+msgid_plural "crossbow draw motors"
+msgstr[0] "석궁 장전보조 모터"
+
+#: data/json/items/gunmod/accessories.json
+msgid ""
+"An electric motor and transmission that can be attached to a crossbow's "
+"string to make it easier to draw back. It makes reloading faster, but "
+"requires UPS power and makes the crossbow bulkier and heavier. Who said "
+"crossbows needed to be medieval?"
+msgstr ""
+"석궁 활줄에 장착해 보다 쉽게 당길 수 있도록 돕는 전동 모터 및 변속기입니다. 재장전 속도를 높이지만, UPS 전력을 소모하며 석궁의 "
+"부피와 무게를 증가시킵니다. 누가 석궁이 꼭 중세 무기여야 한다고 했죠?"
+
+#: data/json/items/gunmod/accessories.json
 msgid "belt clip"
 msgid_plural "belt clips"
 msgstr[0] "벨트 클립"
@@ -119316,6 +119793,18 @@ msgid ""
 msgstr "신축성 있는 고무호스. 재료로 쓰거나, 차량에서 연료를 빨아올릴 때 사용할 수 있습니다."
 
 #: data/json/items/tool/workshop.json
+msgid "utility maintenance kit"
+msgid_plural "utility maintenance kits"
+msgstr[0] "시설 유지보수 도구"
+
+#. ~ Description for {'str': 'utility maintenance kit'}
+#: data/json/items/tool/workshop.json
+msgid ""
+"A compact kit for probing, joining, and extending fluid grid connections in "
+"buildings."
+msgstr "건물 수도망을 점검, 접합, 확장하는데 쓰이는 도구모음입니다."
+
+#: data/json/items/tool/workshop.json
 msgid "bottle jack"
 msgid_plural "bottle jacks"
 msgstr[0] "보틀 잭"
@@ -131537,337 +132026,121 @@ msgstr ""
 "장비에도 불구하고 안일사 당한 것 같습니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, crew-cut"
-msgstr "머리: 검은 크루컷"
+msgid "Hair color: black"
+msgstr "머리 색: 검은색"
 
-#. ~ Description for {'str': 'Hair: black, crew-cut'}
+#. ~ Description for {'str': 'Hair color: black'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Crewcut black hair style."
-msgstr "짧게 자른 검은 스포츠형 머리입니다."
+msgid "You have black hair."
+msgstr "당신의 머리는 검은색입니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, mohawk"
-msgstr "머리: 검은 모히칸"
+msgid "Hair color: brown"
+msgstr "머리 색: 갈색"
 
-#. ~ Description for {'str': 'Hair: black, mohawk'}
+#. ~ Description for {'str': 'Hair color: brown'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Mohawk black hair style."
-msgstr "검은 모히칸형 헤어 스타일입니다."
+msgid "You have brown hair."
+msgstr "당신의 머리는 갈색입니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, 'fro"
-msgstr "머리: 검은 아프로"
+msgid "Hair color: blond"
+msgstr "머리 색: 금발"
 
-#. ~ Description for {'str': "Hair: black, 'fro"}
+#. ~ Description for {'str': 'Hair color: blond'}
 #: data/json/mutations/mutation_appearance.json
-msgid "'Fro black hair style."
-msgstr "검은 아프로형 헤어 스타일입니다."
+msgid "You have blond hair."
+msgstr "당신의 머리는 금발입니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, short"
-msgstr "머리: 검은 단발머리"
+msgid "Hair color: red"
+msgstr "머리 색: 빨간색"
 
-#. ~ Description for {'str': 'Hair: black, short'}
+#. ~ Description for {'str': 'Hair color: red'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Short black hair style"
-msgstr "검은 단발형 헤어 스타일입니다."
+msgid "You have red hair."
+msgstr "당신의 머리는 빨간색입니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, medium-length"
-msgstr "머리: 검은 중간머리"
+msgid "Hair color: gray"
+msgstr "머리 색: 회색"
 
-#. ~ Description for {'str': 'Hair: black, medium-length'}
+#. ~ Description for {'str': 'Hair color: gray'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Medium-length black hair style."
-msgstr "검은 중간머리 헤어 스타일입니다."
+msgid "You have gray hair."
+msgstr "당신의 머리는 회색입니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, long"
-msgstr "머리: 검은 긴 머리"
+msgid "Hair color: white"
+msgstr "머리 색: 흰색"
 
-#. ~ Description for {'str': 'Hair: black, long'}
+#. ~ Description for {'str': 'Hair color: white'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Long black hair style."
-msgstr "검은 긴 머리 헤어 스타일입니다."
+msgid "You have white hair."
+msgstr "당신의 머리는 흰색입니다."
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, crew-cut"
-msgstr "머리: 갈색 크루컷"
+msgid "Hair style: crew-cut"
+msgstr "머리 모양: 크루컷"
 
-#. ~ Description for {'str': 'Hair: brown, crew-cut'}
+#. ~ Description for {'str': 'Hair style: crew-cut'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Crewcut brown hair style."
-msgstr "짧게 자른 갈색 스포츠형 머리입니다."
+msgid "Crewcut hair"
+msgstr "크루컷 머리 모양"
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, mohawk"
-msgstr "머리: 갈색 모히칸"
+msgid "Hair style: mohawk"
+msgstr "머리 모양: 모히칸"
 
-#. ~ Description for {'str': 'Hair: brown, mohawk'}
+#. ~ Description for {'str': 'Hair style: mohawk'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Mohawk brown hair style."
-msgstr "갈색 모히칸형 헤어 스타일입니다."
+msgid "Mohawk hair"
+msgstr "모히칸 머리 모양"
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, 'fro"
-msgstr "머리: 갈색 아프로"
+msgid "Hair style: 'fro"
+msgstr "머리 모양: 아프로"
 
-#. ~ Description for {'str': "Hair: brown, 'fro"}
+#. ~ Description for {'str': "Hair style: 'fro"}
 #: data/json/mutations/mutation_appearance.json
-msgid "'Fro brown hair style."
-msgstr "갈색 아프로형 헤어 스타일입니다."
+msgid "'Fro hair"
+msgstr "아프로 머리 모양"
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, short"
-msgstr "머리: 갈색 단발머리"
+msgid "Hair style: short"
+msgstr "머리 모양: 단발"
 
-#. ~ Description for {'str': 'Hair: brown, short'}
+#. ~ Description for {'str': 'Hair style: short'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Short brown hair style"
-msgstr "갈색 단발형 헤어 스타일입니다."
+msgid "Short hair"
+msgstr "단발 머리 모양"
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, medium-length"
-msgstr "머리: 갈색 중간머리"
+msgid "Hair style: medium-length"
+msgstr "머리 모양: 중간머리"
 
-#. ~ Description for {'str': 'Hair: brown, medium-length'}
+#. ~ Description for {'str': 'Hair style: medium-length'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Medium-length brown hair style."
-msgstr "갈색 중간머리 헤어 스타일입니다."
+msgid "Medium-length hair"
+msgstr "중간 머리 모양"
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, long"
-msgstr "머리: 갈색 긴 머리"
+msgid "Hair style: long"
+msgstr "머리 모양: 장발"
 
-#. ~ Description for {'str': 'Hair: brown, long'}
+#. ~ Description for {'str': 'Hair style: long'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Long brown hair style."
-msgstr "갈색 긴 머리 헤어 스타일입니다."
+msgid "Long hair"
+msgstr "장발 머리 모양"
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, crew-cut"
-msgstr "머리: 금발 크루컷"
+msgid "Hair style: bald"
+msgstr "머리 모양: 대머리"
 
-#. ~ Description for {'str': 'Hair: blond, crew-cut'}
+#. ~ Description for {'str': 'Hair style: bald'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Crewcut blond hair style."
-msgstr "짧게 자른 금발 스포츠형 머리입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, mohawk"
-msgstr "머리: 금발 모히칸"
-
-#. ~ Description for {'str': 'Hair: blond, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk blond hair style."
-msgstr "금발 모히칸형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, 'fro"
-msgstr "머리: 금발 아프로"
-
-#. ~ Description for {'str': "Hair: blond, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro blond hair style."
-msgstr "금발 아프로형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, short"
-msgstr "머리: 금발 단발머리"
-
-#. ~ Description for {'str': 'Hair: blond, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short blond hair style"
-msgstr "금발 단발형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, medium-length"
-msgstr "머리: 금발 중간머리"
-
-#. ~ Description for {'str': 'Hair: blond, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length blond hair style."
-msgstr "금발 중간머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, long"
-msgstr "머리: 금발 긴 머리"
-
-#. ~ Description for {'str': 'Hair: blond, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long blond hair style."
-msgstr "금발 긴 머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, crew-cut"
-msgstr "머리: 빨간 크루컷"
-
-#. ~ Description for {'str': 'Hair: red, crew-cut'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Crewcut red hair style."
-msgstr "짧게 자른 적발 스포츠형 머리입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, mohawk"
-msgstr "머리: 빨간 모히칸"
-
-#. ~ Description for {'str': 'Hair: red, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk red hair style."
-msgstr "적발 모히칸형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, 'fro"
-msgstr "머리: 빨간 아프로"
-
-#. ~ Description for {'str': "Hair: red, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro red hair style."
-msgstr "적발 아프로형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, short"
-msgstr "머리: 빨간 단발머리"
-
-#. ~ Description for {'str': 'Hair: red, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short red hair style"
-msgstr "적발 단발형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, medium-length"
-msgstr "머리: 빨간 중간머리"
-
-#. ~ Description for {'str': 'Hair: red, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length red hair style."
-msgstr "적발 중간머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, long"
-msgstr "머리: 빨간 긴 머리"
-
-#. ~ Description for {'str': 'Hair: red, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long red hair style."
-msgstr "적발 긴 머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, crew-cut"
-msgstr "머리: 회색 크루컷"
-
-#. ~ Description for {'str': 'Hair: gray, crew-cut'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Crewcut gray hair style."
-msgstr "짧게 자른 회색 스포츠형 머리입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, mohawk"
-msgstr "머리: 회색 모히칸"
-
-#. ~ Description for {'str': 'Hair: gray, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk gray hair style."
-msgstr "회색 모히칸형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, 'fro"
-msgstr "머리: 회색 아프로"
-
-#. ~ Description for {'str': "Hair: gray, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro gray hair style."
-msgstr "회색 아프로형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, short"
-msgstr "머리: 회색 단발머리"
-
-#. ~ Description for {'str': 'Hair: gray, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short gray hair style"
-msgstr "회색 단발형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, medium-length"
-msgstr "머리: 회색 중간머리"
-
-#. ~ Description for {'str': 'Hair: gray, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length gray hair style."
-msgstr "회색 중간머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, long"
-msgstr "머리: 회색 긴 머리"
-
-#. ~ Description for {'str': 'Hair: gray, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long gray hair style."
-msgstr "회색 긴 머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, crew-cut"
-msgstr "머리: 흰색 크루컷"
-
-#. ~ Description for {'str': 'Hair: white, crew-cut'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Crewcut white hair style."
-msgstr "짧게 자른 새하얀 스포츠형 머리입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, mohawk"
-msgstr "머리: 흰색 모히칸"
-
-#. ~ Description for {'str': 'Hair: white, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk white hair style."
-msgstr "새하얀 모히칸형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, 'fro"
-msgstr "머리: 흰색 아프로"
-
-#. ~ Description for {'str': "Hair: white, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro white hair style."
-msgstr "새하얀 아프로형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, short"
-msgstr "머리: 흰색 단발머리"
-
-#. ~ Description for {'str': 'Hair: white, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short white hair style"
-msgstr "새하얀 단발형 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, medium-length"
-msgstr "머리: 흰색 중간머리"
-
-#. ~ Description for {'str': 'Hair: white, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length white hair style."
-msgstr "새하얀 중간머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, long"
-msgstr "머리: 흰색 긴 머리"
-
-#. ~ Description for {'str': 'Hair: white, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long white hair style."
-msgstr "새하얀 긴 머리 헤어 스타일입니다."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: none"
-msgstr "머리: 대머리"
-
-#. ~ Description for {'str': 'Hair: none'}
-#: data/json/mutations/mutation_appearance.json
-msgid "You are bald."
-msgstr "당신은 머리카락이 없습니다. 쉽게 말해 대머리입니다."
+msgid "bald"
+msgstr "대머리"
 
 #: data/json/mutations/mutation_appearance.json
 msgid "Eye color: blue"
@@ -142691,10 +142964,6 @@ msgid ""
 msgstr ""
 "한때 당신에게 심신의 안녕을 의탁했으나, 당신의 괴롭힘과 무능력으로 인해 반란을 일으킨 생존자들입니다. 가능하다면 당신을 죽이려 들 "
 "것입니다."
-
-#: data/json/npcs/factions.json
-msgid "Hub 01"
-msgstr "허브 01"
 
 #. ~ Description for Hub 01
 #: data/json/npcs/factions.json
@@ -192555,7 +192824,7 @@ msgstr ""
 #: data/mods/Aftershock/items/tools.json
 msgid "bionic maintenance toolkit"
 msgid_plural "bionic maintenance toolkits"
-msgstr[0] "바이오닉 정비용 툴킷"
+msgstr[0] "바이오닉 정비용 도구모음"
 
 #. ~ Description for {'str': 'bionic maintenance toolkit'}
 #: data/mods/Aftershock/items/tools.json
@@ -192571,7 +192840,7 @@ msgstr ""
 #: data/mods/Aftershock/items/tools.json
 msgid "complete bionic toolkit"
 msgid_plural "complete bionic toolkits"
-msgstr[0] "완전한 바이오닉 툴킷"
+msgstr[0] "바이오닉 조립용 도구모음"
 
 #. ~ Description for {'str': 'complete bionic toolkit'}
 #: data/mods/Aftershock/items/tools.json
@@ -197637,7 +197906,7 @@ msgid ""
 "protection.  A few filters provide decent environmental safety, but it was "
 "not intended for extended use.  It has a basic integrated HUD."
 msgstr ""
-"C.R.I.T. 제식 안면 보호구로, 케블라를 덧대어 방호력을 보강했습니다. 필터 몇 장이 있어 약간의 환경 저항력이 있지만, 장기간 "
+"C.R.I.T. 제식 안면 보호구로, 케블라를 덧대어 방호력을 보강했습니다. 필터 몇 장이 있어 약간의 환경 방호력이 있지만, 장기간 "
 "사용에 적합하지는 않습니다. 기초적인 HUD가 내장되어 있습니다."
 
 #: data/mods/CRT_EXPANSION/items/crt_armor.json
@@ -201017,6 +201286,89 @@ msgstr "\"좀 뒤져라!!\""
 #: data/mods/Civilians/speech.json
 msgid "an unrestrained warcry."
 msgstr "억누를 수 없는 전투함성"
+
+#: data/mods/Color_Expansion/modinfo.json
+msgid "Color Expansion"
+msgstr "색상 확장"
+
+#. ~ Description for Color Expansion
+#: data/mods/Color_Expansion/modinfo.json
+msgid ""
+"Changes how color based mutations are rendered, and adds more of them. Also "
+"lets women have beards."
+msgstr "색상 기반 돌연변이가 렌더링되는 방식을 변경하고, 색상을 추가합니다. 덤으로 여성이 턱수염을 기를 수 있도록 설정합니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Eye color: pink"
+msgstr "눈 색: 분홍색"
+
+#. ~ Description for {'str': 'Eye color: pink'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have oddly pink eyes."
+msgstr "당신의 눈은 기이한 분홍색입니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Eye color: white"
+msgstr "눈 색: 흰색"
+
+#. ~ Description for {'str': 'Eye color: white'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have no visible irises."
+msgstr "당신의 눈에는 뚜렷한 홍채가 없습니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Eye color: black"
+msgstr "눈 색: 검은색"
+
+#. ~ Description for {'str': 'Eye color: black'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "Your eyes are disconcertingly pitch black."
+msgstr "당신의 눈은 기묘할 정도로 짙은 검은색입니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: pink"
+msgstr "머리 색: 분홍색"
+
+#. ~ Description for {'str': 'Hair color: pink'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have pink hair."
+msgstr "당신의 머리는 분홍색입니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: blue"
+msgstr "머리 색: 파란색"
+
+#. ~ Description for {'str': 'Hair color: blue'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have blue hair."
+msgstr "당신의 머리는 파란색입니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: green"
+msgstr "머리 색: 초록색"
+
+#. ~ Description for {'str': 'Hair color: green'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have green hair."
+msgstr "당신의 머리는 초록색입니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: purple"
+msgstr "머리 색: 보라색"
+
+#. ~ Description for {'str': 'Hair color: purple'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have purple hair."
+msgstr "당신의 머리는 보라색입니다."
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: cyan"
+msgstr "머리 색: 청록색"
+
+#. ~ Description for {'str': 'Hair color: cyan'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have cyan hair."
+msgstr "당신의 머리는 청록색입니다."
 
 #: data/mods/CrazyCataclysm/crazy_aperturepotato.json
 msgid "companion potato"
@@ -227384,6 +227736,15 @@ msgid ""
 "Removes all monsters from the game, save for those in the WILDLIFE category."
 msgstr "게임에서 야생동물을 제외한 모든 괴물을 제거합니다."
 
+#: data/mods/Spawn_Hook_Test/modinfo.json
+msgid "Spawn hook testing"
+msgstr "생성 훅 테스트"
+
+#. ~ Description for Spawn hook testing
+#: data/mods/Spawn_Hook_Test/modinfo.json
+msgid "Testing spawn hooks. It should be obsolete after testing!"
+msgstr "테스트용 생성 훅입니다. 테스트가 끝난 뒤에는 구식화되어야 합니다!"
+
 #: data/mods/StatsThroughSkills/modinfo.json
 msgid "Stats Through Skills"
 msgstr "기술 성장 비례 능력 성장"
@@ -227504,6 +227865,15 @@ msgstr "밝은 밤"
 #: data/mods/bn/modinfo.json
 msgid "Core content for Cataclysm-BN"
 msgstr "카타클리즘 BN의 중심 컨텐츠"
+
+#: data/mods/callback_lua_test/modinfo.json
+msgid "Callback Lua Test"
+msgstr "Lua 콜백 테스트"
+
+#. ~ Description for Callback Lua Test
+#: data/mods/callback_lua_test/modinfo.json
+msgid "Mod for testing callbacks for items, bionics, and mutations."
+msgstr "물품, 바이오닉, 돌연변이 콜백 테스트용 모드입니다."
 
 #: data/mods/cbm_slots/modinfo.json
 msgid "Bionic Slots"
@@ -234610,16 +234980,16 @@ msgid "Try"
 msgstr "시도"
 
 #: src/action.cpp
+msgid "Look"
+msgstr "보기"
+
+#: src/action.cpp
 msgid "Interact"
 msgstr "상호작용"
 
 #: src/action.cpp src/advanced_inv.cpp src/game_inventory.cpp
 msgid "Inventory"
 msgstr "소지품"
-
-#: src/action.cpp
-msgid "Look"
-msgstr "보기"
 
 #: src/action.cpp src/game.cpp
 msgid "Combat"
@@ -236811,11 +237181,11 @@ msgstr "타격:"
 
 #: src/armor_layers.cpp
 msgid "Cut:"
-msgstr "베기 피해: "
+msgstr "베기: "
 
 #: src/armor_layers.cpp
 msgid "Ballistic:"
-msgstr "투사체 피해:"
+msgstr "투사체:"
 
 #: src/armor_layers.cpp
 msgid "Acid:"
@@ -240178,347 +240548,347 @@ msgstr "토요일"
 
 #: src/catalua_bindings_item.cpp
 msgid "No effect"
-msgstr ""
+msgstr "효과 없음"
 
 #: src/catalua_bindings_item.cpp
 msgid "Strength +4"
-msgstr ""
+msgstr "체력 +4"
 
 #: src/catalua_bindings_item.cpp
 msgid "Dexterity +4"
-msgstr ""
+msgstr "민첩성 +4"
 
 #: src/catalua_bindings_item.cpp
 msgid "Perception +4"
-msgstr ""
+msgstr "지각력 +4"
 
 #: src/catalua_bindings_item.cpp
 msgid "Intelligence +4"
-msgstr ""
+msgstr "지능 +4"
 
 #: src/catalua_bindings_item.cpp
 msgid "All stats +2"
-msgstr ""
+msgstr "모든 능력치 +2"
 
 #: src/catalua_bindings_item.cpp
 msgid "Speed +20"
-msgstr ""
+msgstr "속도 +20"
 
 #: src/catalua_bindings_item.cpp
 msgid "Reduces radiation"
-msgstr ""
+msgstr "방사능 감소"
 
 #: src/catalua_bindings_item.cpp
 msgid "Summons friendly snakes when you're hit"
-msgstr ""
+msgstr "피격당하면 우호적인 뱀 소환"
 
 #: src/catalua_bindings_item.cpp
 msgid "Makes you invisible"
-msgstr ""
+msgstr "투명화"
 
 #: src/catalua_bindings_item.cpp
 msgid "See through walls"
-msgstr ""
+msgstr "엑스레이 시야"
 
 #: src/catalua_bindings_item.cpp
 msgid "See through walls farther"
-msgstr ""
+msgstr "향상된 엑스레이 시야"
 
 #: src/catalua_bindings_item.cpp
 msgid "See through walls at great distance"
-msgstr ""
+msgstr "상위 엑스레이 시야"
 
 #: src/catalua_bindings_item.cpp
 msgid "Your steps are quieted"
-msgstr ""
+msgstr "발걸음 소음 감소"
 
 #: src/catalua_bindings_item.cpp
 msgid "May extinguish nearby flames"
-msgstr ""
+msgstr "인근 불 소화"
 
 #: src/catalua_bindings_item.cpp
 msgid "Emits light"
-msgstr ""
+msgstr "발광"
 
 #: src/catalua_bindings_item.cpp
 msgid "Protects from fear and paralysis"
-msgstr ""
+msgstr "공포 및 마비로부터 보호"
 
 #: src/catalua_bindings_item.cpp
 msgid "Protection from electricity"
-msgstr ""
+msgstr "전격으로부터 보호"
 
 #: src/catalua_bindings_item.cpp
 msgid "Increases carrying capacity"
-msgstr ""
+msgstr "운반용량 증가"
 
 #: src/catalua_bindings_item.cpp
 msgid "Killing non-zombie monsters may heal you"
-msgstr ""
+msgstr "좀비가 아닌 괴물 처치시 치유"
 
 #: src/catalua_bindings_item.cpp
 msgid "Passive morale boost"
-msgstr ""
+msgstr "상시 기분 상승"
 
 #: src/catalua_bindings_item.cpp
 msgid "Increases hunger"
-msgstr ""
+msgstr "허기 증가"
 
 #: src/catalua_bindings_item.cpp
 msgid "Increases thirst"
-msgstr ""
+msgstr "갈증 증가"
 
 #: src/catalua_bindings_item.cpp
 msgid "Emits smoke occasionally"
-msgstr ""
+msgstr "주기적 연기 배출"
 
 #: src/catalua_bindings_item.cpp
 msgid "Adds an evil presence"
-msgstr ""
+msgstr "사악한 존재감 부여"
 
 #: src/catalua_bindings_item.cpp
 msgid "Mimics schizophrenia"
-msgstr ""
+msgstr "조현병 효과"
 
 #: src/catalua_bindings_item.cpp
 msgid "Increases your radiation"
-msgstr ""
+msgstr "방사능 증가"
 
 #: src/catalua_bindings_item.cpp
 msgid "Mutates you slowly"
-msgstr ""
+msgstr "느린 변이 발생"
 
 #: src/catalua_bindings_item.cpp
 msgid "Draws netherworld attention"
-msgstr ""
+msgstr "이계의 관심 유발"
 
 #: src/catalua_bindings_item.cpp
 msgid "Strength -3"
-msgstr ""
+msgstr "체력 -3"
 
 #: src/catalua_bindings_item.cpp
 msgid "Dexterity -3"
-msgstr ""
+msgstr "민첩성 -3"
 
 #: src/catalua_bindings_item.cpp
 msgid "Perception -3"
-msgstr ""
+msgstr "지각력 -3"
 
 #: src/catalua_bindings_item.cpp
 msgid "Intelligence -3"
-msgstr ""
+msgstr "지능 -3"
 
 #: src/catalua_bindings_item.cpp
 msgid "All stats -2"
-msgstr ""
+msgstr "모든 능력치 -2"
 
 #: src/catalua_bindings_item.cpp
 msgid "Speed -20"
-msgstr ""
+msgstr "속도 -20"
 
 #: src/catalua_bindings_item.cpp
 msgid "Occasionally forces a teleport"
-msgstr ""
+msgstr "주기적 강제 공간이동"
 
 #: src/catalua_bindings_item.cpp
 msgid "Makes noise when you move"
-msgstr ""
+msgstr "이동시 소음 유발"
 
 #: src/catalua_bindings_item.cpp
 msgid "More likely to experience bad weather"
-msgstr ""
+msgstr "악천후 가능성 상승"
 
 #: src/catalua_bindings_item.cpp
 msgid "Decreases health over time"
-msgstr ""
+msgstr "지속적 건강 악화"
 
 #: src/catalua_bindings_item.cpp
 msgid "Unknown effect"
-msgstr ""
+msgstr "알 수 없는 효과"
 
 #: src/catalua_bindings_item.cpp
 msgid "Emits shock fields"
-msgstr ""
+msgstr "전기장 유발"
 
 #: src/catalua_bindings_item.cpp
 msgid "Launches fireballs"
-msgstr ""
+msgstr "화염구 발사"
 
 #: src/catalua_bindings_item.cpp
 msgid "Adrenaline rush"
-msgstr ""
+msgstr "아드레날린 분비"
 
 #: src/catalua_bindings_item.cpp
 msgid "Reveals the area around you"
-msgstr ""
+msgstr "인근 지역 드러냄"
 
 #: src/catalua_bindings_item.cpp
 msgid "Shoots blood all over"
-msgstr ""
+msgstr "사방에 피를 흩뿌림"
 
 #: src/catalua_bindings_item.cpp
 msgid "Creates interdimensional fatigue"
-msgstr ""
+msgstr "초차원적 피로 유발"
 
 #: src/catalua_bindings_item.cpp
 msgid "Launches acid"
-msgstr ""
+msgstr "강산 분출"
 
 #: src/catalua_bindings_item.cpp
 msgid "Destroys adjacent terrain"
-msgstr ""
+msgstr "인근 지형 파괴"
 
 #: src/catalua_bindings_item.cpp
 msgid "Heals minor damage"
-msgstr ""
+msgstr "가벼운 상처 치료"
 
 #: src/catalua_bindings_item.cpp
 msgid "Confuses nearby monsters"
-msgstr ""
+msgstr "근처 괴물을 혼란에 빠뜨림"
 
 #: src/catalua_bindings_item.cpp
 msgid "May make nearby monsters friendly"
-msgstr ""
+msgstr "근처 괴물을 우호적으로 만듬"
 
 #: src/catalua_bindings_item.cpp
 msgid "May summon friendly insects"
-msgstr ""
+msgstr "우호적 곤충 소환"
 
 #: src/catalua_bindings_item.cpp
 msgid "Teleports you"
-msgstr ""
+msgstr "자신을 공간이동시킴"
 
 #: src/catalua_bindings_item.cpp
 msgid "Temporary light source"
-msgstr ""
+msgstr "일시적 광원"
 
 #: src/catalua_bindings_item.cpp
 msgid "Rapid plant growth"
-msgstr ""
+msgstr "신속한 식물 성장"
 
 #: src/catalua_bindings_item.cpp
 msgid "Hurts all monsters"
-msgstr ""
+msgstr "모든 괴물에게 피해입힘"
 
 #: src/catalua_bindings_item.cpp
 msgid "Temporary morale bonus"
-msgstr ""
+msgstr "일시적 기분 상승"
 
 #: src/catalua_bindings_item.cpp
 msgid "Spews radioactive gas"
-msgstr ""
+msgstr "방사성 가스 분출"
 
 #: src/catalua_bindings_item.cpp
 msgid "Chance of mutation"
-msgstr ""
+msgstr "돌연변이 가능성 발생"
 
 #: src/catalua_bindings_item.cpp
 msgid "Paralyzes you"
-msgstr ""
+msgstr "자신을 마비시킴"
 
 #: src/catalua_bindings_item.cpp
 msgid "Spreads fire around you"
-msgstr ""
+msgstr "주변에 불을 피움"
 
 #: src/catalua_bindings_item.cpp
 msgid "Draws attention from sub-prime denizens"
-msgstr ""
+msgstr "하위 거주민의 관심을 유발함"
 
 #: src/catalua_bindings_item.cpp
 msgid "Causes teleglow"
-msgstr ""
+msgstr "텔레포트 후유증을 유발함"
 
 #: src/catalua_bindings_item.cpp
 msgid "Loud noise"
-msgstr ""
+msgstr "커다란 소음"
 
 #: src/catalua_bindings_item.cpp
 msgid "Noise and morale penalty"
-msgstr ""
+msgstr "소음 및 기분 악화"
 
 #: src/catalua_bindings_item.cpp
 msgid "Darkens the sky"
-msgstr ""
+msgstr "하늘을 어둡게 만듬"
 
 #: src/catalua_bindings_item.cpp
 msgid "Flashbang"
-msgstr ""
+msgstr "섬광탄"
 
 #: src/catalua_bindings_item.cpp
 msgid "User vomits"
-msgstr ""
+msgstr "사용자가 구토함"
 
 #: src/catalua_bindings_item.cpp
 msgid "Summons shadow creatures"
-msgstr ""
+msgstr "그림자 개체를 소환함"
 
 #: src/catalua_bindings_item.cpp
 msgid "Empties most of your stamina"
-msgstr ""
+msgstr "지구력 대부분을 비워버림"
 
 #: src/catalua_bindings_item.cpp
 msgid "No charges"
-msgstr ""
+msgstr "충전량 없음"
 
 #: src/catalua_bindings_item.cpp
 msgid "Recharges over time"
-msgstr ""
+msgstr "시간 경과에 따라 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Recharges in sunlight"
-msgstr ""
+msgstr "햇빛을 받아 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Recharges from pain"
-msgstr ""
+msgstr "고통에 의해 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Recharges from health loss"
-msgstr ""
+msgstr "건강을 악화시키고 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Recharges from fatigue"
-msgstr ""
+msgstr "피로를 유발하고 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Recharges near portals"
-msgstr ""
+msgstr "포탈 인근에서 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Unknown charge type"
-msgstr ""
+msgstr "알 수 없는 충전 유형"
 
 #: src/catalua_bindings_item.cpp
 msgid "No special requirement"
-msgstr ""
+msgstr "필요한 요구사항 없음"
 
 #: src/catalua_bindings_item.cpp
 msgid "Must be equipped"
-msgstr ""
+msgstr "반드시 장비되어야 함"
 
 #: src/catalua_bindings_item.cpp
 msgid "Must be worn against bare skin"
-msgstr ""
+msgstr "반드시 맨몸에 착용되어야 함"
 
 #: src/catalua_bindings_item.cpp
 msgid "Charges while sleeping"
-msgstr ""
+msgstr "수면 중에 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Charges in radiation"
-msgstr ""
+msgstr "방사능을 통해 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Charges while wet"
-msgstr ""
+msgstr "젖어있을 때 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Charges under open sky"
-msgstr ""
+msgstr "맑은 하늘 아래에서 재충전됨"
 
 #: src/catalua_bindings_item.cpp
 msgid "Unknown charge requirement"
-msgstr ""
+msgstr "알 수 없는 충전 요구사항"
 
 #: src/catalua_console.cpp
 msgid "Press Ctrl+S to run script, press Esc to cancel"
@@ -253551,9 +253921,48 @@ msgid "You squeeze the last drops of %s from the vat."
 msgstr "통에서 %s(을)를 마지막 한 방울까지 짜냅니다."
 
 #: src/iexamine.cpp
+msgid ""
+"Adding clean water to this grid containing tainted water will contaminate "
+"your clean water.  Continue?"
+msgstr "깨끗한 물을 이 수도망에 추가하면 수도망에 저장된 오염된 물에 의해 함께 오염될 것입니다. 계속합니까?"
+
+#: src/iexamine.cpp
+msgid ""
+"Adding tainted water to this grid containing clean water will contaminate "
+"your clean water.  Continue?"
+msgstr "오염된 물을 이 수도망에 추가하면 수도망에 저장된 깨끗한 물이 오염됩니다. 계속합니까?"
+
+#: src/iexamine.cpp
 #, c-format
-msgid "You don't have any drinks to fill the %s with."
-msgstr "%s에 채울 음료가 없습니다."
+msgid "Adding %s will contaminate the fluid grid's water supply.  Continue?"
+msgstr "%s(을)를 추가하면 수도망에서 공급되는 물이 오염됩니다. 계속합니까?"
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s contains non-water liquids and cannot be connected."
+msgstr "%s(은)는 물이 아닌 액체를 담고 있어 연결할 수 없습니다."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "Dispense or dump %s"
+msgstr "%s(을)를 꺼내거나 버리기"
+
+#: src/iexamine.cpp src/vehicle_use.cpp
+msgid "Have a drink"
+msgstr "마시기"
+
+#: src/iexamine.cpp
+msgid "Fill"
+msgstr "채우기"
+
+#: src/iexamine.cpp
+msgid "Disconnect from fluid grid"
+msgstr "수도망에서 제거"
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You don't have any water to fill the %s with."
+msgstr "%s에 채울 물이 부족합니다."
 
 #: src/iexamine.cpp
 msgid "Store which drink?"
@@ -253566,22 +253975,55 @@ msgstr "%1$s에 %2$s(을)를 담습니까?"
 
 #: src/iexamine.cpp
 #, c-format
-msgid "You completely fill the %1$s with %2$s."
-msgstr "%1$s에 %2$s(을)를 완전히 채웠다."
+msgid "The %s cannot hold any more water."
+msgstr "%s에 물을 그 이상 저장할 수 없습니다."
 
 #: src/iexamine.cpp
 #, c-format
 msgid "You fill the %1$s with %2$s."
 msgstr "%1$s에 %2$s(을)를 담았다."
 
+#: src/iexamine.cpp src/iuse.cpp
+#, c-format
+msgid "Fluid stored: %1$s/%2$s %3$s."
+msgstr "저장된 액체: %1$s/%2$s %3$s."
+
+#: src/iexamine.cpp src/vehicle_display.cpp
+msgid "empty"
+msgstr "비어있음"
+
+#: src/iexamine.cpp
+msgid "mixed fluids"
+msgstr "혼합된 액체"
+
 #: src/iexamine.cpp
 #, c-format
-msgid "Dispense or dump %s"
-msgstr "%s(을)를 꺼내거나 버리기"
+msgid "Fluid type: %s."
+msgstr "액체 종류: %s."
 
-#: src/iexamine.cpp src/vehicle_use.cpp
-msgid "Have a drink"
-msgstr "마시기"
+#: src/iexamine.cpp
+#, c-format
+msgid "You disconnect the %s from the fluid grid."
+msgstr "%s(을)를 수도망에서 제거합니다."
+
+#: src/iexamine.cpp
+msgid "Add to fluid grid"
+msgstr "수도망에 추가"
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You connect the %s to the fluid grid."
+msgstr "%s(을)를 수도망에 연결합니다."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You don't have any drinks to fill the %s with."
+msgstr "%s에 채울 음료가 없습니다."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You completely fill the %1$s with %2$s."
+msgstr "%1$s에 %2$s(을)를 완전히 채웠다."
 
 #: src/iexamine.cpp
 msgid "Refill"
@@ -253606,6 +254048,11 @@ msgstr "%2$s에 담을 %1$s(이)가 없습니다."
 #, c-format
 msgid "It contains %s (%d), %0.f%% full."
 msgstr "이 물품의 내용물은 %s (%d) 이며, 현재 %0.f%% 만큼 차있습니다."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s only accepts water."
+msgstr "%s(은)는 물만 수용할 수 있습니다."
 
 #: src/iexamine.cpp
 #, c-format
@@ -253792,6 +254239,20 @@ msgstr "%s(이)가 있습니다.  해제하겠습니까?"
 #, c-format
 msgid "There is a %s there.  Disarm?"
 msgstr "%s(이)가 있습니다. 해제합니까?"
+
+#: src/iexamine.cpp
+msgid "It is not connected to a fluid grid fixture."
+msgstr "대상은 수도망 기구에 연결되어있지 않습니다."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s has no usable output."
+msgstr "%s에 대해 사용할 수 있는 출구가 없습니다."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s is dry."
+msgstr "%s(은)는 메마른 상태입니다."
 
 #: src/iexamine.cpp
 msgid "What would you like to change?"
@@ -254849,11 +255310,11 @@ msgstr "신체부위"
 
 #: src/init.cpp
 msgid "Weather types"
-msgstr "날씨 타입"
+msgstr "날씨 종류"
 
 #: src/init.cpp
 msgid "Field types"
-msgstr "지형 타입"
+msgstr "지형 종류"
 
 #: src/init.cpp
 msgid "Ammo effects"
@@ -256198,7 +256659,7 @@ msgstr "화염 피해:"
 
 #: src/item.cpp
 msgid "Environmental: "
-msgstr "환경방호력:"
+msgstr "환경 방호력:"
 
 #: src/item.cpp
 msgid "<bold>Protection when active</bold>: "
@@ -257077,6 +257538,10 @@ msgstr " (삽입됨)"
 #: src/item.cpp src/wish.cpp
 msgid " (friendly)"
 msgstr " (우호적)"
+
+#: src/item.cpp
+msgid " (hostile)"
+msgstr " (적대적)"
 
 #: src/item.cpp
 msgid " *"
@@ -260661,6 +261126,29 @@ msgid "You will no longer recharge the %s via UPS."
 msgstr "더이상 %s(을)를 UPS로 충전하지 않습니다."
 
 #: src/iuse.cpp
+msgid "This fluid grid has no connections."
+msgstr "이 수도망에 연결이 존재하지 않습니다."
+
+#: src/iuse.cpp
+#, c-format
+msgid "This fluid grid has connections: %s."
+msgstr "이 수도망에 다음의 연결이 존재합니다: %s."
+
+#: src/iuse.cpp
+#, c-format
+msgid "%1$s: %2$s"
+msgstr "%1$s: %2$s"
+
+#: src/iuse.cpp
+msgid "Fluids: empty."
+msgstr "액체: 비어있음."
+
+#: src/iuse.cpp
+#, c-format
+msgid "Fluids: %s."
+msgstr "액체: %s."
+
+#: src/iuse.cpp
 #, c-format
 msgid "You are connecting two locations in the same grid, with %lu elements."
 msgstr "동일한 전력망 (%lu) 내의 두 지점을 연결하려 하고 있습니다."
@@ -260697,6 +261185,16 @@ msgstr ""
 "%s\n"
 "이 행동은 아무 자원도 소모하지 않을 것입니다.\n"
 "이대로 진행할까요?"
+
+#: src/iuse.cpp
+#, c-format
+msgid "Remove fluid grid connection in direction: %s"
+msgstr "%s 방향의 수도망 연결 제거"
+
+#: src/iuse.cpp
+#, c-format
+msgid "Add fluid grid connection in direction: %s"
+msgstr "%s 방향의 수도망 연결 추가"
 
 #: src/iuse.cpp
 msgid "Select body part to amputate:"
@@ -261598,7 +262096,7 @@ msgstr "기본 붕대 품질: "
 
 #: src/iuse_actor.cpp
 msgid "Actual bandaging quality: "
-msgstr "실제 붕대 품질:"
+msgstr "실제 붕대 품질: "
 
 #: src/iuse_actor.cpp
 msgid "Base disinfecting quality: "
@@ -271143,6 +271641,10 @@ msgstr "%s 시나리오로 인해 이 특성을 제거할 수 없습니다."
 #, c-format
 msgid "Your profession of %s prevents you from removing this trait."
 msgstr "%s 직업으로 인해 이 특성을 제거할 수 없습니다."
+
+#: src/newcharacter.cpp
+msgid "You must have a trait of this type."
+msgstr "이 종류의 특성을 반드시 갖고 있어야 합니다."
 
 #: src/newcharacter.cpp
 msgid "You already picked a conflicting trait!"
@@ -281591,8 +282093,8 @@ msgid "You lose control as the vehicle starts skidding."
 msgstr "차가 미끄러지자 통제력을 잃습니다."
 
 #: src/vehicle_autodrive.cpp
-msgid "Autodrive is not good enough for planes."
-msgstr "자동주행 기능은 아직 비행기에 쓸 만큼 뛰어나지 못합니다."
+msgid "Autodrive is not good enough for flying planes."
+msgstr "자동주행 기능은 아직 비행선에 쓸 만큼 뛰어나지 못합니다."
 
 #: src/vehicle_autodrive.cpp
 msgid "Can't see a path forward."
@@ -281660,10 +282162,6 @@ msgstr "kJ"
 #: src/vehicle_display.cpp
 msgid "full"
 msgstr "가득참"
-
-#: src/vehicle_display.cpp
-msgid "empty"
-msgstr "비어있음"
 
 #: src/vehicle_display.cpp
 #, c-format

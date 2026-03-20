@@ -5,7 +5,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: cataclysm-bn\n"
-"POT-Creation-Date: 2026-02-06 21:33+0000\n"
+"POT-Creation-Date: 2026-02-12 01:08+0000\n"
 "Last-Translator: Coolthulhu <Coolthulhu@gmail.com>, 2026\n"
 "Language-Team: German (https://app.transifex.com/bn-team/teams/113585/de/)\n"
 "MIME-Version: 1.0\n"
@@ -4252,7 +4252,8 @@ msgstr ""
 msgid ""
 "This stripped down mini-reactor generates impressive amounts of bionic power"
 " but slowly irradiates the user when in use.  1 plutonium fuel cell provides"
-" 1000 charges producing 10kW of power a turn."
+" 1000 charges producing 10kW of power.  Produces 50W of power while "
+"inactive."
 msgstr ""
 
 #: data/json/bionics.json
@@ -4264,7 +4265,7 @@ msgstr ""
 msgid ""
 "This stripped down mini-reactor has been heavily modified and is more "
 "efficient and safer than the base model.  1 plutonium fuel cell provides "
-"1500 charges producing 10kW of power."
+"1500 charges producing 10kW of power.  Produces 75W of power while inactive."
 msgstr ""
 
 #: data/json/bionics.json
@@ -4287,8 +4288,7 @@ msgstr ""
 #: data/json/bionics.json
 msgid ""
 "A compact alphavoltaic power source, producing a steady source of limitless "
-"bionic power at the cost of minimal radiation while in use.  Produces 50W of"
-" power while active."
+"bionic power.  Produces 50W of power while active."
 msgstr ""
 
 #: data/json/bionics.json
@@ -5503,6 +5503,10 @@ msgid "Build Warehouse Shelf"
 msgstr ""
 
 #: data/json/construction_group.json
+msgid "Build Rain Collector"
+msgstr ""
+
+#: data/json/construction_group.json
 msgid "Build Water Well"
 msgstr "Brunnen bauen"
 
@@ -6248,6 +6252,118 @@ msgstr ""
 
 #: data/json/construction_group.json
 msgid "Build canvas door"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Peanut Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Peanut Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Peanut Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Peanut Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Blueberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Blueberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Blueberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Blueberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Strawberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Strawberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Strawberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Strawberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Blackberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Blackberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Blackberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Blackberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Huckleberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Huckleberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Huckleberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Huckleberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Raspberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Raspberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Raspberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Raspberry Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Grape Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Grape Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Replant Harvested Grape Bush"
+msgstr ""
+
+#: data/json/construction_group.json
+msgid "Dig Up Harvested Grape Bush"
 msgstr ""
 
 #: data/json/construction_group.json
@@ -11660,6 +11776,13 @@ msgstr ""
 
 #. ~ Please leave anything in <angle brackets> unchanged.
 #: data/json/flags.json
+msgid ""
+"Any creature spawned from this item will <info>always</info> emerge "
+"<bad>against you</good>."
+msgstr ""
+
+#. ~ Please leave anything in <angle brackets> unchanged.
+#: data/json/flags.json
 msgid "This comestible can be <good>eaten even on full stomach</good>."
 msgstr ""
 
@@ -12852,7 +12975,15 @@ msgid "Check grid connections"
 msgstr ""
 
 #: data/json/item_actions.json
+msgid "Check fluid grid connections"
+msgstr ""
+
+#: data/json/item_actions.json
 msgid "Modify grid connections"
+msgstr ""
+
+#: data/json/item_actions.json
+msgid "Modify fluid grid connections"
 msgstr ""
 
 #: data/json/item_actions.json
@@ -26144,40 +26275,6 @@ msgctxt "start_name"
 msgid "Lake Surface"
 msgstr ""
 
-#. ~ Name for scenario 'Large Building' for a male character
-#: data/json/scenarios.json
-msgctxt "scenario_male"
-msgid "Large Building"
-msgstr ""
-
-#. ~ Name for scenario 'Large Building' for a female character
-#: data/json/scenarios.json
-msgctxt "scenario_female"
-msgid "Large Building"
-msgstr ""
-
-#. ~ Description for scenario 'Large Building' for a male character.
-#: data/json/scenarios.json
-msgctxt "scen_desc_male"
-msgid ""
-"Whether due to stubbornness, ignorance, or just plain bad luck, you missed "
-"the evacuation, and are stuck in a large building full of the risen dead."
-msgstr ""
-
-#. ~ Description for scenario 'Large Building' for a female character.
-#: data/json/scenarios.json
-msgctxt "scen_desc_female"
-msgid ""
-"Whether due to stubbornness, ignorance, or just plain bad luck, you missed "
-"the evacuation, and are stuck in a large building full of the risen dead."
-msgstr ""
-
-#. ~ Starting location for scenario 'Large Building'.
-#: data/json/scenarios.json
-msgctxt "start_name"
-msgid "In Large Building"
-msgstr ""
-
 #. ~ Name for scenario 'Surrounded' for a male character
 #: data/json/scenarios.json
 msgctxt "scenario_male"
@@ -26238,6 +26335,40 @@ msgstr ""
 #: data/json/scenarios.json
 msgctxt "start_name"
 msgid "Safe Building"
+msgstr ""
+
+#. ~ Name for scenario 'Survivor Holdout' for a male character
+#: data/json/scenarios.json
+msgctxt "scenario_male"
+msgid "Survivor Holdout"
+msgstr ""
+
+#. ~ Name for scenario 'Survivor Holdout' for a female character
+#: data/json/scenarios.json
+msgctxt "scenario_female"
+msgid "Survivor Holdout"
+msgstr ""
+
+#. ~ Description for scenario 'Survivor Holdout' for a male character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_male"
+msgid ""
+"A few days after fleeing the chaos of the cities, you've finally found a "
+"place still inhabited by the living."
+msgstr ""
+
+#. ~ Description for scenario 'Survivor Holdout' for a female character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_female"
+msgid ""
+"A few days after fleeing the chaos of the cities, you've finally found a "
+"place still inhabited by the living."
+msgstr ""
+
+#. ~ Starting location for scenario 'Survivor Holdout'.
+#: data/json/scenarios.json
+msgctxt "start_name"
+msgid "Inhabited Refuge"
 msgstr ""
 
 #. ~ Name for scenario 'Infected' for a male character
@@ -27077,6 +27208,40 @@ msgstr ""
 #: data/json/scenarios.json
 msgctxt "start_name"
 msgid "Emergency Landing Site"
+msgstr ""
+
+#. ~ Name for scenario 'Basement Dweller' for a male character
+#: data/json/scenarios.json
+msgctxt "scenario_male"
+msgid "Basement Dweller"
+msgstr ""
+
+#. ~ Name for scenario 'Basement Dweller' for a female character
+#: data/json/scenarios.json
+msgctxt "scenario_female"
+msgid "Basement Dweller"
+msgstr ""
+
+#. ~ Description for scenario 'Basement Dweller' for a male character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_male"
+msgid ""
+"You were happiest tucked away below street level, tinkering and hiding in "
+"your basement."
+msgstr ""
+
+#. ~ Description for scenario 'Basement Dweller' for a female character.
+#: data/json/scenarios.json
+msgctxt "scen_desc_female"
+msgid ""
+"You were happiest tucked away below street level, tinkering and hiding in "
+"your basement."
+msgstr ""
+
+#. ~ Starting location for scenario 'Basement Dweller'.
+#: data/json/scenarios.json
+msgctxt "start_name"
+msgid "Basement Hideout"
 msgstr ""
 
 #. ~ Name for scenario 'High Tech, Low Life' for a male character
@@ -30418,6 +30583,10 @@ msgstr "Buchladen"
 msgid "Cabin"
 msgstr "Blockhaus"
 
+#: data/json/start_locations.json
+msgid "Warrener's Cabin"
+msgstr ""
+
 #: data/json/start_locations.json src/gamemode_defense.cpp
 msgid "Hospital"
 msgstr "Krankenhaus"
@@ -30464,6 +30633,10 @@ msgstr "Gefrorenes Wissenschaftslabor"
 #: data/json/start_locations.json
 msgid "Deep-frozen science lab"
 msgstr "Tiefgefrorenes Wissenschaftslabor"
+
+#: data/json/start_locations.json data/json/npcs/factions.json
+msgid "Hub 01"
+msgstr ""
 
 #: data/json/start_locations.json
 msgid "Mall (loading area)"
@@ -30526,6 +30699,10 @@ msgid "Farm"
 msgstr "Bauernhof"
 
 #: data/json/start_locations.json
+msgid "Isherwood Farms"
+msgstr ""
+
+#: data/json/start_locations.json
 msgid "Church"
 msgstr "Kirche"
 
@@ -30537,6 +30714,34 @@ msgstr "Friedhof"
 #: data/json/start_locations.json
 msgid "Shady Basement"
 msgstr "Anrüchiger Keller"
+
+#: data/json/start_locations.json
+msgid "Game Room Basement"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Chemistry Basement"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Hidden Lab Stairs"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Meth Lab Basement"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Ruined Basement"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Prepper Basement"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Grow Operation Basement"
+msgstr ""
 
 #: data/json/start_locations.json
 msgid "Zoo (Giftshop)"
@@ -30564,6 +30769,18 @@ msgstr ""
 
 #: data/json/start_locations.json
 msgid "Horse Ranch"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Chemist's Cabin"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Inhabited Scrap Yard"
+msgstr ""
+
+#: data/json/start_locations.json
+msgid "Inhabited Lumbermill"
 msgstr ""
 
 #: data/json/start_locations.json
@@ -33943,7 +34160,10 @@ msgstr ""
 #. ~ Description for abstract air conditioner
 #. ~ Description for abstract space heater
 #. ~ Description for overhead light
+#. ~ Description for abstract water purifier
+#. ~ Description for abstract electric well pump
 #: data/json/furniture_and_terrain/furniture-appliances.json
+#: data/json/furniture_and_terrain/furniture-plumbing.json
 msgid "Abstract furniture.  If you see this, something went wrong."
 msgstr ""
 
@@ -37167,6 +37387,31 @@ msgid ""
 msgstr ""
 
 #: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "abstract water purifier"
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "water purifier (off)"
+msgstr ""
+
+#. ~ Description for water purifier (off)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid ""
+"This removes ions dissolved in the water, making it pretty clean, if you "
+"care about that kind of thing.  It is hooked into a fluid grid and switched "
+"off."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch on the water purifier."
+msgstr ""
+
+#. ~ Message for furniture 'water purifier (off)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch on the water purifier."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
 #: data/json/items/tool/cooking.json data/json/vehicleparts/vehicle_parts.json
 msgid "water purifier"
 msgid_plural "water purifiers"
@@ -37177,7 +37422,88 @@ msgstr[1] "Wasserreiniger"
 #: data/json/furniture_and_terrain/furniture-plumbing.json
 msgid ""
 "This removes ions dissolved in the water, making it pretty clean, if you "
-"care about that kind of thing."
+"care about that kind of thing.  It is hooked into a fluid grid."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch off the water purifier."
+msgstr ""
+
+#. ~ Message for furniture 'water purifier'
+#. ~ Message for furniture 'water purifier (on)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch off the water purifier."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "water purifier (on)"
+msgstr ""
+
+#. ~ Description for water purifier (on)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid ""
+"This removes ions dissolved in the water, making it pretty clean, if you "
+"care about that kind of thing.  It is hooked into a fluid grid and switched "
+"on."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "abstract electric well pump"
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "electric well pump (off)"
+msgstr ""
+
+#. ~ Description for electric well pump (off)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "An electric well pump connected to a fluid grid.  It is switched off."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch on the electric well pump."
+msgstr ""
+
+#. ~ Message for furniture 'electric well pump (off)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch on the electric well pump."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "electric well pump"
+msgstr ""
+
+#. ~ Description for electric well pump
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "An electric well pump connected to a fluid grid.  It has no power."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "Switch off the electric well pump."
+msgstr ""
+
+#. ~ Message for furniture 'electric well pump'
+#. ~ Message for furniture 'electric well pump (on)'
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "You switch off the electric well pump."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "electric well pump (on)"
+msgstr ""
+
+#. ~ Description for electric well pump (on)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "An electric well pump connected to a fluid grid.  It is switched on."
+msgstr ""
+
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "rain collector (plumbed)"
+msgstr ""
+
+#. ~ Description for rain collector (plumbed)
+#: data/json/furniture_and_terrain/furniture-plumbing.json
+msgid "A plumbed rain collector that feeds a fluid grid when it is raining."
 msgstr ""
 
 #: data/json/furniture_and_terrain/furniture-recreation.json
@@ -38316,6 +38642,15 @@ msgstr "Stehtank"
 msgid "A large freestanding metal tank, useful for holding liquids."
 msgstr ""
 "Ein großer freistehender Metalltank für das Aufbewahren von Flüssigkeiten."
+
+#: data/json/furniture_and_terrain/furniture-storage.json
+msgid "standing tank (plumbed)"
+msgstr ""
+
+#. ~ Description for standing tank (plumbed)
+#: data/json/furniture_and_terrain/furniture-storage.json
+msgid "A large freestanding metal tank hooked into a fluid grid."
+msgstr ""
 
 #: data/json/furniture_and_terrain/furniture-storage.json
 msgid "clay water pots"
@@ -49247,7 +49582,8 @@ msgstr[1] "Interner-Mikroreaktor-KBMs"
 msgid ""
 "This stripped down mini-reactor will generate impressive amounts of bionic "
 "power, but may not be the safest thing to install.  1 plutonium fuel cell "
-"provides 1000 charges producing 10kW of power."
+"provides 1000 charges producing 10kW of power.  Produces 50W of power while "
+"inactive."
 msgstr ""
 
 #: data/json/items/bionics.json
@@ -49261,7 +49597,8 @@ msgstr[1] "Fortgeschrittener-Mikroreaktor-KBMs"
 msgid ""
 "This module upgrades a pre-installed microreactor with enhanced maximum "
 "yield and limited automatic radiation scrubbing capabilities.  1 plutonium "
-"fuel cell provides 1500 charges producing 10kW of power."
+"fuel cell provides 1500 charges producing 10kW of power.  Produces 75W of "
+"power while inactive."
 msgstr ""
 
 #: data/json/items/bionics.json
@@ -49290,6 +49627,20 @@ msgid ""
 " Effectively a plutonium fuel cell converted into an alphavoltaic battery, "
 "this bionic will provide a limitless source of power at a steady 50 watts "
 "when active, with only minimal exposure to radiation while in use."
+msgstr ""
+
+#: data/json/items/bionics.json
+msgid "Atomic Battery Upgrade CBM"
+msgid_plural "Atomic Battery Upgrade CBMs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for {'str': 'Atomic Battery Upgrade CBM'}
+#: data/json/items/bionics.json
+msgid ""
+"A kit for upgrading a pre-installed atomic battery into a Microreactor, "
+"providing options for significantly more power generation potential and fuel"
+" capacity at the cost of increased radiation exposure."
 msgstr ""
 
 #: data/json/items/bionics.json
@@ -57087,6 +57438,124 @@ msgid ""
 "Huge archives of numerous IC circuit datasheets from several major "
 "manufacturers.  Probably valuable to the right person, as it would be hard "
 "to salvage and reuse these components without them."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "food bush"
+msgid_plural "food bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for food bush
+#: data/json/items/terrain.json
+msgid "A bush that is made of veggy and food. Seeing this is a bug."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted peanut bush"
+msgid_plural "uprooted peanut bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted peanut bush
+#: data/json/items/terrain.json
+msgid "A peanut bush that's ready for transplanting."
+msgstr ""
+
+#. ~ Description for uprooted peanut bush
+#: data/json/items/terrain.json
+msgid "A harvested peanut bush that's ready for transplanting."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted blueberry bush"
+msgid_plural "uprooted blueberry bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted blueberry bush
+#: data/json/items/terrain.json
+msgid "A blueberry bush that's ready for transplanting."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted strawberry bush"
+msgid_plural "uprooted strawberry bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted strawberry bush
+#: data/json/items/terrain.json
+msgid "A strawberry bush that's ready for transplanting."
+msgstr ""
+
+#. ~ Description for uprooted strawberry bush
+#: data/json/items/terrain.json
+msgid "A harvested strawberry bush that's ready for transplanting."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted blackberry bush"
+msgid_plural "uprooted blackberry bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted blackberry bush
+#: data/json/items/terrain.json
+msgid "A blackberry bush that's ready for transplanting."
+msgstr ""
+
+#. ~ Description for uprooted blackberry bush
+#: data/json/items/terrain.json
+msgid "A harvested blackberry bush that's ready for transplanting."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted huckleberry bush"
+msgid_plural "uprooted huckleberry bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted huckleberry bush
+#: data/json/items/terrain.json
+msgid "A huckleberry bush that's ready for transplanting."
+msgstr ""
+
+#. ~ Description for uprooted huckleberry bush
+#: data/json/items/terrain.json
+msgid "A harvested huckleberry bush that's ready for transplanting."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted raspberry bush"
+msgid_plural "uprooted raspberry bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted raspberry bush
+#: data/json/items/terrain.json
+msgid "A raspberry bush that's ready for transplanting."
+msgstr ""
+
+#. ~ Description for uprooted raspberry bush
+#: data/json/items/terrain.json
+msgid "A harvested raspberry bush that's ready for transplanting."
+msgstr ""
+
+#: data/json/items/terrain.json
+msgid "uprooted grape bush"
+msgid_plural "uprooted grape bushs"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for uprooted grape bush
+#: data/json/items/terrain.json
+msgid "A grape bush that's ready for transplanting."
+msgstr ""
+
+#. ~ Description for uprooted grape bush
+#: data/json/items/terrain.json
+msgid "A harvested grape bush that's ready for transplanting."
 msgstr ""
 
 #: data/json/items/tool_armor.json
@@ -107859,6 +108328,20 @@ msgid ""
 msgstr ""
 
 #: data/json/items/gunmod/accessories.json
+msgid "crossbow draw motor"
+msgid_plural "crossbow draw motors"
+msgstr[0] ""
+msgstr[1] ""
+
+#: data/json/items/gunmod/accessories.json
+msgid ""
+"An electric motor and transmission that can be attached to a crossbow's "
+"string to make it easier to draw back. It makes reloading faster, but "
+"requires UPS power and makes the crossbow bulkier and heavier. Who said "
+"crossbows needed to be medieval?"
+msgstr ""
+
+#: data/json/items/gunmod/accessories.json
 msgid "belt clip"
 msgid_plural "belt clips"
 msgstr[0] ""
@@ -126634,6 +127117,19 @@ msgstr ""
 "Absaugen von Treibstoff eines Fahrzeugs gebraucht werden."
 
 #: data/json/items/tool/workshop.json
+msgid "utility maintenance kit"
+msgid_plural "utility maintenance kits"
+msgstr[0] ""
+msgstr[1] ""
+
+#. ~ Description for {'str': 'utility maintenance kit'}
+#: data/json/items/tool/workshop.json
+msgid ""
+"A compact kit for probing, joining, and extending fluid grid connections in "
+"buildings."
+msgstr ""
+
+#: data/json/items/tool/workshop.json
 msgid "bottle jack"
 msgid_plural "bottle jacks"
 msgstr[0] "Flaschenwagenheber"
@@ -139868,337 +140364,121 @@ msgid ""
 msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, crew-cut"
-msgstr "Haar: schwarz, Bürstenschnitt"
+msgid "Hair color: black"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: black, crew-cut'}
+#. ~ Description for {'str': 'Hair color: black'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Crewcut black hair style."
-msgstr "Schwarzes Haar im Bürstenschnittstil."
+msgid "You have black hair."
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, mohawk"
-msgstr "Haar: schwarz, Irokesenschnitt"
+msgid "Hair color: brown"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: black, mohawk'}
+#. ~ Description for {'str': 'Hair color: brown'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Mohawk black hair style."
-msgstr "Schwarzes Haar im Irokesenschnitt."
+msgid "You have brown hair."
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, 'fro"
-msgstr "Haar: schwarz, Afro"
+msgid "Hair color: blond"
+msgstr ""
 
-#. ~ Description for {'str': "Hair: black, 'fro"}
+#. ~ Description for {'str': 'Hair color: blond'}
 #: data/json/mutations/mutation_appearance.json
-msgid "'Fro black hair style."
-msgstr "Schwarzes Haar im Afrostil."
+msgid "You have blond hair."
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, short"
-msgstr "Haar: schwarz, kurz"
+msgid "Hair color: red"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: black, short'}
+#. ~ Description for {'str': 'Hair color: red'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Short black hair style"
-msgstr "Schwarzes kurzes Haar"
+msgid "You have red hair."
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, medium-length"
-msgstr "Haar: schwarz, mittellang"
+msgid "Hair color: gray"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: black, medium-length'}
+#. ~ Description for {'str': 'Hair color: gray'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Medium-length black hair style."
-msgstr "Schwarzes Haar in mittlerer Länge."
+msgid "You have gray hair."
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: black, long"
-msgstr "Haar: schwarz, lang"
+msgid "Hair color: white"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: black, long'}
+#. ~ Description for {'str': 'Hair color: white'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Long black hair style."
-msgstr "Langes schwarzes Haar"
+msgid "You have white hair."
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, crew-cut"
-msgstr "Haar: braun, Bürstenschnitt"
+msgid "Hair style: crew-cut"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: brown, crew-cut'}
+#. ~ Description for {'str': 'Hair style: crew-cut'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Crewcut brown hair style."
-msgstr "Braunes Haar im Bürstenschnittstil."
+msgid "Crewcut hair"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, mohawk"
-msgstr "Haar: braun, Irokesenschnitt"
+msgid "Hair style: mohawk"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: brown, mohawk'}
+#. ~ Description for {'str': 'Hair style: mohawk'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Mohawk brown hair style."
-msgstr "Braunes Haar im Irokesenschnitt."
+msgid "Mohawk hair"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, 'fro"
-msgstr "Haar: braun, Afro"
+msgid "Hair style: 'fro"
+msgstr ""
 
-#. ~ Description for {'str': "Hair: brown, 'fro"}
+#. ~ Description for {'str': "Hair style: 'fro"}
 #: data/json/mutations/mutation_appearance.json
-msgid "'Fro brown hair style."
-msgstr "Braunes Haar im Afrostil."
+msgid "'Fro hair"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, short"
-msgstr "Haar: braun, kurz"
+msgid "Hair style: short"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: brown, short'}
+#. ~ Description for {'str': 'Hair style: short'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Short brown hair style"
-msgstr "Kurzes braunes Haar"
+msgid "Short hair"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, medium-length"
-msgstr "Haar: braun, mittellang"
+msgid "Hair style: medium-length"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: brown, medium-length'}
+#. ~ Description for {'str': 'Hair style: medium-length'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Medium-length brown hair style."
-msgstr "Braunes Haar in mittlerer Länge."
+msgid "Medium-length hair"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: brown, long"
-msgstr "Haar: braun, lang"
+msgid "Hair style: long"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: brown, long'}
+#. ~ Description for {'str': 'Hair style: long'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Long brown hair style."
-msgstr "Langes braunes Haar."
+msgid "Long hair"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, crew-cut"
-msgstr "Haar: blond, Bürstenschnitt"
+msgid "Hair style: bald"
+msgstr ""
 
-#. ~ Description for {'str': 'Hair: blond, crew-cut'}
+#. ~ Description for {'str': 'Hair style: bald'}
 #: data/json/mutations/mutation_appearance.json
-msgid "Crewcut blond hair style."
-msgstr "Blondes Haar im Bürstenschnittstil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, mohawk"
-msgstr "Haar: blond, Irokesenschnitt"
-
-#. ~ Description for {'str': 'Hair: blond, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk blond hair style."
-msgstr "Blondes Haar im Irokesenschnitt."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, 'fro"
-msgstr "Haar: blond, Afro"
-
-#. ~ Description for {'str': "Hair: blond, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro blond hair style."
-msgstr "Blondes Haar im Afrostil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, short"
-msgstr "Haar: blond, kurz"
-
-#. ~ Description for {'str': 'Hair: blond, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short blond hair style"
-msgstr "kurzer, blonder Haarstil"
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, medium-length"
-msgstr "Haar: blond, mittellang"
-
-#. ~ Description for {'str': 'Hair: blond, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length blond hair style."
-msgstr "Mittellanges blondes Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: blond, long"
-msgstr "Haar: blond, lang"
-
-#. ~ Description for {'str': 'Hair: blond, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long blond hair style."
-msgstr "Langes blondes Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, crew-cut"
-msgstr "Haar: rot, Bürstenschnitt"
-
-#. ~ Description for {'str': 'Hair: red, crew-cut'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Crewcut red hair style."
-msgstr "Rotes Haar im Bürstenschnittstil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, mohawk"
-msgstr "Haar: rot, Irokesenschnitt"
-
-#. ~ Description for {'str': 'Hair: red, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk red hair style."
-msgstr "Rotes Haar im Irokesenschnitt."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, 'fro"
-msgstr "Haar: rot, Afro"
-
-#. ~ Description for {'str': "Hair: red, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro red hair style."
-msgstr "Rotes Haar im Afrostil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, short"
-msgstr "Haar: rot, kurz"
-
-#. ~ Description for {'str': 'Hair: red, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short red hair style"
-msgstr "Kurzes rotes Haar"
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, medium-length"
-msgstr "Haar: rot, mittellang"
-
-#. ~ Description for {'str': 'Hair: red, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length red hair style."
-msgstr "Mittellanges rotes Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: red, long"
-msgstr "Haar: rot, lang"
-
-#. ~ Description for {'str': 'Hair: red, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long red hair style."
-msgstr "Langes rotes Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, crew-cut"
-msgstr "Haar: grau, Bürstenschnitt"
-
-#. ~ Description for {'str': 'Hair: gray, crew-cut'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Crewcut gray hair style."
-msgstr "Graues Haar im Bürstenschnittstil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, mohawk"
-msgstr "Haar: grau, Irokesenschnitt"
-
-#. ~ Description for {'str': 'Hair: gray, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk gray hair style."
-msgstr "Graues Haar im Irokesenschnitt."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, 'fro"
-msgstr "Haar: grau, Afro"
-
-#. ~ Description for {'str': "Hair: gray, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro gray hair style."
-msgstr "Graues Haar im Afrostil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, short"
-msgstr "Haar: grau, kurz"
-
-#. ~ Description for {'str': 'Hair: gray, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short gray hair style"
-msgstr "Kurzes graues Haar"
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, medium-length"
-msgstr "Haar: grau, mittellang"
-
-#. ~ Description for {'str': 'Hair: gray, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length gray hair style."
-msgstr "Mittellanges graues Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: gray, long"
-msgstr "Haar: grau, lang"
-
-#. ~ Description for {'str': 'Hair: gray, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long gray hair style."
-msgstr "Langes graues Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, crew-cut"
-msgstr "Haar: weiß, Bürstenschnitt"
-
-#. ~ Description for {'str': 'Hair: white, crew-cut'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Crewcut white hair style."
-msgstr "Weißes Haar im Bürstenschnittstil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, mohawk"
-msgstr "Haar: weiß, Irokesenschnitt"
-
-#. ~ Description for {'str': 'Hair: white, mohawk'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Mohawk white hair style."
-msgstr "Weißes Haar im Irokesenschnitt."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, 'fro"
-msgstr "Haar: weiß, Afro"
-
-#. ~ Description for {'str': "Hair: white, 'fro"}
-#: data/json/mutations/mutation_appearance.json
-msgid "'Fro white hair style."
-msgstr "Weißes Haar im Afrostil."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, short"
-msgstr "Haar: weiß, kurz"
-
-#. ~ Description for {'str': 'Hair: white, short'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Short white hair style"
-msgstr "Kurzes weißes Haar"
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, medium-length"
-msgstr "Haar: weiß, mittellang"
-
-#. ~ Description for {'str': 'Hair: white, medium-length'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Medium-length white hair style."
-msgstr "Mittellanges weißes Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: white, long"
-msgstr "Haar: weiß, lang"
-
-#. ~ Description for {'str': 'Hair: white, long'}
-#: data/json/mutations/mutation_appearance.json
-msgid "Long white hair style."
-msgstr "Langes weißes Haar."
-
-#: data/json/mutations/mutation_appearance.json
-msgid "Hair: none"
-msgstr "Haar: keins"
-
-#. ~ Description for {'str': 'Hair: none'}
-#: data/json/mutations/mutation_appearance.json
-msgid "You are bald."
-msgstr "Du hast eine Glatze."
+msgid "bald"
+msgstr ""
 
 #: data/json/mutations/mutation_appearance.json
 msgid "Eye color: blue"
@@ -151334,10 +151614,6 @@ msgid ""
 "The survivors who formerly entrusted you with their well-being, but have now"
 " mutinied because of your abuse and incompetence.  They will kill you if "
 "they can."
-msgstr ""
-
-#: data/json/npcs/factions.json
-msgid "Hub 01"
 msgstr ""
 
 #. ~ Description for Hub 01
@@ -209149,6 +209425,89 @@ msgstr ""
 msgid "an unrestrained warcry."
 msgstr ""
 
+#: data/mods/Color_Expansion/modinfo.json
+msgid "Color Expansion"
+msgstr ""
+
+#. ~ Description for Color Expansion
+#: data/mods/Color_Expansion/modinfo.json
+msgid ""
+"Changes how color based mutations are rendered, and adds more of them. Also "
+"lets women have beards."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Eye color: pink"
+msgstr ""
+
+#. ~ Description for {'str': 'Eye color: pink'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have oddly pink eyes."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Eye color: white"
+msgstr ""
+
+#. ~ Description for {'str': 'Eye color: white'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have no visible irises."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Eye color: black"
+msgstr ""
+
+#. ~ Description for {'str': 'Eye color: black'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "Your eyes are disconcertingly pitch black."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: pink"
+msgstr ""
+
+#. ~ Description for {'str': 'Hair color: pink'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have pink hair."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: blue"
+msgstr ""
+
+#. ~ Description for {'str': 'Hair color: blue'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have blue hair."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: green"
+msgstr ""
+
+#. ~ Description for {'str': 'Hair color: green'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have green hair."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: purple"
+msgstr ""
+
+#. ~ Description for {'str': 'Hair color: purple'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have purple hair."
+msgstr ""
+
+#: data/mods/Color_Expansion/mutations.json
+msgid "Hair color: cyan"
+msgstr ""
+
+#. ~ Description for {'str': 'Hair color: cyan'}
+#: data/mods/Color_Expansion/mutations.json
+msgid "You have cyan hair."
+msgstr ""
+
 #: data/mods/CrazyCataclysm/crazy_aperturepotato.json
 msgid "companion potato"
 msgid_plural "companion potatoes"
@@ -235760,6 +236119,15 @@ msgid ""
 msgstr ""
 "Entfernt alle Monster vom Spiel, außer die aus der Kategorie »Wildtiere«."
 
+#: data/mods/Spawn_Hook_Test/modinfo.json
+msgid "Spawn hook testing"
+msgstr ""
+
+#. ~ Description for Spawn hook testing
+#: data/mods/Spawn_Hook_Test/modinfo.json
+msgid "Testing spawn hooks. It should be obsolete after testing!"
+msgstr ""
+
 #: data/mods/StatsThroughSkills/modinfo.json
 msgid "Stats Through Skills"
 msgstr ""
@@ -235878,6 +236246,15 @@ msgstr ""
 #. ~ Description for Bright Nights
 #: data/mods/bn/modinfo.json
 msgid "Core content for Cataclysm-BN"
+msgstr ""
+
+#: data/mods/callback_lua_test/modinfo.json
+msgid "Callback Lua Test"
+msgstr ""
+
+#. ~ Description for Callback Lua Test
+#: data/mods/callback_lua_test/modinfo.json
+msgid "Mod for testing callbacks for items, bionics, and mutations."
 msgstr ""
 
 #: data/mods/cbm_slots/modinfo.json
@@ -243045,16 +243422,16 @@ msgid "Try"
 msgstr "Versuche"
 
 #: src/action.cpp
+msgid "Look"
+msgstr "Schauen"
+
+#: src/action.cpp
 msgid "Interact"
 msgstr "Interagieren"
 
 #: src/action.cpp src/advanced_inv.cpp src/game_inventory.cpp
 msgid "Inventory"
 msgstr "Inventar"
-
-#: src/action.cpp
-msgid "Look"
-msgstr "Schauen"
 
 #: src/action.cpp src/game.cpp
 msgid "Combat"
@@ -262032,9 +262409,48 @@ msgid "You squeeze the last drops of %s from the vat."
 msgstr "Du quetschst die letzten Tropfen %s aus dem Bottich."
 
 #: src/iexamine.cpp
+msgid ""
+"Adding clean water to this grid containing tainted water will contaminate "
+"your clean water.  Continue?"
+msgstr ""
+
+#: src/iexamine.cpp
+msgid ""
+"Adding tainted water to this grid containing clean water will contaminate "
+"your clean water.  Continue?"
+msgstr ""
+
+#: src/iexamine.cpp
 #, c-format
-msgid "You don't have any drinks to fill the %s with."
-msgstr "Du hast keine Getränke, um %s zu befüllen zu können."
+msgid "Adding %s will contaminate the fluid grid's water supply.  Continue?"
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s contains non-water liquids and cannot be connected."
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "Dispense or dump %s"
+msgstr "%s umfüllen oder ausschütten"
+
+#: src/iexamine.cpp src/vehicle_use.cpp
+msgid "Have a drink"
+msgstr "Etwas trinken"
+
+#: src/iexamine.cpp
+msgid "Fill"
+msgstr ""
+
+#: src/iexamine.cpp
+msgid "Disconnect from fluid grid"
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You don't have any water to fill the %s with."
+msgstr ""
 
 #: src/iexamine.cpp
 msgid "Store which drink?"
@@ -262047,22 +262463,55 @@ msgstr "%1$s mit %2$s füllen?"
 
 #: src/iexamine.cpp
 #, c-format
-msgid "You completely fill the %1$s with %2$s."
-msgstr "Du füllst %1$s mit %2$s komplett auf."
+msgid "The %s cannot hold any more water."
+msgstr ""
 
 #: src/iexamine.cpp
 #, c-format
 msgid "You fill the %1$s with %2$s."
 msgstr "Du füllst %1$s mit %2$s auf."
 
+#: src/iexamine.cpp src/iuse.cpp
+#, c-format
+msgid "Fluid stored: %1$s/%2$s %3$s."
+msgstr ""
+
+#: src/iexamine.cpp src/vehicle_display.cpp
+msgid "empty"
+msgstr "leer"
+
+#: src/iexamine.cpp
+msgid "mixed fluids"
+msgstr ""
+
 #: src/iexamine.cpp
 #, c-format
-msgid "Dispense or dump %s"
-msgstr "%s umfüllen oder ausschütten"
+msgid "Fluid type: %s."
+msgstr ""
 
-#: src/iexamine.cpp src/vehicle_use.cpp
-msgid "Have a drink"
-msgstr "Etwas trinken"
+#: src/iexamine.cpp
+#, c-format
+msgid "You disconnect the %s from the fluid grid."
+msgstr ""
+
+#: src/iexamine.cpp
+msgid "Add to fluid grid"
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You connect the %s to the fluid grid."
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You don't have any drinks to fill the %s with."
+msgstr "Du hast keine Getränke, um %s zu befüllen zu können."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "You completely fill the %1$s with %2$s."
+msgstr "Du füllst %1$s mit %2$s komplett auf."
 
 #: src/iexamine.cpp
 msgid "Refill"
@@ -262087,6 +262536,11 @@ msgstr "Du hast kein %1$s, womit du %2$s befüllen könntest."
 #, c-format
 msgid "It contains %s (%d), %0.f%% full."
 msgstr "Enthält %s (%d), %0.f%% voll."
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s only accepts water."
+msgstr ""
 
 #: src/iexamine.cpp
 #, c-format
@@ -262291,6 +262745,20 @@ msgstr ""
 #, c-format
 msgid "There is a %s there.  Disarm?"
 msgstr "Dort ist 1 %s. Entschärfen?"
+
+#: src/iexamine.cpp
+msgid "It is not connected to a fluid grid fixture."
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s has no usable output."
+msgstr ""
+
+#: src/iexamine.cpp
+#, c-format
+msgid "The %s is dry."
+msgstr ""
 
 #: src/iexamine.cpp
 msgid "What would you like to change?"
@@ -265662,6 +266130,10 @@ msgstr ""
 
 #: src/item.cpp src/wish.cpp
 msgid " (friendly)"
+msgstr ""
+
+#: src/item.cpp
+msgid " (hostile)"
 msgstr ""
 
 #: src/item.cpp
@@ -269307,6 +269779,29 @@ msgid "You will no longer recharge the %s via UPS."
 msgstr ""
 
 #: src/iuse.cpp
+msgid "This fluid grid has no connections."
+msgstr ""
+
+#: src/iuse.cpp
+#, c-format
+msgid "This fluid grid has connections: %s."
+msgstr ""
+
+#: src/iuse.cpp
+#, c-format
+msgid "%1$s: %2$s"
+msgstr ""
+
+#: src/iuse.cpp
+msgid "Fluids: empty."
+msgstr ""
+
+#: src/iuse.cpp
+#, c-format
+msgid "Fluids: %s."
+msgstr ""
+
+#: src/iuse.cpp
 #, c-format
 msgid "You are connecting two locations in the same grid, with %lu elements."
 msgstr ""
@@ -269336,6 +269831,16 @@ msgid ""
 "%s\n"
 "This action will not consume any resources.\n"
 "Are you sure?"
+msgstr ""
+
+#: src/iuse.cpp
+#, c-format
+msgid "Remove fluid grid connection in direction: %s"
+msgstr ""
+
+#: src/iuse.cpp
+#, c-format
+msgid "Add fluid grid connection in direction: %s"
 msgstr ""
 
 #: src/iuse.cpp
@@ -279910,6 +280415,10 @@ msgstr "Dein Szenario »%s« hindert dich daran, diesen Wesenszug zu entfernen."
 msgid "Your profession of %s prevents you from removing this trait."
 msgstr ""
 "Deine Berufung »%s« hindert dich daran, diesen Wesenszug zu entfernen."
+
+#: src/newcharacter.cpp
+msgid "You must have a trait of this type."
+msgstr ""
 
 #: src/newcharacter.cpp
 msgid "You already picked a conflicting trait!"
@@ -290541,7 +291050,7 @@ msgid "You lose control as the vehicle starts skidding."
 msgstr ""
 
 #: src/vehicle_autodrive.cpp
-msgid "Autodrive is not good enough for planes."
+msgid "Autodrive is not good enough for flying planes."
 msgstr ""
 
 #: src/vehicle_autodrive.cpp
@@ -290610,10 +291119,6 @@ msgstr "kJ"
 #: src/vehicle_display.cpp
 msgid "full"
 msgstr "voll"
-
-#: src/vehicle_display.cpp
-msgid "empty"
-msgstr "leer"
 
 #: src/vehicle_display.cpp
 #, c-format

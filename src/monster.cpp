@@ -2221,9 +2221,16 @@ bool monster::move_effects( bool )
         }
         // non-friendly monster will struggle to get free occasionally.
         // some monsters can't be tangled up with a net/bolas/lasso etc.
-        bool immediate_break = type->in_species( FISH ) || type->in_species( MOLLUSK ) ||
-                               type->in_species( ROBOT ) || type->bodytype == "snake" || type->bodytype == "blob";
-        if( !immediate_break && rng( 0, 900 ) > type->melee_dice * type->melee_sides * 1.5 ) {
+        const item *tied_drop = get_tied_item();
+        const bool immediate_break = type->in_species( FISH ) || type->in_species( MOLLUSK ) ||
+                                     type->in_species( ROBOT ) || type->bodytype == "snake" ||
+                                     type->bodytype == "blob";
+        const float struggle_multiplier = tied_drop ?
+                                          ( tied_drop->typeId() == itype_id( "net" ) ? 0.5f :
+                                            tied_drop->typeId() == itype_id( "bolas" ) ? 2.0f : 1.0f ) :
+                                          1.0f;
+        const float struggle_threshold = type->melee_dice * type->melee_sides * 1.5f * struggle_multiplier;
+        if( !immediate_break && rng( 0, 900 ) > struggle_threshold ) {
             if( u_see_me ) {
                 add_msg( _( "The %s struggles to break free of its bonds." ), name() );
             }
@@ -3706,6 +3713,13 @@ void monster::on_load()
 
     add_msg( m_debug, "on_load() by %s, %d turns, healed %d hp, %d speed",
              name(), to_turns<int>( dt ), healed, healed_speed );
+
+    cata::run_hooks( "on_creature_loaded", [this]( sol::table & params ) {
+        params["creature"] = this;
+    } );
+    cata::run_hooks( "on_monster_loaded", [this]( sol::table & params ) {
+        params["monster"] = this;
+    } );
 }
 
 const pathfinding_settings &monster::get_legacy_pathfinding_settings() const
