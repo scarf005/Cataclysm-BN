@@ -1,6 +1,7 @@
 name: Cataclysm Windows build (CMake + MSVC)
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
