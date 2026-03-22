@@ -1,0 +1,41 @@
+name: Verify PR Title Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: Pull request number to simulate
+        required: true
+        type: string
+      pr-title:
+        description: Pull request title to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Write simulated event payload
+        shell: bash
+        run: |
+          cat > event.json <<EOF
+          {
+            "pull_request": {
+              "number": ${{ inputs.pr-number }},
+              "title": "${{ inputs.pr-title }}"
+            }
+          }
+          EOF
+
+      - uses: scarf005/conventional-prs@v0.5.0
+        env:
+          GITHUB_EVENT_NAME: pull_request_target
+          GITHUB_EVENT_PATH: ${{ github.workspace }}/event.json
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        with: { github-token: "${{ secrets.GITHUB_TOKEN }}" }
