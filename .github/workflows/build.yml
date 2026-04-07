@@ -67,6 +67,7 @@ jobs:
           - name: macOS Curses x64
             artifact: osx-curses-x64
             os: macos-15-intel
+            cmake_arch: x86_64
             tiles: false
             sound: false
             ext: dmg
@@ -75,6 +76,7 @@ jobs:
           - name: macOS Tiles x64
             artifact: osx-tiles-x64
             os: macos-15-intel
+            cmake_arch: x86_64
             tiles: true
             sound: true
             ext: dmg
@@ -84,6 +86,7 @@ jobs:
           - name: macOS Curses ARM
             artifact: osx-curses-arm
             os: macos-15
+            cmake_arch: arm64
             tiles: false
             sound: false
             ext: dmg
@@ -92,6 +95,7 @@ jobs:
           - name: macOS Tiles ARM
             artifact: osx-tiles-arm
             os: macos-15
+            cmake_arch: arm64
             tiles: true
             sound: true
             ext: dmg
@@ -134,11 +138,6 @@ jobs:
         with:
           msystem: mingw64
           install: gettext
-
-      - name: Compile translations (windows msvc)
-        if: runner.os == 'Windows'
-        shell: msys2 {0}
-        run: lang/compile_mo.sh all
 
       - name: Install MSBuild (windows msvc)
         if: runner.os == 'Windows'
@@ -217,7 +216,7 @@ jobs:
       - name: Install build dependencies (mac)
         if: runner.os == 'macOS'
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=yes HOMEBREW_NO_INSTALL_CLEANUP=yes brew install gettext parallel llvm@20 astyle sqlite3 zlib cmake ninja
+          HOMEBREW_NO_AUTO_UPDATE=yes HOMEBREW_NO_INSTALL_CLEANUP=yes brew install gettext parallel llvm@20 astyle sqlite3 zlib cmake ninja sdl2 sdl2_image sdl2_ttf sdl2_mixer
           python3 -m venv ./venv
           source ./venv/bin/activate
           pip3 install mac_alias==2.2.0 dmgbuild==1.6.1 biplist polib luaparser
@@ -308,7 +307,7 @@ jobs:
         run: |
           cmake --build "${{ github.workspace }}/out/build/windows-tiles-sounds-x64-msvc" `
             --config Release `
-            --target cataclysm-bn-tiles
+            --target cataclysm-bn-tiles translations_compile
 
       - name: Create distribution package (windows msvc)
         if: runner.os == 'Windows'
@@ -316,13 +315,29 @@ jobs:
           cmake --install out/build/windows-tiles-sounds-x64-msvc --prefix cataclysmbn-${{ inputs.version-label }} --config Release
           Compress-Archive -Force -Path cataclysmbn-${{ inputs.version-label }}/* -DestinationPath cbn-${{ matrix.artifact }}-${{ inputs.version-label }}.zip
 
-      # Build with Make (macOS) - TODO: migrate to CMake once dmgdist target is implemented
       - name: Build CBN (osx)
         if: runner.os == 'macOS'
         run: |
           source ./venv/bin/activate
-          make -j3 CCACHE=1 TILES=${{ matrix.tiles && '1' || '0' }} SOUND=${{ matrix.sound && '1' || '0' }} RELEASE=1 LOCALIZE=1 LANGUAGES=all BACKTRACE=0 PCH=0 USE_HOME_DIR=1 OSX_MIN=11 FRAMEWORK=1 COMPILER=$(brew --prefix llvm@20)/bin/clang++ dmgdist
-          mv CataclysmBN-*.dmg cbn-${{ matrix.artifact }}-${{ inputs.version-label }}.dmg
+          cmake -G Ninja \
+            -S "${{ github.workspace }}" \
+            -B "${{ github.workspace }}/build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=$(brew --prefix llvm@20)/bin/clang \
+            -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@20)/bin/clang++ \
+            -DCMAKE_FIND_FRAMEWORK=LAST \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cmake_arch }} \
+            -DTILES=${{ matrix.tiles && 'ON' || 'OFF' }} \
+            -DCURSES=${{ matrix.tiles && 'OFF' || 'ON' }} \
+            -DSOUND=${{ matrix.sound && 'ON' || 'OFF' }} \
+            -DTESTS=OFF \
+            -DLANGUAGES=all \
+            -DUSE_HOME_DIR=ON \
+            -DUSE_PREFIX_DATA_DIR=OFF \
+            -DBACKTRACE=OFF \
+            -DJSON_FORMAT=OFF \
+            -DCATA_OSX_DMG_PATH=${{ github.workspace }}/cbn-${{ matrix.artifact }}-${{ inputs.version-label }}.dmg
+          cmake --build "${{ github.workspace }}/build" --target package-dmg --parallel 3
 
       # Android builds
       - name: Set up JDK 11 (android)
@@ -336,7 +351,25 @@ jobs:
         if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none'
         run: |
           sudo apt-get update
-          sudo apt-get install gettext
+          sudo apt-get install gettext cmake
+
+      - name: Prepare signing files (android)
+        if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none'
+        working-directory: ./android
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_PROPERTIES: ${{ secrets.KEYSTORE_PROPERTIES }}
+        run: |
+          if [ -n "$KEYSTORE" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEYSTORE_PROPERTIES" ]; then
+            echo "$KEYSTORE" > release.keystore.asc
+            gpg -d --passphrase "$KEYSTORE_PASSWORD" --batch release.keystore.asc > app/release.keystore
+            echo "$KEYSTORE_PROPERTIES" > keystore.properties.asc
+            gpg -d --passphrase "$KEYSTORE_PASSWORD" --batch keystore.properties.asc > keystore.properties
+          else
+            cp ci/public-release.keystore app/release.keystore
+            cp ci/public-keystore.properties keystore.properties
+          fi
 
       - name: Setup ccache (android)
         if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none'
@@ -357,10 +390,6 @@ jobs:
         env:
           NDK_CCACHE: ccache
         run: |
-          echo "${{ secrets.KEYSTORE }}" > release.keystore.asc
-          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch release.keystore.asc > app/release.keystore
-          echo "${{ secrets.KEYSTORE_PROPERTIES }}" > keystore.properties.asc
-          gpg -d --passphrase "${{ secrets.KEYSTORE_PASSWORD }}" --batch keystore.properties.asc > keystore.properties
           chmod +x gradlew
 
           # Determine build variant based on version label

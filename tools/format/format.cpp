@@ -231,8 +231,7 @@ int main( int argc, char *argv[] )
             std::ofstream fout( filename, std::ios::binary | std::ios::trunc );
             fout << out.str();
             fout.close();
-            std::cout << color_bad << "Needs linting : " << color_end << filename << '\n';
-            std::cout << "Please read doc/JSON_STYLE.md" << '\n';
+            std::cout << color_bad << filename << color_end << '\n';
             exit( EXIT_FAILURE );
         }
     }

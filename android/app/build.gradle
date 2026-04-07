@@ -1,5 +1,3 @@
-import org.gradle.internal.os.OperatingSystem;
-
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     //options.compilerArgs << "-Xlint:deprecation"
@@ -20,6 +18,12 @@ if (localPropertiesFile.exists()) {
         localProperties.load(reader)
     }
 }
+
+def repoRoot = rootProject.projectDir.parentFile
+def repoRootPath = repoRoot.absolutePath
+def versionTemplatePath = new File(repoRoot, 'src/version.h.in').absolutePath
+def versionScriptPath = new File(repoRoot, 'src/version.cmake').absolutePath
+def localizationScriptPath = new File(repoRoot, 'build-scripts/android_localizations.cmake').absolutePath
 
 def keystorePropertiesFilename = 'keystore.properties'
 if (localProperties.getProperty('keystorePropertiesFilename') != null) {
@@ -78,6 +82,7 @@ def version_header_path = getProperty("version_header_path")
 if (localProperties.getProperty('version_header_path') != null) {
     version_header_path = localProperties.getProperty("version_header_path")
 }
+def versionHeaderFile = new File(rootProject.projectDir, version_header_path)
 
 def override_compileSdkVersion = getProperty("override_compileSdkVersion").toInteger()
 if (localProperties.getProperty('override_compileSdkVersion') != null) {
@@ -142,48 +147,13 @@ task unzipDeps(type: Copy) {
     into outputDir
 }
 
-task fetchSqlite {
-    doLast {
-        def url = new URL('https://www.sqlite.org/2025/sqlite-amalgamation-3480000.zip')
-        def file = new File('/tmp/sqlite-amalgamation-3480000.zip')
-        file.withOutputStream { out ->
-            url.withInputStream { from -> out << from }
-        }
-    }
-}
-
-task unzipSqlite(type: Copy) {
-    dependsOn fetchSqlite
-    from(zipTree(file('/tmp/sqlite-amalgamation-3480000.zip'))) {
-        includeEmptyDirs = false
-        eachFile { fileCopyDetails ->
-            if (fileCopyDetails.path.startsWith('sqlite-amalgamation-3480000/')) {
-                fileCopyDetails.path = fileCopyDetails.path - 'sqlite-amalgamation-3480000/'
-            }
-        }
-    }
-    into 'jni/sqlite3'
-}
-
 task makeLocalization(type: Exec) {
     if (localize) {
-        println("Building with localization'")
-        switch (OperatingSystem.current()) {
-            case OperatingSystem.LINUX:
-                workingDir './../..'
-                commandLine 'make', 'localization', 'LANGUAGES=all'
-                break
-            case OperatingSystem.WINDOWS:
-                workingDir './../..'
-                commandLine 'sh.exe', 'android/app/makelocalizations.sh'
-                break
-            default:
-                workingDir './../..'
-                commandLine 'echo', 'Building without localization'
-                break
-        }
+        println("Building with localization")
+        workingDir repoRoot
+        commandLine 'cmake', "-DCATA_SOURCE_DIR=${repoRootPath}", '-DCATA_LANGUAGES=all', '-P', localizationScriptPath
     } else {
-        workingDir './../..'
+        workingDir repoRoot
         commandLine 'echo', 'Building without localization'
     }
 }
@@ -191,7 +161,6 @@ task makeLocalization(type: Exec) {
 makeLocalization
 unzipDeps.dependsOn makeLocalization
 preBuild.dependsOn unzipDeps
-preBuild.dependsOn unzipSqlite
 
 android {
     namespace "com.cleverraven.cataclysmdda"
@@ -200,36 +169,20 @@ android {
 
     if (override_version.isEmpty()) {
         println("Generating version number to $version_header_path")
-        switch (OperatingSystem.current()) {
-            case OperatingSystem.LINUX:
-                exec {
-                    workingDir './../..'
-                    commandLine 'make', 'version'
-                }
-                break
-            case OperatingSystem.WINDOWS:
-                exec {
-                    workingDir './../..'
-                    commandLine 'sh.exe', '-c', 'make version'
-                }
-                break
-            default:
-                exec {
-                    workingDir './../..'
-                    commandLine 'make', 'version'
-                }
-                break
+        exec {
+            workingDir repoRoot
+            commandLine 'cmake', "-DSRC=${versionTemplatePath}", "-DDST=${versionHeaderFile.absolutePath}", '-DGIT_EXECUTABLE=git', '-P', versionScriptPath
         }
     } else {
         println("Overriding version number to $override_version")
-        new File("$version_header_path").text = "#define VERSION \"$override_version\""
+        versionHeaderFile.text = "#define VERSION \"$override_version\""
     }
 
     defaultConfig {
         minSdkVersion override_minSdkVersion
         targetSdkVersion override_targetSdkVersion
         versionCode Integer.valueOf(System.env.UPSTREAM_BUILD_NUMBER ?: 1)
-        versionName new File("$version_header_path").text.split('\"')[1]
+        versionName versionHeaderFile.text.split('\"')[1]
         if (buildAsApplication) {
             applicationId "com.cataclysmbnteam.cataclysmbn"
             setProperty("archivesBaseName", "cataclysmbn-" + versionName)
@@ -262,8 +215,9 @@ android {
         }
 
         externalNativeBuild {
-            ndkBuild {
-                arguments "APP_PLATFORM=$override_ndkBuildAppPlatform", "-j$njobs"
+            cmake {
+                arguments "-DANDROID_PLATFORM=$override_ndkBuildAppPlatform", "-DANDROID_STL=c++_shared"
+                targets 'main'
             }
         }
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -316,11 +270,6 @@ android {
             if (signingConfigs.hasProperty("release")) {
                 signingConfig signingConfigs.release
             }
-            externalNativeBuild {
-                ndkBuild {
-                    cFlags "-DNDEBUG", "-DRELEASE", "-Os"
-                }
-            }
         }
 
         debug {
@@ -329,11 +278,6 @@ android {
             if (signingConfigs.hasProperty("debug")) {
                 signingConfig signingConfigs.debug
             }
-            externalNativeBuild {
-                ndkBuild {
-                    cFlags "-DRELEASE", "-O2", "-g0"
-                }
-            }
         }
     }
     if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
@@ -341,8 +285,8 @@ android {
             jniLibs.srcDir 'libs'
         }
         externalNativeBuild {
-            ndkBuild {
-                path 'jni/Android.mk'
+            cmake {
+                path 'jni/CMakeLists.txt'
             }
         }
 

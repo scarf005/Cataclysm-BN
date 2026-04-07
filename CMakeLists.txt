@@ -573,6 +573,40 @@ if (RELEASE)
     endif()
 endif()
 
+if( APPLE AND RELEASE )
+    if( TILES )
+        set( CATA_OSX_BINARY_NAME cataclysm-bn-tiles )
+        set( CATA_OSX_MAIN_TARGET cataclysm-bn-tiles )
+    elseif( CURSES )
+        set( CATA_OSX_BINARY_NAME cataclysm-bn )
+        set( CATA_OSX_MAIN_TARGET cataclysm-bn )
+    endif()
+
+    if( DEFINED CATA_OSX_MAIN_TARGET )
+        find_program( CATA_DMGBUILD_EXECUTABLE dmgbuild )
+        find_program( CATA_PLUTIL_EXECUTABLE plutil )
+        set( CATA_OSX_DMG_PATH "${CMAKE_BINARY_DIR}/CataclysmBN-${GIT_VERSION}.dmg" CACHE FILEPATH "macOS dmg output path." )
+
+        add_custom_target(
+            package-dmg
+            COMMAND ${CMAKE_COMMAND}
+                -D CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
+                -D CMAKE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+                -D CMAKE_INSTALL_CONFIG_NAME=$<CONFIG>
+                -D CATA_DMGBUILD_EXECUTABLE=${CATA_DMGBUILD_EXECUTABLE}
+                -D CATA_PLUTIL_EXECUTABLE=${CATA_PLUTIL_EXECUTABLE}
+                -D CATA_OSX_APP_BUNDLE=${CMAKE_BINARY_DIR}/Cataclysm.app
+                -D CATA_OSX_BINARY_NAME=${CATA_OSX_BINARY_NAME}
+                -D CATA_OSX_DMG_PATH=${CATA_OSX_DMG_PATH}
+                -D CATA_OSX_VERSION=${GIT_VERSION}
+                -P ${CMAKE_SOURCE_DIR}/build-scripts/package_macos.cmake
+            DEPENDS ${CATA_OSX_MAIN_TARGET} translations_compile
+            USES_TERMINAL
+            VERBATIM
+        )
+    endif()
+endif()
+
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
         "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"

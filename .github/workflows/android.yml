@@ -44,7 +44,7 @@ jobs:
       - name: Setup build and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install gcc-14 gettext libsqlite3-dev zlib1g-dev
+          sudo apt-get install gcc-14 gettext cmake libsqlite3-dev zlib1g-dev
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
           g++ --version
@@ -61,10 +61,16 @@ jobs:
           verbose: 2
           save: ${{ github.event_name != 'pull_request' }}
 
+      - name: Prepare signing files
+        working-directory: ./android
+        run: |
+          cp ci/public-release.keystore app/release.keystore
+          cp ci/public-keystore.properties keystore.properties
+
       - name: Build
         working-directory: ./android
         env:
           NDK_CCACHE: ccache
         run: |
           chmod +x gradlew
-          ./gradlew -Pj=$((`nproc`+0)) -Pabi_arm_32=false assembleExperimentalRelease
+          ./gradlew -Pj=$(nproc) -Pabi_arm_32=false assembleExperimentalRelease

@@ -54,7 +54,7 @@ then
         -DCURSES="${CURSES}" \
         -DSOUND="${SOUND:-0}"
 
-    make -j$num_jobs -C build
+    cmake --build build --parallel "$num_jobs"
 else
     if [ "$OS" == "macos-14" ]
     then

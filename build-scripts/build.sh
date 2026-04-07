@@ -59,8 +59,8 @@ then
         ..
 
     # Regular build
-    make -j$num_jobs translations_compile
-    make -j$num_jobs
+    cmake --build build --parallel "$num_jobs" --target translations_compile
+    cmake --build build --parallel "$num_jobs"
     cd ..
     # Run regular tests
     [ -f "${bin_path}cata_test" ] && run_tests "${bin_path}cata_test"

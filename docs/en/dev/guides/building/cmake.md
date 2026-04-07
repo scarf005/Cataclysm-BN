@@ -141,9 +141,38 @@ This places executables into `out/build/osx-arm-slim/`.
 
 ```sh
 cmake --preset osx-arm-dist
-cmake --build --preset osx-arm-dist
-cmake --install build --prefix cataclysmbn-osx-tiles
+cmake --build --preset osx-arm-dist --target package-dmg
 ```
+
+This writes a `CataclysmBN-<version>.dmg` image into the build directory.
+
+For Intel macOS builds, configure manually:
+
+```sh
+cmake -G Ninja -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+  -DTILES=ON -DCURSES=OFF -DSOUND=ON \
+  -DTESTS=OFF -DLANGUAGES=all \
+  -DUSE_HOME_DIR=ON -DUSE_PREFIX_DATA_DIR=OFF
+cmake --build build --target package-dmg
+```
+
+### Android Environment
+
+Android packaging still runs through Gradle, but native compilation, version generation, and
+localization generation are CMake-driven.
+
+```sh
+cd android
+./gradlew -Pj=$(nproc) -Pabi_arm_32=false assembleExperimentalRelease
+```
+
+If repository signing secrets are unavailable, CI falls back to the public signing material under
+`android/ci/` so fork builds remain installable.
+
+> [!NOTE]
+> This repository does not currently contain an iOS build pipeline or Xcode project.
 
 ### Windows Subsystem for Linux (WSL)
 

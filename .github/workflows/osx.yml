@@ -34,24 +34,28 @@ jobs:
           - name: osx-curses-x64
             os: macos-15-intel
             tiles: 0
+            cmake_arch: x86_64
             artifact: osx-curses-x64
             ext: dmg
             content: application/x-apple-diskimage
           - name: osx-tiles-x64
             os: macos-15-intel
             tiles: 1
+            cmake_arch: x86_64
             artifact: osx-tiles-x64
             ext: dmg
             content: application/x-apple-diskimage
           - name: osx-curses-arm
             os: macos-15
             tiles: 0
+            cmake_arch: arm64
             artifact: osx-curses-arm
             ext: dmg
             content: application/x-apple-diskimage
           - name: osx-tiles-arm
             os: macos-15
             tiles: 1
+            cmake_arch: arm64
             artifact: osx-tiles-arm
             ext: dmg
             content: application/x-apple-diskimage
@@ -67,17 +71,9 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Install runtime dependencies
-        uses: BrettDong/setup-sdl2-frameworks@v1
-        with:
-          sdl2: 2.30.11
-          sdl2-ttf: 2.24.0
-          sdl2-image: 2.8.4
-          sdl2-mixer: 2.8.0
-
       - name: Install build dependencies
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=yes HOMEBREW_NO_INSTALL_CLEANUP=yes brew install sdl2 sdl2_image sdl2_ttf sdl2_mixer gettext parallel llvm@20 astyle sqlite3 zlib
+          HOMEBREW_NO_AUTO_UPDATE=yes HOMEBREW_NO_INSTALL_CLEANUP=yes brew install sdl2 sdl2_image sdl2_ttf sdl2_mixer gettext parallel llvm@20 astyle sqlite3 zlib cmake ninja
           python3 -m venv ./venv
           source ./venv/bin/activate
           pip3 install mac_alias==2.2.0 dmgbuild==1.6.1 biplist polib luaparser
@@ -102,4 +98,21 @@ jobs:
       - name: Build
         run: |
           source ./venv/bin/activate
-          make -j3 CCACHE=1 TILES=${{ matrix.tiles }} SOUND=${{ matrix.tiles }} RELEASE=1 LANGUAGES=all USE_HOME_DIR=1 OSX_MIN=11 PCH=0 COMPILER=$(brew --prefix llvm@20)/bin/clang++ dmgdist
+          cmake -G Ninja \
+            -S "${{ github.workspace }}" \
+            -B "${{ github.workspace }}/build" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=$(brew --prefix llvm@20)/bin/clang \
+            -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@20)/bin/clang++ \
+            -DCMAKE_FIND_FRAMEWORK=LAST \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.cmake_arch }} \
+            -DTILES=${{ matrix.tiles == 1 && 'ON' || 'OFF' }} \
+            -DCURSES=${{ matrix.tiles == 1 && 'OFF' || 'ON' }} \
+            -DSOUND=${{ matrix.tiles == 1 && 'ON' || 'OFF' }} \
+            -DTESTS=OFF \
+            -DLANGUAGES=all \
+            -DUSE_HOME_DIR=ON \
+            -DUSE_PREFIX_DATA_DIR=OFF \
+            -DBACKTRACE=OFF \
+            -DJSON_FORMAT=OFF
+          cmake --build "${{ github.workspace }}/build" --target package-dmg --parallel 3

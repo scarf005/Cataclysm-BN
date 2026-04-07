@@ -22,7 +22,7 @@ if(ASTYLE_EXECUTABLE)
     list(FILTER ASTYLE_SOURCES EXCLUDE REGEX "/src/(lua|sol)/")
 
     add_custom_target(astyle
-        COMMAND ${ASTYLE_EXECUTABLE} --options=${ASTYLE_OPTIONS_FILE} -n ${ASTYLE_SOURCES}
+        COMMAND ${ASTYLE_EXECUTABLE} --options=${ASTYLE_OPTIONS_FILE} --formatted -n ${ASTYLE_SOURCES}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Formatting C++ source files with astyle"
         VERBATIM
