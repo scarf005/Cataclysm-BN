@@ -43,6 +43,7 @@ jobs:
             arch: x64
             tiles: true
             sound: true
+            extra_tilesets: true
             ext: zip
             content-type: application/zip
 
@@ -52,6 +53,7 @@ jobs:
             os: ubuntu-latest
             tiles: true
             sound: true
+            extra_tilesets: true
             ext: tar.gz
             content-type: application/gzip
 
@@ -77,6 +79,7 @@ jobs:
             os: macos-15-intel
             tiles: true
             sound: true
+            extra_tilesets: true
             ext: dmg
             content-type: application/x-apple-diskimage
 
@@ -94,6 +97,7 @@ jobs:
             os: macos-15
             tiles: true
             sound: true
+            extra_tilesets: true
             ext: dmg
             content-type: application/x-apple-diskimage
 
@@ -102,6 +106,7 @@ jobs:
             artifact: android-x64
             os: ubuntu-latest
             android: arm64
+            extra_tilesets: true
             ext: apk
             content-type: application/apk
 
@@ -109,6 +114,7 @@ jobs:
             artifact: android-bundle
             os: ubuntu-latest
             android: bundle
+            extra_tilesets: true
             ext: aab
             content-type: application/aap
 
@@ -126,6 +132,69 @@ jobs:
           commit sha: ${{ github.sha }}
           commit url: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
           EOL
+
+      - name: Bundle CDDA tilesets
+        if: matrix.extra_tilesets == true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CDDA_TILESETS_REPO: I-am-Erk/CDDA-Tilesets
+          CDDA_TILESETS_RELEASE: "2026-05-03"
+          CDDA_TILESETS: UltimateCataclysm ChibiUltica Ultica_iso
+        shell: bash
+        run: |
+          set -euo pipefail
+          download_dir="$RUNNER_TEMP/cdda-tilesets"
+          rm -rf "$download_dir"
+          mkdir -p "$download_dir"
+
+          if command -v python3 >/dev/null 2>&1; then
+            python_cmd=python3
+          else
+            python_cmd=python
+          fi
+
+          for tileset in $CDDA_TILESETS; do
+            gh release download "$CDDA_TILESETS_RELEASE" \
+              --repo "$CDDA_TILESETS_REPO" \
+              --pattern "$tileset.zip" \
+              --dir "$download_dir" \
+              --clobber
+            rm -rf "gfx/$tileset"
+            "$python_cmd" - "$download_dir/$tileset.zip" gfx <<'PY'
+          import pathlib
+          import sys
+          import zipfile
+
+          zip_path = pathlib.Path( sys.argv[1] )
+          target_dir = pathlib.Path( sys.argv[2] ).resolve()
+
+          with zipfile.ZipFile( zip_path ) as archive:
+              for member in archive.infolist():
+                  destination = ( target_dir / member.filename ).resolve()
+                  if target_dir != destination and target_dir not in destination.parents:
+                      raise RuntimeError( f"Refusing to extract outside {target_dir}: {member.filename}" )
+              archive.extractall( target_dir )
+          PY
+          done
+
+          cat >gfx/CDDA-Tilesets-2026-05-03-CREDITS.txt <<'EOF'
+          Bundled CDDA-Tilesets release assets
+          ====================================
+
+          Source repository: https://github.com/I-am-Erk/CDDA-Tilesets
+          Source release: https://github.com/I-am-Erk/CDDA-Tilesets/releases/tag/2026-05-03
+          Bundled assets: UltimateCataclysm.zip, ChibiUltica.zip, Ultica_iso.zip
+
+          The CDDA-Tilesets repository states that Cataclysm: Dark Days Ahead and
+          the Ultimate Cataclysm tileset are volunteer contributions under the
+          Creative Commons Attribution-ShareAlike 3.0 Unported License:
+          http://creativecommons.org/licenses/by-sa/3.0/
+
+          Per the tileset metadata, further sprite credits are maintained in the
+          source repository under gfx/UltimateCataclysm and gfx.  ChibiUltica also
+          includes Dungeon Crawl: Stone Soup sprites under CC0; see its tileset.txt
+          for that notice.
+          EOF
 
       # Windows MSVC setup
       - name: Setup msys2 (windows msvc)
