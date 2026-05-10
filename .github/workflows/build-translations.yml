@@ -39,8 +39,6 @@ jobs:
               exit 1
             fi
             tx pull --force --all
-          elif [ -n "${TX_TOKEN:-}" ]; then
-            tx pull --force --all
           else
             cat > lang/po/en_US.po <<'EOF'
           msgid ""
@@ -72,7 +70,7 @@ jobs:
         run: |
           po_count=$(find lang/po -maxdepth 1 -name '*.po' | wc -l)
           min_count=1
-          if [ "$GITHUB_REPOSITORY" = "cataclysmbn/Cataclysm-BN" ] || [ -n "${TX_TOKEN:-}" ]; then
+          if [ "$GITHUB_REPOSITORY" = "cataclysmbn/Cataclysm-BN" ]; then
             min_count=20
           fi
           if [ "$po_count" -lt "$min_count" ]; then
