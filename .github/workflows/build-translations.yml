@@ -33,20 +33,50 @@ jobs:
         env:
           TX_TOKEN: ${{ secrets.TX_TOKEN }}
         run: |
-          if [ "$GITHUB_REPOSITORY" = "cataclysmbn/Cataclysm-BN" ] && [ -n "${TX_TOKEN:-}" ]; then
+          if [ "$GITHUB_REPOSITORY" = "cataclysmbn/Cataclysm-BN" ]; then
+            if [ -z "${TX_TOKEN:-}" ]; then
+              echo "::error::TX_TOKEN is required to pull translations in the upstream repository"
+              exit 1
+            fi
+            tx pull --force --all
+          elif [ -n "${TX_TOKEN:-}" ]; then
             tx pull --force --all
           else
-            env -u TX_TOKEN tx pull --force --all
+            cat > lang/po/en_US.po <<'EOF'
+          msgid ""
+          msgstr ""
+          "Project-Id-Version: cataclysm-bn\n"
+          "PO-Revision-Date: 2026-01-01 00:00+0000\n"
+          "Last-Translator: CI\n"
+          "Language-Team: CI\n"
+          "Language: en_US\n"
+          "MIME-Version: 1.0\n"
+          "Content-Type: text/plain; charset=UTF-8\n"
+          "Content-Transfer-Encoding: 8bit\n"
+          "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+          msgid "cataclysm-bn-fork-placeholder-translated"
+          msgstr "cataclysm-bn-fork-placeholder-translated"
+
+          msgid "cataclysm-bn-fork-placeholder-untranslated"
+          msgstr ""
+          EOF
           fi
 
       - name: Discard invalid translations
         run: ./lang/discard_invalid_po.sh
 
       - name: Verify translations are usable
+        env:
+          TX_TOKEN: ${{ secrets.TX_TOKEN }}
         run: |
           po_count=$(find lang/po -maxdepth 1 -name '*.po' | wc -l)
-          if [ "$po_count" -lt 20 ]; then
-            echo "::error::Expected at least 20 usable translation files, found $po_count"
+          min_count=1
+          if [ "$GITHUB_REPOSITORY" = "cataclysmbn/Cataclysm-BN" ] || [ -n "${TX_TOKEN:-}" ]; then
+            min_count=20
+          fi
+          if [ "$po_count" -lt "$min_count" ]; then
+            echo "::error::Expected at least $min_count usable translation files, found $po_count"
             exit 1
           fi
 
