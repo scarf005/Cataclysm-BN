@@ -102,4 +102,4 @@ jobs:
       - name: Build
         run: |
           source ./venv/bin/activate
-          make -j3 CCACHE=1 TILES=${{ matrix.tiles }} SOUND=${{ matrix.tiles }} RELEASE=1 LANGUAGES=all USE_HOME_DIR=1 OSX_MIN=11 PCH=0 COMPILER=$(brew --prefix llvm@20)/bin/clang++ dmgdist
+          make -j3 CCACHE=1 TILES=${{ matrix.tiles }} SOUND=${{ matrix.tiles }} RELEASE=1 USE_HOME_DIR=1 OSX_MIN=11 PCH=0 COMPILER=$(brew --prefix llvm@20)/bin/clang++ dmgdist
