@@ -135,3 +135,5 @@ rg -C2 -i 'speedway' lang/po/ko.po | rg -v '^(#:|--)' | head -n 20
 
 - **Docs**: [Building](./docs/en/dev/guides/building/cmake.md), [Formatting](./docs/en/dev/guides/formatting.md), [Dev Index](./docs/en/dev/).
 - **Review**: [LLM Guide](./.github/llm_review_guide.md).
+
+- When reviewing PRs that stop tracking generated or externally pulled files, verify ignore rules by running the generator/pull command or checking `git status --ignored`; do not assume removed tracked files are ignored.
