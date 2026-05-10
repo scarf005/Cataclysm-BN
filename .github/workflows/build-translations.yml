@@ -32,7 +32,12 @@ jobs:
       - name: Pull translations
         env:
           TX_TOKEN: ${{ secrets.TX_TOKEN }}
-        run: tx pull --force --all
+        run: |
+          if [ "$GITHUB_REPOSITORY" = "cataclysmbn/Cataclysm-BN" ] && [ -n "${TX_TOKEN:-}" ]; then
+            tx pull --force --all
+          else
+            env -u TX_TOKEN tx pull --force --all
+          fi
 
       - name: Discard invalid translations
         run: ./lang/discard_invalid_po.sh
