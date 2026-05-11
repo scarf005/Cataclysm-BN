@@ -25,16 +25,22 @@ env:
 jobs:
   autofix:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: checkout repository
+        uses: actions/checkout@v4
 
-      - run: sudo apt-get install astyle ninja-build gettext ccache
+      - name: install dependencies
+        env: { DEBIAN_FRONTEND: noninteractive }
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends astyle cmake ninja-build gettext ccache
 
-      - uses: denoland/setup-deno@v2
+      - name: setup deno
+        uses: denoland/setup-deno@v2
         with: { cache: true }
 
       - name: cache deno dependencies
@@ -63,8 +69,9 @@ jobs:
         if: ${{ always() }}
         run: git restore .github
 
-      - uses: autofix-ci/action@v1.3
+      - name: apply autofix
         if: ${{ always() }}
+        uses: autofix-ci/action@v1.3
         with:
           commit-message: "style(autofix.ci): automated formatting"
           comment: |
@@ -95,29 +102,27 @@ jobs:
           deno test --allow-read --allow-env=npm_package_config_libvips,TILESET_PYTHON --allow-ffi
           deno run --allow-read --allow-write scripts/semantic.ts
 
-  validate-pr-title:
-    if: >-
-      github.event_name == 'pull_request_target' &&
-      ( github.event.action == 'opened' || github.event.action == 'edited' || github.event.action == 'reopened' )
+  lint:
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-slim
     permissions:
       contents: read
-      pull-requests: write
       issues: write
+      pull-requests: write
 
     steps:
-      - uses: scarf005/conventional-prs@v0.5.1
+      - name: validate PR title
+        if: >-
+          github.event.action == 'opened' ||
+          github.event.action == 'edited' ||
+          github.event.action == 'reopened'
+        uses: scarf005/conventional-prs@v0.5.1
 
-  reject-main-branch-pr:
-    if: >-
-      github.event_name == 'pull_request_target' &&
-      ( github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' )
-    runs-on: ubuntu-slim
-    permissions: { issues: write, pull-requests: write }
-
-    steps:
-      - name: Comment and close pull request
-        if: github.event.pull_request.head.ref == github.event.repository.default_branch
+      - name: Comment and close main-branch pull request
+        if: >-
+          always() &&
+          ( github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' ) &&
+          github.event.pull_request.head.ref == github.event.repository.default_branch
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           body="$(cat <<\BODY
@@ -146,16 +151,10 @@ jobs:
             --comment "$body"
           exit 1
 
-  label-pr:
-    if: >-
-      github.event_name == 'pull_request_target' &&
-      ( github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' )
-    runs-on: ubuntu-slim
-    permissions:
-      contents: read
-      pull-requests: write
-
-    steps:
-      - uses: actions/labeler@v6
+      - name: label PR
+        if: >-
+          always() &&
+          ( github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' )
+        uses: actions/labeler@v6
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
