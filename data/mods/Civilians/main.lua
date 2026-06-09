@@ -2,6 +2,22 @@ gdebug.log_info("Civilians: Initializing mod...")
 local mod = game.mod_runtime[game.current_mod]
 local storage = game.mod_storage[game.current_mod]
 
+---@class CiviliansConfig
+---@field SPAWN_CHANCE integer
+---@field RARE_CHANCE integer
+---@field VANISH_PERIOD_DAYS number
+---@field VANISH_BASE_RATE number
+---@field TRY_TRIES integer
+---@field NPC_TERRAINS string[]
+---@field TARGET_FURNITURE table<string, boolean>
+---@field PULPING_ENABLED boolean
+---@field PULPING_RADIUS integer
+---@field PULPING_CHANCE integer
+---@field CAN_PULP_CIVILIANS table<string, boolean>
+
+---@param default_config CiviliansConfig
+---@param stored_config CiviliansConfig?
+---@return CiviliansConfig
 function merge_config(default_config, stored_config)
   if not stored_config then return default_config end
 
@@ -16,6 +32,7 @@ function merge_config(default_config, stored_config)
       end
     end
   end
+  ---@cast new_config CiviliansConfig
   return new_config
 end
 -- ============================================================================
@@ -23,6 +40,7 @@ end
 -- ============================================================================
 
 local _stored_config = storage.config
+---@type CiviliansConfig
 local _default_config = {
   SPAWN_CHANCE = 15, -- Base spawn chance (15%)
   RARE_CHANCE = 10, -- Rare unit chance (10%): If spawned, 10% chance to be a police officer or fighter
@@ -112,6 +130,10 @@ local FLAG_FIELD_DRESS_FAILED = JsonFlagId.new("FIELD_DRESS_FAILED")
 -- ============================================================================
 
 --- Process civilian corpse pulping behavior
+---@param monster Monster
+---@param all_creatures Creature[]
+---@param map Map
+---@return nil
 local function process_civilian_corpse_pulping(monster, all_creatures, map)
   -- 1. Check if in combat (If enemies are in sight, prioritize enemies, ignore corpses)
   for _, cr in ipairs(all_creatures) do
@@ -123,7 +145,9 @@ local function process_civilian_corpse_pulping(monster, all_creatures, map)
   end
 
   local m_pos = monster:get_pos_ms()
+  ---@type Item?
   local found_corpse = nil
+  ---@type TripointBubMs?
   local corpse_pos = nil
 
   -- 2. Scan surroundings for unpulped corpses (radius 8 tiles)
@@ -148,10 +172,10 @@ local function process_civilian_corpse_pulping(monster, all_creatures, map)
     if found_corpse then break end
   end
 
-  if not found_corpse then return end
+  if not found_corpse or not corpse_pos then return end
 
   -- 3. Determine distance and execute action
-  local dist = coords.rl_dist(m_pos, corpse_pos)
+  local dist = coords.rl_dist(m_pos:xy(), corpse_pos:xy())
   if dist <= 1 then
     -- Close enough, execute pulping action
     found_corpse:set_damage(found_corpse:get_max_damage())
@@ -174,6 +198,7 @@ local function process_civilian_corpse_pulping(monster, all_creatures, map)
 end
 
 -- Execute corpse pulping check for all civilians every 10 turns
+---@return nil
 function mod.on_every_10_turns_civilian_update()
   if not CONFIG.PULPING_ENABLED then return end
 
@@ -199,15 +224,21 @@ end
 -- Native Mapgen and Civilian Placement
 -- ============================================================================
 
+---@param map Map
+---@param p TripointBubMs
+---@return boolean
 local function is_valid_spawn_spot(map, p)
   local ter_id = map:get_ter_at(p)
   if ter_id:obj():get_movecost() <= 0 then return false end
   return true
 end
 
+---@param map Map
+---@param center_p TripointBubMs
+---@return TripointBubMs?
 local function find_nearby_free_tile(map, center_p)
   local map_size = map:get_map_size()
-  for i = 1, CONFIG.TRY_TRIES do
+  for _i = 1, CONFIG.TRY_TRIES do
     local dx = gapi.rng(-2, 2)
     local dy = gapi.rng(-2, 2)
     local tx = center_p.x + dx
@@ -220,6 +251,7 @@ local function find_nearby_free_tile(map, center_p)
   return nil
 end
 
+---@return string?
 local function decide_spawn_group()
   local days = (gapi.current_turn() - gapi.turn_zero()):to_days()
   local survival_chance = CONFIG.VANISH_BASE_RATE ^ (days / CONFIG.VANISH_PERIOD_DAYS)
@@ -232,6 +264,8 @@ local function decide_spawn_group()
   end
 end
 
+---@param params OnMapgenPostprocessParams
+---@return nil
 mod.on_mapgen_postprocess = function(params)
   local map = params.map
   local omt_pos = params.omt
