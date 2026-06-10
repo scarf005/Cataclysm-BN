@@ -6,7 +6,7 @@
 #include "map_helpers.h"
 #include "options_helpers.h"
 #include "ranged.h"
-#include "rng.h"
+#include "random/rng.h"
 #include "state_helpers.h"
 #include "type_id.h"
 #include "units_utility.h"

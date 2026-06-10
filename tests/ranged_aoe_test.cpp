@@ -10,7 +10,7 @@
 #include "npc.h"
 #include "projectile.h"
 #include "ranged.h"
-#include "rng.h"
+#include "random/rng.h"
 #include "shape.h"
 #include "shape_impl.h"
 #include "skill.h"
