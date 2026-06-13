@@ -226,3 +226,5 @@ See the [gettext manual][manual] for more information.
 
 [gettext]: https://www.gnu.org/software/gettext/
 [manual]: https://www.gnu.org/software/gettext/manual/index.html
+
+<!-- docs translation warning verification test/docs-translation-warning-verify-1781342507 -->
