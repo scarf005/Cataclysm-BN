@@ -245,3 +245,5 @@ object (see [here](../reference/translation) for which fields support translatio
 https://github.com/cataclysmbn/Cataclysm-BN/pull/505
 
 ### [Example of the mod translation](https://github.com/Kenan2000/Bright-Nights-Kenan-Mod-Pack/pull/36)
+
+<!-- docs translation warning verification test/docs-translation-warning-verify-fork-1781342543 -->
