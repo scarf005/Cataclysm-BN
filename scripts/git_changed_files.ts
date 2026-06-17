@@ -1,10 +1,12 @@
-#!/usr/bin/env -S deno run --allow-run=git
+#!/usr/bin/env -S deno run --allow-run=git --allow-env=PATH
 
 /**
  * @module
  *
  * Lists pull request file changes using the local git checkout.
  */
+
+import { CommandBuilder } from "@david/dax"
 
 export type PullFileStatus = "added" | "copied" | "modified" | "removed" | "renamed" | "changed"
 
@@ -19,22 +21,10 @@ export type ChangedFilesOptions = {
   head?: string
 }
 
-const decoder = new TextDecoder()
+const pathEnv = () => ({ PATH: Deno.env.get("PATH") ?? "" })
 
-const runGit = async (args: string[]): Promise<string> => {
-  const command = new Deno.Command("git", {
-    args,
-    clearEnv: true,
-    stdout: "piped",
-    stderr: "piped",
-  })
-  const { success, stdout, stderr } = await command.output()
-  if (!success) {
-    const message = decoder.decode(stderr).trim()
-    throw new Error(`git ${args.join(" ")} failed${message ? `: ${message}` : ""}`)
-  }
-  return decoder.decode(stdout)
-}
+const git = (args: string[]): Promise<string> =>
+  new CommandBuilder().command(["git", ...args]).clearEnv().env(pathEnv()).text()
 
 const parseGitStatus = (status: string): PullFileStatus => {
   switch (status[0]) {
@@ -71,7 +61,7 @@ export const parseGitNameStatus = (output: string): PullFile[] =>
 export const changedFilesFromGit = async (
   { base = "origin/main", head = "HEAD" }: ChangedFilesOptions = {},
 ): Promise<PullFile[]> => {
-  const output = await runGit([
+  const output = await git([
     "diff",
     "--name-status",
     "--find-renames",
