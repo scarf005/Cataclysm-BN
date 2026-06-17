@@ -275,9 +275,9 @@ jobs:
             windows-${{ matrix.artifact }}-${{ inputs.mode }}-${{ github.ref_name }}
             windows-${{ matrix.artifact }}-${{ inputs.mode }}-main
             windows-${{ matrix.artifact }}-${{ inputs.mode }}-
-          max-size: 3G
+          max-size: ${{ inputs.mode == 'ci' && '1G' || '1500M' }}
           verbose: 2
-          save: ${{ github.event_name != 'pull_request' }}
+          save: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Configure ccache for MSVC
         if: runner.os == 'Windows'
@@ -336,7 +336,7 @@ jobs:
             ${{ matrix.artifact }}-
           max-size: 500M
           verbose: 2
-          save: ${{ github.event_name != 'pull_request' }}
+          save: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       # macOS setup
       - name: Install build dependencies (mac)
@@ -370,7 +370,7 @@ jobs:
             ${{ matrix.artifact }}-
           max-size: 500M
           verbose: 2
-          save: ${{ github.event_name != 'pull_request' }}
+          save: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Install shadercross (Linux)
         if: runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none') && matrix.tiles == true
@@ -653,9 +653,9 @@ jobs:
             ${{ matrix.artifact }}-${{ github.ref_name }}
             ${{ matrix.artifact }}-main
             ${{ matrix.artifact }}-
-          max-size: 2G
+          max-size: ${{ matrix.artifact == 'android-bundle' && '500M' || '1G' }}
           verbose: 2
-          save: ${{ github.event_name != 'pull_request' }}
+          save: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: Configure ccache (android)
         if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none'

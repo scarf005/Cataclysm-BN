@@ -178,7 +178,7 @@ jobs:
             ${{ matrix.ccache_key }}-
           max-size: ${{ matrix.ccache_limit }}
           verbose: 2
-          save: ${{ github.event_name != 'pull_request' }}
+          save: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
       - name: run JSON syntax validation (test-stage only)
         if: ${{ env.SKIP == 'false' && env.TEST_STAGE == '1' }}
@@ -302,3 +302,54 @@ jobs:
       android-localize: false
       upload-artifacts: true
     secrets: inherit
+
+  prune-ccache:
+    needs: cache-warm-builds
+    if: ${{ always() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Keep one warm ccache per main build family
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh cache list --ref refs/heads/main --limit 100 --json id,key,createdAt,sizeInBytes > caches.json
+          python3 <<'PY' > delete-caches.txt
+          import json
+          import re
+
+          prefixes = [
+              "ccache-android-x64-main-",
+              "ccache-android-bundle-main-",
+              "ccache-windows-windows-tiles-x64-msvc-ci-main-",
+              "ccache-windows-windows-tiles-x64-msvc-release-main-",
+              "ccache-osx-tiles-x64-main-",
+              "ccache-osx-curses-x64-main-",
+              "ccache-linux-tiles-x64-main-",
+              "ccache-linux-curses-x64-main-",
+          ]
+          caches = json.load(open("caches.json"))
+          grouped = {prefix: [] for prefix in prefixes}
+          for cache in caches:
+              key = cache["key"]
+              for prefix in prefixes:
+                  if key.startswith(prefix):
+                      grouped[prefix].append(cache)
+                      break
+
+          for entries in grouped.values():
+              entries.sort(key=lambda entry: entry["createdAt"], reverse=True)
+              for cache in entries[1:]:
+                  print(f"{cache['id']} {cache['key']}")
+          PY
+          while read -r id key; do
+            if [ -z "${id:-}" ]; then
+              continue
+            fi
+            echo "Deleting stale cache $key ($id)"
+            gh cache delete "$id"
+          done < delete-caches.txt
