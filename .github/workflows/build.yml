@@ -29,13 +29,13 @@ on:
         type: string
         default: |
           [
-            { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip" },
+            { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "noSoundpackArtifact": "windows-tiles-no-soundpack-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip" },
             { "name": "Linux Tiles", "platform": "linux", "artifact": "linux-tiles-x64", "os": "ubuntu-latest", "tiles": true, "sound": true, "ext": "tar.gz", "content-type": "application/gzip" },
             { "name": "Linux Curses", "platform": "linux", "artifact": "linux-curses-x64", "os": "ubuntu-latest", "tiles": false, "sound": false, "ext": "tar.gz", "content-type": "application/gzip" },
             { "name": "macOS Curses", "platform": "macos", "artifact": "osx-curses-x64", "os": "macos-15-intel", "preset": "osx-curses-x64-dist", "tiles": false, "sound": false, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
-            { "name": "macOS Tiles", "platform": "macos", "artifact": "osx-tiles-x64", "os": "macos-15-intel", "preset": "osx-tiles-x64-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+            { "name": "macOS Tiles", "platform": "macos", "artifact": "osx-tiles-x64", "noSoundpackArtifact": "osx-tiles-no-soundpack-x64", "os": "macos-15-intel", "preset": "osx-tiles-x64-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
             { "name": "macOS Curses ARM", "platform": "macos", "artifact": "osx-curses-arm", "os": "macos-15", "preset": "osx-curses-arm-dist", "tiles": false, "sound": false, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
-            { "name": "macOS Tiles ARM", "platform": "macos", "artifact": "osx-tiles-arm", "os": "macos-15", "preset": "osx-tiles-arm-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+            { "name": "macOS Tiles ARM", "platform": "macos", "artifact": "osx-tiles-arm", "noSoundpackArtifact": "osx-tiles-no-soundpack-arm", "os": "macos-15", "preset": "osx-tiles-arm-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
             { "name": "Android ARM64", "platform": "android", "artifact": "android-x64", "os": "ubuntu-latest", "android": "arm64", "tiles": true, "ext": "apk", "content-type": "application/apk" },
             { "name": "Android Bundle", "platform": "android", "artifact": "android-bundle", "os": "ubuntu-latest", "android": "bundle", "tiles": true, "ext": "aab", "content-type": "application/aab" }
           ]
@@ -168,7 +168,7 @@ jobs:
 
       - name: Bundle registry mods
         if: inputs.bundle-registry-mods
-        run: deno run --allow-read --allow-write --allow-net build-scripts/bundle-registry-mods.ts ${{ format('{0}', matrix.sound) == 'false' && '--exclude-package-type soundpack' || '' }}
+        run: deno run --allow-read --allow-write --allow-net build-scripts/bundle-registry-mods.ts ${{ (matrix.noSoundpackArtifact || format('{0}', matrix.sound) == 'false') && '--exclude-package-type soundpack' || '' }}
 
       - name: Bundle CDDA tilesets
         if: matrix.tiles == true && inputs.bundle-tilesets
@@ -532,10 +532,25 @@ jobs:
             throw "ccache saw more unsupported MSVC compiler options than cacheable calls"
           }
 
+      - name: Create no-soundpack distribution package (windows msvc)
+        if: runner.os == 'Windows' && matrix.noSoundpackArtifact && inputs.package-artifacts && (!inputs.upload-artifacts || matrix.upload-artifact == true)
+        run: |
+          $dist = "cataclysmbn-${{ inputs.version-label }}"
+          Remove-Item -Recurse -Force $dist -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force lang/mo
+          cmake --install out/build/windows-tiles-sounds-x64-msvc --prefix $dist --config Release
+
+          Compress-Archive -Force -Path $dist/* -DestinationPath cbn-${{ matrix.noSoundpackArtifact }}-${{ inputs.version-label }}.zip
+
+      - name: Bundle registry soundpacks (windows msvc)
+        if: runner.os == 'Windows' && matrix.noSoundpackArtifact && inputs.bundle-registry-mods
+        run: deno run --allow-read --allow-write --allow-net build-scripts/bundle-registry-mods.ts
+
       - name: Create distribution package (windows msvc)
         if: runner.os == 'Windows' && inputs.package-artifacts && (!inputs.upload-artifacts || matrix.upload-artifact == true)
         run: |
           $dist = "cataclysmbn-${{ inputs.version-label }}"
+          Remove-Item -Recurse -Force $dist -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force lang/mo
           cmake --install out/build/windows-tiles-sounds-x64-msvc --prefix $dist --config Release
 
@@ -580,6 +595,18 @@ jobs:
           configurePreset: ${{ matrix.preset }}
           configurePresetAdditionalArgs: ${{ inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON"]' || '["-DCATA_FORMAT_TARGETS=OFF"]' }}
           buildPreset: ${{ matrix.preset }}
+
+      - name: Rename no-soundpack distribution package (macOS)
+        if: runner.os == 'macOS' && matrix.noSoundpackArtifact && inputs.package-artifacts && (!inputs.upload-artifacts || matrix.upload-artifact == true)
+        run: mv CataclysmBN-*.dmg cbn-${{ matrix.noSoundpackArtifact }}-${{ inputs.version-label }}.dmg
+
+      - name: Bundle registry soundpacks (macOS)
+        if: runner.os == 'macOS' && matrix.noSoundpackArtifact && inputs.bundle-registry-mods
+        run: deno run --allow-read --allow-write --allow-net build-scripts/bundle-registry-mods.ts
+
+      - name: Recreate distribution package with soundpacks (macOS)
+        if: runner.os == 'macOS' && matrix.noSoundpackArtifact && inputs.package-artifacts && (!inputs.upload-artifacts || matrix.upload-artifact == true)
+        run: cmake --build --preset ${{ matrix.preset }}
 
       - name: Rename distribution package (macOS)
         if: runner.os == 'macOS' && inputs.package-artifacts && (!inputs.upload-artifacts || matrix.upload-artifact == true)
@@ -840,6 +867,18 @@ jobs:
           name: ${{ inputs.artifact-label != '' && format('{0}-{1}', matrix.artifact, inputs.artifact-label) || matrix.artifact }}
           path: ${{ runner.os == 'Windows' && format('cataclysmbn-{0}/', inputs.version-label) || format('cbn-{0}-{1}.{2}', matrix.artifact, inputs.version-label, matrix.ext) }}
           if-no-files-found: error
+
+      - name: Upload no-soundpack package to release
+        if: inputs.upload-to-release && matrix.noSoundpackArtifact
+        run: |
+          if [ "${{ inputs.version-label }}" = "experimental" ]; then
+            gh release upload experimental --clobber cbn-${{ matrix.noSoundpackArtifact }}-${{ inputs.version-label }}.${{ matrix.ext }}
+          else
+            gh release upload ${{ inputs.release-tag }} --clobber cbn-${{ matrix.noSoundpackArtifact }}-${{ inputs.version-label }}.${{ matrix.ext }}
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
 
       - name: Upload to release
         if: inputs.upload-to-release
