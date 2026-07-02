@@ -1766,7 +1766,8 @@ TEST_CASE("lua_hook_wiring_character_consumed_food", "[lua][consumption]") {
     const auto nutrition = std::make_shared<int>(0);
     const auto when = std::make_shared<time_point>();
 
-    const auto [list, idx] = push_hook(lua, "on_character_consumed_food",
+    const auto [list, idx] = push_hook(
+        lua, "on_character_consumed_food",
         [char_ptr, item_ptr, item_id, calories, nutrition, when](sol::table params) {
             *char_ptr = params["character"].get<sol::optional<Character*>>().value_or(nullptr);
             *item_ptr = params["food"].get<sol::optional<item*>>().value_or(nullptr);
