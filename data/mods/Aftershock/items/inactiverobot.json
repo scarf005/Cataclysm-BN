@@ -250,7 +250,7 @@
       "moves": 100,
       "skills": [ "throw" ]
     },
-    "flags": [ "ALLOWS_REMOTE_USE" ]
+    "flags": [ "ACT_ON_RANGED_HIT", "ALLOWS_REMOTE_USE" ]
   },
   {
     "id": "bot_laserturret_x-ray",
