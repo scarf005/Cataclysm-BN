@@ -1052,6 +1052,7 @@ bool game::start_game()
         u.add_effect( effect_feral_killed_recently, 3_days );
     }
     u.process_turn(); // process_turn adds the initial move points
+    u.process_items();
     u.set_stamina( u.get_stamina_max() );
     get_weather().update_weather();
     u.next_climate_control_check = calendar::before_time_starts; // Force recheck at startup
@@ -2341,6 +2342,7 @@ bool game::do_turn()
     {
         ZoneScopedN( "do_turn_player_process_turn" );
         u.process_turn();
+        u.process_items();
     }
 
     {
@@ -2719,7 +2721,6 @@ auto game::execute_activity_fixed_window_skip( const time_duration &duration ) -
         }
 
         debug_hour_timer.print_time();
-        u.update_body( action_time_scale::calendar_duration_this_tick() );
         process_voluntary_act_interrupt();
         if( ( ( !u.activity || !*u.activity ) && !u.in_sleep_state() ) ) {
             break;
@@ -2816,6 +2817,15 @@ auto game::run_activity_skip_batch_turns( const int skipped_turns ) -> void
     {
         ZoneScopedN( "do_map_process_items" );
         m.process_items( skipped_turns );
+    }
+
+    {
+        u.update_body( action_time_scale::calendar_duration_this_tick() * skipped_turns );
+    }
+
+    {
+        ZoneScopedN( "do_player_process_items" );
+        u.process_items( skipped_turns );
     }
 
     {
@@ -6615,6 +6625,7 @@ void game::npcmove()
             ZoneScopedN( "npc_process_turn" );
             if( !guy.has_effect( effect_npc_suspend ) ) {
                 guy.process_turn();
+                guy.process_items();
             }
         }
         while( !guy.is_dead() && guy.moves > 0 && turns < 10 &&
@@ -6716,6 +6727,7 @@ void game::sleep_skip_npc_process()
         m.creature_in_field( guy );
         if( !guy.has_effect( effect_npc_suspend ) ) {
             guy.process_turn();
+            guy.process_items();
         }
         guy.npc_update_body();
     }
