@@ -2124,7 +2124,11 @@ bool game::do_turn()
     {
         ZoneScopedN( "do_turn_pre_action_updates" );
         perhaps_add_random_npc();
-        refresh_player_visibility_cache_if_needed();
+        if( ( ( !u.activity || !*u.activity || u.activity->complete() ) && !u.in_sleep_state() ) ||
+            !get_option<bool>( "ACTIVITY_SKIP_VISIBILITY" ) ) {
+            // If map cache needs to be updated visibility cache will handle it.
+            refresh_player_visibility_cache_if_needed( true, true );
+        }
         process_voluntary_act_interrupt();
         process_activity();
         update_performance_bubble();
@@ -4799,7 +4803,8 @@ auto game::visibility_cache_z() -> int
     return is_looking ? u.bub_pos().z() : ter_view_p.z();
 }
 
-auto game::refresh_player_visibility_cache_if_needed( const bool player_map_cache_current ) -> void
+auto game::refresh_player_visibility_cache_if_needed( const bool player_map_cache_current,
+        const bool skip_lightmap ) -> void
 {
 #if defined( CATA_SDL )
     ZoneScopedN( "refresh_player_visibility_cache_if_needed" );
@@ -4817,7 +4822,7 @@ auto game::refresh_player_visibility_cache_if_needed( const bool player_map_cach
     }
 
     if( !player_map_cache_current ) {
-        m.build_map_cache( zlev );
+        m.build_map_cache( zlev, skip_lightmap );
     }
     if( needs_visibility_refresh() ) {
         m.update_visibility_cache( zlev );
