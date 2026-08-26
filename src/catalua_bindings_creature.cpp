@@ -21,6 +21,8 @@
 #include "catalua_luna_doc.h"
 #include "catalua_serde.h"
 #include "character.h"
+#include "crafting.h"
+#include "craft_command.h"
 #include "creature.h"
 #include "damage.h"
 #include "disease.h"
@@ -1304,6 +1306,23 @@ void cata::detail::reg_character( sol::state &lua )
 
         DOC( "Invalidates the cached crafting inventory" );
         SET_FX_T( invalidate_crafting_inventory, void() );
+
+        DOC( "Consumes a requirement's items from the inventory" );
+        luna::set_fx( ut, "consume_requirement", []( UT_CLASS & ch, const requirement_data & req, const sol::table & opts ) -> bool {
+            int range = opts.get_or( "range", PICKUP_RANGE );
+            int size = opts.get_or( "count", 1 );
+            inventory map_inv;
+            map_inv.form_from_map( ch.bub_pos(), range );
+            for( const auto &it : req.get_components() )
+            {
+                auto chosen = ch.select_item_component( it, size, map_inv, true );
+                if( chosen.use_from == usage_from::cancel ) {
+                    return false;
+                }
+                ch.consume_items( chosen, size );
+            }
+            return true;
+        } );
 
         DOC( "Consumes items from inventory based on item component list" );
         luna::set_fx( ut, "consume_items", []( UT_CLASS & ch, const std::vector<item_comp> &components ) -> void {
