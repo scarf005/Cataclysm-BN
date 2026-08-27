@@ -3303,11 +3303,17 @@ ret_val<bool> Character::can_wear( const item &it, bool with_equip_change ) cons
         return ret_val<bool>::make_failure( _( "Putting on a %s would be tricky." ), it.tname() );
     }
 
-    if( has_trait( trait_WOOLALLERGY ) && ( it.made_of( material_id( "wool" ) ) ||
-                                            it.has_own_flag( flag_wooled ) ) ) {
-        return ret_val<bool>::make_failure( _( "Can't wear that, it's made of wool!" ) );
-    }
+    const auto &hook_results = cata::run_hooks( "on_character_try_wear",
+    [&]( sol::table & params ) {
+        params["who"] = this;
+        params["item"] = &it;
+    }, {.exit_early = true} );
 
+    bool allowed = hook_results.get<bool>( "allowed" );
+    if( !allowed ) {
+        return ret_val<bool>::make_failure( hook_results.get_or( "message",
+                                            _( "Wearing that is blocked for an unknown reason. One of your lua mods isn't returning the hook right." ) ) );
+    }
 
     if( !it.has_flag( flag_SEMITANGIBLE ) ) {
         for( const trait_id &mut : get_mutations() ) {
@@ -3579,6 +3585,18 @@ ret_val<bool> Character::can_takeoff( const item &it, bool dropping ) const
     if( iter == worn.end() ) {
         return ret_val<bool>::make_failure( !is_npc() ? _( "You are not wearing that item." ) :
                                             _( "<npcname> is not wearing that item." ) );
+    }
+
+    const auto &hook_results = cata::run_hooks( "on_character_try_takeoff",
+    [&]( sol::table & params ) {
+        params["who"] = this;
+        params["item"] = &it;
+    }, {.exit_early = true} );
+
+    bool allowed = hook_results.get<bool>( "allowed" );
+    if( !allowed ) {
+        return ret_val<bool>::make_failure( hook_results.get_or( "message",
+                                            _( "Taking that off is blocked for an unknown reason. One of your lua mods isn't returning the hook right." ) ) );
     }
 
     if( dropping && !get_dependent_worn_items( it ).empty() ) {
@@ -11272,6 +11290,10 @@ void Character::on_item_wear( item &it )
     if( it.type->iwearable_callbacks ) {
         it.type->iwearable_callbacks->call_on_wear( *this, it );
     }
+    cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
+        params["who"] = this;
+        params["item"] = &it;
+    } );
 }
 
 void Character::on_item_takeoff( item &it )
@@ -11289,6 +11311,10 @@ void Character::on_item_takeoff( item &it )
     if( it.type->iwearable_callbacks ) {
         it.type->iwearable_callbacks->call_on_takeoff( *this, it );
     }
+    cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
+        params["who"] = this;
+        params["item"] = &it;
+    } );
 }
 
 void Character::on_effect_int_change( const efftype_id &effect_type, int intensity,
