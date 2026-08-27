@@ -1213,7 +1213,10 @@
     "death_drops": "mon_feral_magehunter_death_drops",
     "anger_triggers": [ "FRIEND_ATTACKED", "PLAYER_CLOSE", "FIRE", "HURT" ],
     "fear_triggers": [  ],
-    "extend": { "flags": [ "STUN_IMMUNE" ] }
+    "//2": "Mask of insight disables normal vision, but lets you see through walls and protects against flashbangs.",
+    "clairvoyance": 20,
+    "extend": { "flags": [ "STUN_IMMUNE" ] },
+    "delete": { "flags": [ "SEES" ] }
   },
   {
     "id": "mon_feral_keeper",
