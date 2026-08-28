@@ -216,7 +216,8 @@
     "city_distance": [ 20, -1 ],
     "city_sizes": [ 0, 6 ],
     "occurrences": [ 1, 1 ],
-    "flags": [ "LAB", "UNIQUE", "ENDGAME" ],
+    "flags": [ "LAB", "UNIQUE" ],
+    "absolute_spawn_loc": { "x": 0, "y": 0 },
     "rotate": false,
     "check_for_locations": [
       [ [ 0, 0, 0 ], [ "wilderness" ] ],
