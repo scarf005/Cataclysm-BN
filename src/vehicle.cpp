@@ -1,5 +1,6 @@
 #include "vehicle.h"
 #include "detached_ptr.h"
+#include "locations.h"
 #include "type_id.h"
 #include "units_mass.h"
 #include "vehicle_part.h" // IWYU pragma: associated
@@ -222,6 +223,7 @@ class DefaultRemovePartHandler : public RemovePartHandler
             map &here = get_map();
             here.set_transparency_cache_dirty( z );
             here.set_seen_cache_dirty( tripoint_bub_ms::zero() );
+            here.set_vehicle_cache_dirty( z );
         }
         void set_floor_cache_dirty( const int z ) override {
             get_map().set_floor_cache_dirty( z );
@@ -2275,6 +2277,7 @@ int vehicle::install_part( const tripoint_mnt_veh &dp, vehicle_part &&new_part )
     refresh();
     get_map().invalidate_lightmap_caches();
     get_map().get_mapbuffer().refresh_vehicle_footprint( this );
+    get_map().set_vehicle_cache_dirty( abs_sm_pos.z() );
     coeff_air_changed = true;
     return parts.size() - 1;
 }
@@ -2464,6 +2467,7 @@ bool vehicle::merge_rackable_vehicle( vehicle *carry_veh, const std::vector<int>
         here.dirty_vehicle_list.insert( this );
         here.set_transparency_cache_dirty( abs_sm_pos.z() );
         here.set_seen_cache_dirty( tripoint_bub_ms::zero() );
+        here.set_vehicle_cache_dirty( abs_sm_pos.z() );
         refresh();
     } else {
         //~ %1$s is the vehicle being loaded onto the bicycle rack
@@ -2626,6 +2630,7 @@ void vehicle::part_removal_cleanup()
     if( changed || parts.empty() ) {
         refresh();
         here.invalidate_lightmap_caches();
+        here.set_vehicle_cache_dirty( abs_sm_pos.z() );
         if( parts.empty() ) {
             here.destroy_vehicle( this );
             return;
@@ -2860,6 +2865,7 @@ bool vehicle::find_and_split_vehicles( int exclude )
         if( success ) {
             // update the active cache
             g->m.reset_vehicle_cache();
+            g->m.set_vehicle_cache_dirty( abs_sm_pos.z() );
             return true;
         }
     }
@@ -3032,6 +3038,7 @@ bool vehicle::split_vehicles( const std::vector<std::vector <int>> &new_vehs,
         here.dirty_vehicle_list.insert( new_vehicle );
         here.set_transparency_cache_dirty( abs_sm_pos.z() );
         here.set_seen_cache_dirty( tripoint_bub_ms::zero() );
+        here.set_vehicle_cache_dirty( abs_sm_pos.z() );
         if( !new_labels.empty() ) {
             new_vehicle->labels = new_labels;
         }
@@ -7985,6 +7992,7 @@ int vehicle::damage_direct( int p, int dmg, damage_type type )
         stop_autodriving();
     }
     here.set_memory_seen_cache_dirty( bub_part_location( p ) );
+    here.set_vehicle_cache_dirty( abs_sm_pos.z() );
     if( parts[p].is_broken() ) {
         return break_off( p, dmg );
     }

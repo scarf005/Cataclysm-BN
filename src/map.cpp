@@ -664,6 +664,7 @@ void map::set_seen_cache_dirty( const tripoint_bub_ms &change_location )
 {
     if( inbounds( change_location ) ) {
         level_cache &cache = get_cache( change_location.z() );
+        cache.vehicle_caches_dirty = true;
         if( cache.seen_cache_dirty ) {
             return;
         }
@@ -808,6 +809,7 @@ void map::set_transparency_cache_dirty( const tripoint_bub_ms &p )
     if( inbounds( p ) ) {
         const auto smp = project_to<coords::sm>( p );
         level_cache &ch = get_cache( smp.z() );
+        ch.vehicle_caches_dirty = true;
         ch.transparency_cache_dirty.set( static_cast<size_t>( ch.bidx( smp.x(), smp.y() ) ) );
         const auto abs_sm = map_local_to_abs( *this, smp );
         get_mapbuffer().mark_submap_caches_dirty( {
