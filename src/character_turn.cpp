@@ -948,7 +948,7 @@ void Character::process_items( int turns )
         item &it = inv.find_item( index );
         if( it.has_flag( flag_IS_UPS ) ) {
             ch_UPS += std::min( it.ammo_remaining() * it.type->tool->ups_eff_mult,
-                                it.type->tool->ups_recharge_rate );
+                                it.type->tool->ups_recharge_rate * turns );
         }
         if( it.has_flag( flag_USE_UPS ) && needs_elec_charges( &it ) ) {
             active_held_items.push_back( index );
@@ -961,7 +961,7 @@ void Character::process_items( int turns )
         }
         if( w->has_flag( flag_IS_UPS ) ) {
             ch_UPS += std::min( w->ammo_remaining() * w->type->tool->ups_eff_mult,
-                                w->type->tool->ups_recharge_rate );
+                                w->type->tool->ups_recharge_rate * turns );
         }
         if( !update_required && w->encumbrance_update_ ) {
             update_required = true;
@@ -973,7 +973,7 @@ void Character::process_items( int turns )
         set_check_encumbrance( false );
     }
     if( has_active_bionic( bionic_id( "bio_ups" ) ) ) {
-        ch_UPS += std::min( units::to_kilojoule( get_power_level() ), 10 );
+        ch_UPS += std::min( units::to_kilojoule( get_power_level() ), 10 * turns );
     }
     int ch_UPS_used = 0;
     if( weapon_active && ch_UPS_used < ch_UPS ) {

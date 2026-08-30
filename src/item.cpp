@@ -11001,16 +11001,16 @@ detached_ptr<item> item::process_tool( detached_ptr<item> &&self, player *carrie
     const bool uses_UPS = self->has_flag( flag_USE_UPS );
     bool revert_destroy = false;
     if( self->type->tool->turns_per_charge > 0 ) {
-        if( self->type->tool->turns_active >= self->type->tool->turns_per_charge ) {
-            energy = std::max( self->ammo_required(), ticks );
-            self->type->tool->turns_active = 0;
+        while( self->type->tool->turns_active >= self->type->tool->turns_per_charge ) {
+            energy = std::max( self->ammo_required(), 1 );
+            self->type->tool->turns_active -= self->type->tool->turns_per_charge;
         }
         self->type->tool->turns_active += ticks;
     } else if( self->type->tool->power_draw > 0 ) {
         // power_draw in mW / 1000000 to give kJ (battery unit) per second
-        energy = ( self->type->tool->power_draw / 1000000 ) * ticks;
+        energy = ( ( self->type->tool->power_draw * ticks ) / 1000000 );
         // energy_bat remainder results in chance at additional charge/discharge
-        energy += x_in_y( self->type->tool->power_draw % 1000000, 1000000 ) ? ticks : 0;
+        energy += x_in_y( ( self->type->tool->power_draw * ticks ) % 1000000, 1000000 ) ? 1 : 0;
     }
 
     // If ammo_required is 0 we just skip over this and go to tick processing.
