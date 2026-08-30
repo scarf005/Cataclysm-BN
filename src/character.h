@@ -946,6 +946,12 @@ class Character : public Creature, public location_visitable<Character>
          */
         double bonus_from_enchantments( double base, enchantment_value_id value, bool round = false ) const;
 
+        /** Returns true if the player has an enchantment with that fake item */
+        bool has_enchantment_with_fake( const itype_id &it ) const;
+
+        /** Returns all fake items from currently active enchantments */
+        std::set<itype_id> get_enchantment_fake_items() const;
+
         /** Returns true if the player has any martial arts buffs attached */
         bool has_mabuff( const mabuff_id &buff_id ) const;
         /** Returns true if the player has a grab breaking technique available */

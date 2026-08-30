@@ -334,7 +334,7 @@
     "points": 2,
     "visibility": 3,
     "ugliness": 2,
-    "description": "You have sharply curved claws on the ends of your fingers, making your unarmed attacks more dangerous.  However, they do prevent wearing gloves unless they're fingerless.",
+    "description": "You have sharply curved claws on the ends of your fingers, making your unarmed attacks more dangerous and allowing you to perform basic cutting tasks.  However, they do prevent wearing gloves unless they're fingerless.",
     "valid": false,
     "butchering_quality": 9,
     "types": [ "CLAWS" ],
@@ -342,7 +342,8 @@
     "restricts_gear": [ "hand_l", "hand_r" ],
     "allowed_items": [ "ALLOWS_CLAWS" ],
     "cut_dmg_bonus": 7,
-    "flags": [ "UNARMED_BONUS" ]
+    "flags": [ "UNARMED_BONUS" ],
+    "mut_enchantments": [ { "fake_items": [ "fake_arcana_curved_claws" ] } ]
   },
   {
     "type": "mutation",

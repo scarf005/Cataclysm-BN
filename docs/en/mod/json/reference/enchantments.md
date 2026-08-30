@@ -178,6 +178,12 @@ Prevents recieving these effects, but any present effects will persist
 
 Prevents environmental effects of fields from being applied
 
+#### Fake Items
+
+(array) of itype_id values
+
+Adds these items to the crafting inventory. Can use bionic power with USES_BIONIC_POWER
+
 ### Examples
 
 ```json
@@ -219,7 +225,8 @@ Prevents environmental effects of fields from being applied
     },
     "flags": ["FOOD_POISON_IMMUNE"],
     "immune_fields": ["fd_fire"],
-    "immune_effects": ["poison"]
+    "immune_effects": ["poison"],
+    "fake_items": ["fake_burrowing"]
     }
   }
 ]

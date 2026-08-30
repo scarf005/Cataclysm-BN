@@ -2244,6 +2244,16 @@ bool Character::has_active_bionic_with_fake( const itype_id &it ) const
     return false;
 }
 
+std::set<itype_id> Character::get_enchantment_fake_items() const
+{
+    return enchantment_cache->get_fake_items();
+}
+
+bool Character::has_enchantment_with_fake( const itype_id &it ) const
+{
+    return enchantment_cache->get_fake_items().contains( it );
+}
+
 int Character::count_bionic_of_type( const bionic_id &bio ) const
 {
     int i = 0;
@@ -9101,6 +9111,9 @@ void Character::recalculate_enchantment_cache()
 
     // Enchantments can also give encumbrance
     reset_encumbrance();
+
+    // Enchantments can also give tools so...
+    invalidate_crafting_inventory();
 }
 
 void Character::rebuild_mutation_cache()

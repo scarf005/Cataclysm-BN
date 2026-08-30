@@ -627,9 +627,13 @@ const inventory &Character::crafting_inventory( const tripoint_bub_ms &src_pos, 
                                                 units::to_kilojoule( get_power_level() ) ), true );
         }
     }
-    if( has_trait( trait_BURROW ) ) {
-        cached_crafting_inventory.add_item( *item::spawn_temporary( "pickaxe", calendar::turn ), true );
-        cached_crafting_inventory.add_item( *item::spawn_temporary( "shovel", calendar::turn ), true );
+    for( const itype_id &it : enchantment_cache->get_fake_items() ) {
+        if( it->has_flag( flag_USES_BIONIC_POWER ) ) {
+            cached_crafting_inventory.add_item( *item::spawn_temporary( it, calendar::turn,
+                                                units::to_kilojoule( get_power_level() ) ), true );
+        } else {
+            cached_crafting_inventory.add_item( *item::spawn_temporary( it, calendar::turn ), true );
+        }
     }
 
     cached_moves = moves;

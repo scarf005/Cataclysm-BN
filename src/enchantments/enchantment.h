@@ -80,6 +80,8 @@ public:
 
     const std::set<trait_id>& get_mutations() const { return mutations; }
 
+    const std::set<itype_id>& get_fake_items() const { return fake_items; }
+
     bool is_immune_effect(const efftype_id& eff) const { return immune_effects.contains(eff); }
 
     bool is_immune_field(const field_type_id& fd) const { return immune_fields.contains(fd); }
@@ -100,6 +102,7 @@ private:
     std::set<trait_id> mutations;
     std::optional<emit_id> emitter;
     std::map<efftype_id, int> ench_effects;
+    std::set<itype_id> fake_items;
 
     // values that add to the base value
     std::map<enchantment_value_id, int> values_add;

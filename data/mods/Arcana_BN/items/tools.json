@@ -41,6 +41,15 @@
     "use_action": { "type": "place_monster", "monster_id": "mon_shadow_summoned_fake", "place_randomly": true }
   },
   {
+    "id": "fake_arcana_curved_claws",
+    "//": "Fake item that provides Dragonblood mutants with an innate source of cutting quality, needed to cast Sanguine Marks.",
+    "copy-from": "fake_item",
+    "type": "TOOL",
+    "name": { "str_sp": "draconic claws" },
+    "flags": [ "TRADER_AVOID", "ENCHANTMENT_TOOLS" ],
+    "qualities": [ [ "CUT", 1 ] ]
+  },
+  {
     "id": "bot_seraphic_mimic",
     "type": "TOOL",
     "name": { "str": "Archon mimic" },

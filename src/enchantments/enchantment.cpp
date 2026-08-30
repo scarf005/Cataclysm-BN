@@ -266,9 +266,10 @@ void enchantment::load(const JsonObject& jo, const std::string&) {
         ench_effects.emplace(efftype_id(jsobj.get_string("effect")), jsobj.get_int("intensity"));
     }
 
-    optional(jo, was_loaded, "mutations", mutations);
-    optional(jo, was_loaded, "immune_effects", immune_effects);
-    optional(jo, was_loaded, "immune_fields", immune_fields);
+    optional(jo, was_loaded, "mutations", mutations, auto_flags_reader<trait_id>{});
+    optional(jo, was_loaded, "fake_items", fake_items, auto_flags_reader<itype_id>{});
+    optional(jo, was_loaded, "immune_effects", immune_effects, auto_flags_reader<efftype_id>{});
+    optional(jo, was_loaded, "immune_fields", immune_fields, auto_flags_reader<field_type_id>{});
 
     if (jo.has_array("values")) {
         for (const JsonObject value_obj : jo.get_array("values")) {
@@ -409,6 +410,8 @@ void enchantment::force_add(const enchantment& rhs) {
     if (rhs.emitter) { emitter = rhs.emitter; }
 
     for (const trait_id& branch : rhs.mutations) { mutations.emplace(branch); }
+
+    for (const itype_id& branch : rhs.fake_items) { fake_items.emplace(branch); }
 
     for (const std::pair<const time_duration, std::vector<fake_spell>>& act_pair :
          rhs.intermittent_activation) {
