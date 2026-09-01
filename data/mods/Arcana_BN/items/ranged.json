@@ -78,7 +78,14 @@
     "modes": [ [ "DEFAULT", "single", 1 ], [ "BURST", "triple", 3 ] ],
     "ammo_effects": [ "FLAME", "STREAM", "IGNITE" ],
     "techniques": [ "WBLOCK_1", "RAPID" ],
-    "use_action": { "type": "cast_spell", "spell_id": "arcana_item_sparks", "no_fail": true, "level": 0, "need_wielding": true },
+    "use_action": {
+      "type": "cast_spell",
+      "spell_id": "arcana_item_sparks",
+      "no_fail": true,
+      "level": 0,
+      "need_wielding": true,
+      "menu_text": "Ignite something"
+    },
     "relic_data": {
       "passive_effects": [
         {
@@ -304,7 +311,14 @@
     "loudness": 186,
     "clip_size": 1,
     "reload": 200,
-    "use_action": { "type": "cast_spell", "spell_id": "arcana_item_sparks", "no_fail": true, "level": 0, "need_wielding": true },
+    "use_action": {
+      "type": "cast_spell",
+      "spell_id": "arcana_item_sparks",
+      "no_fail": true,
+      "level": 0,
+      "need_wielding": true,
+      "menu_text": "Ignite something"
+    },
     "ammo_effects": [ "NAPALM_CLAW", "NO_PENETRATE_OBSTACLES" ],
     "relic_data": {
       "passive_effects": [
@@ -646,7 +660,14 @@
         }
       ]
     },
-    "use_action": { "type": "cast_spell", "spell_id": "arcana_item_mech_flare", "no_fail": true, "level": 0, "need_wielding": true },
+    "use_action": {
+      "type": "cast_spell",
+      "spell_id": "arcana_item_mech_flare",
+      "no_fail": true,
+      "level": 0,
+      "need_wielding": true,
+      "menu_text": "Launch flare"
+    },
     "ammo_effects": [ "LASER", "PLASMA_BUBBLE", "BLINDS_EYES", "BEANBAG", "AMMO_RIFT_FOCUS_SHADOWS", "AMMO_RIFT_FOCUS_TINDALOS" ],
     "flags": [
       "NO_UNLOAD",

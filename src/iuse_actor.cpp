@@ -263,8 +263,6 @@ void iuse_transform::load( const JsonObject &obj )
     obj.read( "need_dry", need_dry );
 
     obj.read( "qualities_needed", qualities_needed );
-
-    obj.read( "menu_text", menu_text );
 }
 
 int iuse_transform::use( player &p, item &it, bool t, const tripoint_bub_ms &pos ) const
@@ -427,14 +425,6 @@ ret_val<bool> iuse_transform::can_use( const Character &p, const item &, bool,
     } );
     return ret_val<bool>::make_failure( vgettext( "You need a tool with %s.", "You need tools with %s.",
                                         unmet_reqs.size() ), unmet_reqs_string );
-}
-
-std::string iuse_transform::get_name() const
-{
-    if( !menu_text.empty() ) {
-        return menu_text.translated();
-    }
-    return iuse_actor::get_name();
 }
 
 void iuse_transform::finalize( const itype_id & )

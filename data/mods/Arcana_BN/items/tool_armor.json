@@ -586,7 +586,8 @@
         "spell_id": "arcana_item_jade_hauberk_healing",
         "no_fail": true,
         "level": 0,
-        "need_worn": true
+        "need_worn": true,
+        "menu_text": "Heal yourself"
       }
     ],
     "relative": { "weight": "3020 g", "price": "550 USD", "material_thickness": 1 },

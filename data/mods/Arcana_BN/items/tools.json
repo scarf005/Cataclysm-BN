@@ -154,7 +154,8 @@
         "spell_id": "arcana_item_chalice_offering",
         "no_fail": true,
         "need_wielding": true,
-        "level": 0
+        "level": 0,
+        "menu_text": "Convert life force into blood essence"
       }
     ]
   },
@@ -185,7 +186,8 @@
         "spell_id": "arcana_item_athame_sanguine_art",
         "no_fail": true,
         "need_wielding": true,
-        "level": 0
+        "level": 0,
+        "menu_text": "Convert life force into blood essence"
       }
     ],
     "flags": [ "STAB", "SHEATH_KNIFE", "USE_PLAYER_ENERGY", "NO_SALVAGE" ]
@@ -1129,7 +1131,16 @@
     "charges_per_use": 2,
     "ammo": "essence_blood_type",
     "relative": { "weight": "230 g" },
-    "use_action": [ { "type": "cast_spell", "spell_id": "arcana_item_lichhook", "no_fail": true, "need_wielding": true, "level": 0 } ],
+    "use_action": [
+      {
+        "type": "cast_spell",
+        "spell_id": "arcana_item_lichhook",
+        "no_fail": true,
+        "need_wielding": true,
+        "level": 0,
+        "menu_text": "Immobilize victim"
+      }
+    ],
     "extend": { "flags": [ "NO_SALVAGE", "SHEATH_SWORD" ] }
   },
   {
@@ -1715,7 +1726,14 @@
     "max_charges": 10,
     "charges_per_use": 1,
     "ammo": "essence_pure_type",
-    "use_action": { "type": "cast_spell", "spell_id": "arcana_item_ritual_blade", "no_fail": true, "need_wielding": true, "level": 0 },
+    "use_action": {
+      "type": "cast_spell",
+      "spell_id": "arcana_item_ritual_blade",
+      "no_fail": true,
+      "need_wielding": true,
+      "level": 0,
+      "menu_text": "Offer power to the Beyond"
+    },
     "relic_data": {
       "passive_effects": [
         {
@@ -1731,6 +1749,7 @@
       ]
     },
     "techniques": [ "WBLOCK_1", "WIDE", "BRUTAL", "SWEEP" ],
+    "qualities": [ [ "CUT", 1 ], [ "BUTCHER", 4 ] ],
     "flags": [ "UNBREAKABLE_MELEE", "NO_SALVAGE", "MAGIC_FOCUS", "NONCONDUCTIVE", "SHEATH_SWORD" ]
   },
   {
