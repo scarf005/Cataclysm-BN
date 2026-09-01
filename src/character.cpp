@@ -104,6 +104,7 @@
 #include "string_utils.h"
 #include "submap.h"
 #include "text_snippets.h"
+#include "thread_pool.h"
 #include "translations.h"
 #include "trap.h"
 #include "type_id.h"
@@ -3313,16 +3314,20 @@ ret_val<bool> Character::can_wear( const item &it, bool with_equip_change ) cons
         return ret_val<bool>::make_failure( _( "Putting on a %s would be tricky." ), it.tname() );
     }
 
-    const auto &hook_results = cata::run_hooks( "on_character_try_wear",
-    [&]( sol::table & params ) {
-        params["who"] = this;
-        params["item"] = &it;
-    }, {.exit_early = true} );
+    // During multithreaded mapgen this can be called on NPC gen
+    // If so it will cause random segfaults on NPC generation
+    if( !is_pool_worker_thread() ) {
+        const auto &hook_results = cata::run_hooks( "on_character_try_wear",
+        [&]( sol::table & params ) {
+            params["who"] = this;
+            params["item"] = &it;
+        }, {.exit_early = true} );
 
-    bool allowed = hook_results.get<bool>( "allowed" );
-    if( !allowed ) {
-        return ret_val<bool>::make_failure( hook_results.get_or( "message",
-                                            _( "Wearing that is blocked for an unknown reason. One of your lua mods isn't returning the hook right." ) ) );
+        bool allowed = hook_results.get<bool>( "allowed" );
+        if( !allowed ) {
+            return ret_val<bool>::make_failure( hook_results.get_or( "message",
+                                                _( "Wearing that is blocked for an unknown reason. One of your lua mods isn't returning the hook right." ) ) );
+        }
     }
 
     if( !it.has_flag( flag_SEMITANGIBLE ) ) {
@@ -3597,18 +3602,21 @@ ret_val<bool> Character::can_takeoff( const item &it, bool dropping ) const
                                             _( "<npcname> is not wearing that item." ) );
     }
 
-    const auto &hook_results = cata::run_hooks( "on_character_try_takeoff",
-    [&]( sol::table & params ) {
-        params["who"] = this;
-        params["item"] = &it;
-    }, {.exit_early = true} );
+    // During multithreaded mapgen this can be called on NPC gen
+    // If so it will cause random segfaults on NPC generation
+    if( !is_pool_worker_thread() ) {
+        const auto &hook_results = cata::run_hooks( "on_character_try_takeoff",
+        [&]( sol::table & params ) {
+            params["who"] = this;
+            params["item"] = &it;
+        }, {.exit_early = true} );
 
-    bool allowed = hook_results.get<bool>( "allowed" );
-    if( !allowed ) {
-        return ret_val<bool>::make_failure( hook_results.get_or( "message",
-                                            _( "Taking that off is blocked for an unknown reason. One of your lua mods isn't returning the hook right." ) ) );
+        bool allowed = hook_results.get<bool>( "allowed" );
+        if( !allowed ) {
+            return ret_val<bool>::make_failure( hook_results.get_or( "message",
+                                                _( "Taking that off is blocked for an unknown reason. One of your lua mods isn't returning the hook right." ) ) );
+        }
     }
-
     if( dropping && !get_dependent_worn_items( it ).empty() ) {
         return ret_val<bool>::make_failure( !is_npc() ?
                                             _( "You can't take off power armor while wearing other power armor components." ) :
@@ -3733,10 +3741,14 @@ bool Character::unwield()
         return false;
     }
 
-    // Lua iwieldable can_unwield callback
-    if( const auto *iwield_cb = primary_weapon().type->iwieldable_callbacks ) {
-        if( !iwield_cb->call_can_unwield( *this, primary_weapon() ) ) {
-            return false;
+    // During multithreaded mapgen this can be called on NPC gen
+    // If so it will cause random segfaults on NPC generation
+    if( !is_pool_worker_thread() ) {
+        // Lua iwieldable can_unwield callback
+        if( const auto *iwield_cb = primary_weapon().type->iwieldable_callbacks ) {
+            if( !iwield_cb->call_can_unwield( *this, primary_weapon() ) ) {
+                return false;
+            }
         }
     }
 
@@ -11300,13 +11312,15 @@ void Character::on_item_wear( item &it )
         }
     }
     morale->on_item_wear( it );
-    if( it.type->iwearable_callbacks ) {
-        it.type->iwearable_callbacks->call_on_wear( *this, it );
+    if( !is_pool_worker_thread() ) {
+        if( it.type->iwearable_callbacks ) {
+            it.type->iwearable_callbacks->call_on_wear( *this, it );
+        }
+        cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
+            params["who"] = this;
+            params["item"] = &it;
+        } );
     }
-    cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
-        params["who"] = this;
-        params["item"] = &it;
-    } );
 }
 
 void Character::on_item_takeoff( item &it )
@@ -11321,13 +11335,15 @@ void Character::on_item_takeoff( item &it )
         }
     }
     morale->on_item_takeoff( it );
-    if( it.type->iwearable_callbacks ) {
-        it.type->iwearable_callbacks->call_on_takeoff( *this, it );
+    if( !is_pool_worker_thread() ) {
+        if( it.type->iwearable_callbacks ) {
+            it.type->iwearable_callbacks->call_on_takeoff( *this, it );
+        }
+        cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
+            params["who"] = this;
+            params["item"] = &it;
+        } );
     }
-    cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
-        params["who"] = this;
-        params["item"] = &it;
-    } );
 }
 
 void Character::on_effect_int_change( const efftype_id &effect_type, int intensity,
