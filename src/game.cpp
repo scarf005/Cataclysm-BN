@@ -2285,7 +2285,7 @@ bool game::do_turn()
     // consider a stripped down cache just for monsters.
     {
         ZoneScopedN( "do_turn_monster_visibility_cache" );
-        m.build_map_cache( get_levz(), true );
+        m.build_map_cache( get_levz(), false );
     }
     // This has to be done after updating our map caches, as sound propagation relies on terrain.
     if( !soundperf ) {
