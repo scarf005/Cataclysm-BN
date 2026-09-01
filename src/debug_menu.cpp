@@ -542,7 +542,7 @@ void spawn_nested_mapgen()
             return;
         }
         const auto nested_offset = point_rel_ms( local_ms.x(), local_ms.y() );
-        ( *ptr )->nest( md, nested_offset );
+        ( *ptr )->nest( md, nested_offset, 0 );
         g->load_npcs();
         get_map().invalidate_map_cache( g->get_levz() );
     }
