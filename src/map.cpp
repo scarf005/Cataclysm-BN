@@ -9758,6 +9758,13 @@ void map::build_map_cache( const int zlev, bool skip_lightmap )
     if( skip_lightmap && use_sdl_gpu_compute && gpu_transparency_dirty ) {
         cata_gpu::invalidate_lighting_transparency_levels( gpu_transparency_dirty_levels );
     }
+    if( !use_sdl_gpu_compute && gpu_transparency_dirty ) {
+        invalidate_lightmap_caches();
+    }
+#else
+    if( gpu_transparency_dirty ) {
+        invalidate_lightmap_caches();
+    }
 #endif
     TracyPlot( "Map GPU Transparency Dirty Levels",
                static_cast<int64_t>( gpu_transparency_dirty_levels.size() ) );
