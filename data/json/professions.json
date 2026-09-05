@@ -3367,7 +3367,7 @@
     "items": {
       "both": {
         "items": [ "jeans", "longshirt", "socks", "sneakers", "water_clean", "wristwatch", "smart_phone", "petpack", "pet_carrier" ],
-        "entries": [ { "item": "mbag", "contents-group": "dog_lover_bag" } ]
+        "entries": [ { "item": "mbag" }, { "group": "dog_lover_bag" } ]
       },
       "male": [ "boxer_shorts" ],
       "female": [ "bra", "panties" ]
