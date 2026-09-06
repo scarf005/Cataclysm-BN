@@ -23,6 +23,7 @@
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catacharset.h"
+#include "catalua.h"
 #include "catalua_coord.h"
 #include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
@@ -1573,6 +1574,7 @@ int ranged::fire_gun( Character &who, const tripoint_bub_ms &target, int max_sho
         }
     }
 
+    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_shoot", [ & ]( auto & params ) {
         params["shooter"] = &who;
         params["target_pos"] = cata::detail::lua_coords::to_lua( target );
@@ -1983,6 +1985,7 @@ dealt_projectile_attack throw_item( Character &who, const tripoint_bub_ms &targe
     who.last_target_pos = std::nullopt;
     who.recoil = MAX_RECOIL;
 
+    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_throw", [ & ]( auto & params ) {
         params["thrower"] = &who;
         params["target_pos"] = cata::detail::lua_coords::to_lua( target );

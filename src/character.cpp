@@ -27,6 +27,7 @@
 #include "bodypart.h"
 #include "cata_utility.h"
 #include "catacharset.h"
+#include "catalua.h"
 #include "catalua_hooks.h"
 #include "catalua_icallback_actor.h"
 #include "catalua_sol.h"
@@ -3314,9 +3315,8 @@ ret_val<bool> Character::can_wear( const item &it, bool with_equip_change ) cons
         return ret_val<bool>::make_failure( _( "Putting on a %s would be tricky." ), it.tname() );
     }
 
-    // During multithreaded mapgen this can be called on NPC gen
-    // If so it will cause random segfaults on NPC generation
-    if( !is_pool_worker_thread() ) {
+    {
+        std::unique_lock lock( cata::lua_lock );
         const auto &hook_results = cata::run_hooks( "on_character_try_wear",
         [&]( sol::table & params ) {
             params["who"] = this;
@@ -3602,9 +3602,8 @@ ret_val<bool> Character::can_takeoff( const item &it, bool dropping ) const
                                             _( "<npcname> is not wearing that item." ) );
     }
 
-    // During multithreaded mapgen this can be called on NPC gen
-    // If so it will cause random segfaults on NPC generation
-    if( !is_pool_worker_thread() ) {
+    {
+        std::unique_lock lock( cata::lua_lock );
         const auto &hook_results = cata::run_hooks( "on_character_try_takeoff",
         [&]( sol::table & params ) {
             params["who"] = this;
@@ -3741,14 +3740,10 @@ bool Character::unwield()
         return false;
     }
 
-    // During multithreaded mapgen this can be called on NPC gen
-    // If so it will cause random segfaults on NPC generation
-    if( !is_pool_worker_thread() ) {
-        // Lua iwieldable can_unwield callback
-        if( const auto *iwield_cb = primary_weapon().type->iwieldable_callbacks ) {
-            if( !iwield_cb->call_can_unwield( *this, primary_weapon() ) ) {
-                return false;
-            }
+    // Lua iwieldable can_unwield callback
+    if( const auto *iwield_cb = primary_weapon().type->iwieldable_callbacks ) {
+        if( !iwield_cb->call_can_unwield( *this, primary_weapon() ) ) {
+            return false;
         }
     }
 
@@ -4386,6 +4381,7 @@ void Character::die( Creature *nkiller )
     }
     mission::on_creature_death( *this );
 
+    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_character_death", [ &, this]( auto & params ) {
         params["char"] = this;
         params["killer"] = get_killer();
@@ -9554,6 +9550,7 @@ void Character::on_dodge( Creature *source, int difficulty )
             }
         }
     }
+    std::unique_lock lock( cata::lua_lock );
     cata::run_hooks( "on_creature_dodged", [ &, this]( auto & params ) {
         params["char"] = this;
         params["source"] = source;
@@ -11312,15 +11309,14 @@ void Character::on_item_wear( item &it )
         }
     }
     morale->on_item_wear( it );
-    if( !is_pool_worker_thread() ) {
-        if( it.type->iwearable_callbacks ) {
-            it.type->iwearable_callbacks->call_on_wear( *this, it );
-        }
-        cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
-            params["who"] = this;
-            params["item"] = &it;
-        } );
+    if( it.type->iwearable_callbacks ) {
+        it.type->iwearable_callbacks->call_on_wear( *this, it );
     }
+    std::unique_lock lock( cata::lua_lock );
+    cata::run_hooks( "on_character_item_wear", [&]( auto & params ) {
+        params["who"] = this;
+        params["item"] = &it;
+    } );
 }
 
 void Character::on_item_takeoff( item &it )
@@ -11335,15 +11331,14 @@ void Character::on_item_takeoff( item &it )
         }
     }
     morale->on_item_takeoff( it );
-    if( !is_pool_worker_thread() ) {
-        if( it.type->iwearable_callbacks ) {
-            it.type->iwearable_callbacks->call_on_takeoff( *this, it );
-        }
-        cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
-            params["who"] = this;
-            params["item"] = &it;
-        } );
+    if( it.type->iwearable_callbacks ) {
+        it.type->iwearable_callbacks->call_on_takeoff( *this, it );
     }
+    std::unique_lock lock( cata::lua_lock );
+    cata::run_hooks( "on_character_item_takeoff", [&]( auto & params ) {
+        params["who"] = this;
+        params["item"] = &it;
+    } );
 }
 
 void Character::on_effect_int_change( const efftype_id &effect_type, int intensity,
