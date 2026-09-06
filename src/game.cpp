@@ -14813,9 +14813,10 @@ auto game::delete_dimension( const dimension_id &dim_id, const bool remove_zones
         return false;
     }
 
+    auto zones_saved = true;
     auto &zones = zone_manager::get_manager();
-    if( remove_zones && zones.remove_dimension_zones( dim_id ) && !zones.save_zones() ) {
-        return false;
+    if( remove_zones && zones.remove_dimension_zones( dim_id ) ) {
+        zones_saved = zones.save_zones();
     }
 
     if( auto tracker_it = grid_trackers_.find( dim_id ); tracker_it != grid_trackers_.end() ) {
@@ -14831,7 +14832,7 @@ auto game::delete_dimension( const dimension_id &dim_id, const bool remove_zones
     MAPBUFFER_REGISTRY.unload_dimension( dim_id );
     unload_overmapbuffer_dimension( dim_id );
 
-    return true;
+    return zones_saved;
 }
 
 auto game::reset_dimension( const dimension_id &dim_id ) -> bool
@@ -14941,6 +14942,13 @@ auto game::travel_to_dimension( const dimension_id &dim_id,
     if( !effective_pd_info ) {
         if( auto it = loaded_dimensions_.find( dim_id ); it != loaded_dimensions_.end() ) {
             effective_pd_info = it->second.pocket_info;
+        }
+    }
+    if( effective_pd_info && load_pos ) {
+        const auto target_pos = project_to<coords::ms>(
+                                    *load_pos + tripoint_rel_sm( g_half_mapsize, g_half_mapsize, 0 ) );
+        if( !effective_pd_info->bounds.contains( target_pos ) ) {
+            return false;
         }
     }
     map &here = get_map();
