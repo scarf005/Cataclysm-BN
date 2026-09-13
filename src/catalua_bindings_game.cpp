@@ -106,23 +106,17 @@ auto is_dense_lua_array( const sol::table &table ) -> bool
 {
     const auto length = static_cast<int>( table.size() );
     auto key_count = 0;
-    auto valid = true;
-    table.for_each( [&]( const sol::object & key, const sol::object & /*value*/ ) {
-        if( !valid ) {
-            return;
-        }
+    for( const auto &[key, value] : table ) {
         if( !key.is<int>() ) {
-            valid = false;
-            return;
+            return false;
         }
         const auto index = key.as<int>();
         if( index < 1 || index > length ) {
-            valid = false;
-            return;
+            return false;
         }
         ++key_count;
-    } );
-    return valid && key_count == length;
+    }
+    return key_count == length;
 }
 
 auto read_optional_overmap_terrain_layout( const sol::table &opts ) ->
@@ -199,7 +193,7 @@ auto is_safe_dimension_save_id( const dimension_id &dim_id ) -> bool
 {
     const auto raw_dim_id = dim_id.str();
     return raw_dim_id.empty() ||
-           ( raw_dim_id != "." && raw_dim_id != ".." &&
+           ( raw_dim_id != "." && raw_dim_id != ".." && raw_dim_id.find( '\0' ) == std::string::npos &&
              raw_dim_id.find_first_of( "/\\" ) == std::string::npos );
 }
 
@@ -257,11 +251,8 @@ auto target_coordinates_match( const dimension_travel_options &opts ) -> bool
 
 auto target_fits_bounds( const dimension_travel_options &opts ) -> bool
 {
-    if( !opts.bounds_min_omt || !opts.bounds_max_omt ) {
-        return true;
-    }
-
-    return point_is_in_bounds( opts.target_omt, *opts.bounds_min_omt, *opts.bounds_max_omt );
+    return !opts.bounds_min_omt || !opts.bounds_max_omt ||
+           point_is_in_bounds( opts.target_omt, *opts.bounds_min_omt, *opts.bounds_max_omt );
 }
 
 auto has_dimension_generation_config( const dimension_travel_options &opts ) -> bool
@@ -273,16 +264,8 @@ auto has_dimension_generation_config( const dimension_travel_options &opts ) -> 
 
 auto boundary_terrain_is_valid( const dimension_travel_options &opts ) -> bool
 {
-    if( opts.boundary_terrain && !ter_str_id( *opts.boundary_terrain ).is_valid() ) {
-        return false;
-    }
-
-    if( opts.boundary_overmap_terrain &&
-        !oter_str_id( *opts.boundary_overmap_terrain ).is_valid() ) {
-        return false;
-    }
-
-    return true;
+    return ( !opts.boundary_terrain || ter_str_id( *opts.boundary_terrain ).is_valid() ) &&
+           ( !opts.boundary_overmap_terrain || oter_str_id( *opts.boundary_overmap_terrain ).is_valid() );
 }
 
 auto pregen_special_fits_bounds( const dimension_travel_options &opts ) -> bool
@@ -372,19 +355,8 @@ auto is_valid_dimension_travel_config( const dimension_travel_options &opts ) ->
         return false;
     }
 
-    if( !boundary_terrain_is_valid( opts ) ) {
-        return false;
-    }
-
-    if( !opts.overmap_terrain || !overmap_terrain_layout_fits_bounds( opts ) ) {
-        return false;
-    }
-
-    if( !pregen_special_fits_bounds( opts ) ) {
-        return false;
-    }
-
-    return true;
+    return boundary_terrain_is_valid( opts ) && opts.overmap_terrain &&
+           overmap_terrain_layout_fits_bounds( opts ) && pregen_special_fits_bounds( opts );
 }
 
 auto find_safe_spawn( const tripoint_bub_ms &target ) -> std::optional<tripoint_bub_ms>

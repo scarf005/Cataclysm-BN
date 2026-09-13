@@ -65,6 +65,10 @@ local invalid = {
   oversized_layout = options({ bounds_max_omt = bounds_min, overmap_terrain = terrain }),
   named_layout = options({ overmap_terrain = { label = { { "forest" } } } }),
   sparse_layout = options({ overmap_terrain = { [2] = { { "forest" } } } }),
+  zero_index_layout = options({ overmap_terrain = { [0] = { { "field" } } } }),
+  negative_index_layout = options({ overmap_terrain = { [-1] = { { "field" } } } }),
+  fractional_index_layout = options({ overmap_terrain = { [1.5] = { { "field" } } } }),
+  boolean_index_layout = options({ overmap_terrain = { [false] = { { "field" } } } }),
   non_table_layout = options({ overmap_terrain = false }),
   non_table_layer = options({ overmap_terrain = { false } }),
   non_table_row = options({ overmap_terrain = { { false } } }),
@@ -73,6 +77,7 @@ local invalid = {
   named_rows = options({ overmap_terrain = { { label = { "field" } } } }),
   empty_layer = options({ overmap_terrain = { {} } }),
   unsafe_id = options({ dimension_id = "lua/test" }),
+  nul_id = options({ dimension_id = "lua\0test" }),
   dot_id = options({ dimension_id = "." }),
   reversed_bounds = options({ bounds_min_omt = bounds_max, bounds_max_omt = bounds_min }),
   outside_target = options({ target_omt = outside }),
@@ -98,7 +103,9 @@ end
 assert(gapi.delete_dimension("lua_test_unloaded_delete"))
 assert(gapi.reset_dimension("lua_test_unloaded_reset"))
 
-enter(options({ dimension_id = dimension_id .. "_special", pregen_special_id = "Riverside Dwelling" }))
+enter(
+  options({ dimension_id = dimension_id .. "_special", pregen_special_id = "Riverside Dwelling", overmap_terrain = {} })
+)
 return_home()
 enter(options({ overmap_terrain = terrain }))
 assert(not gapi.get_map():is_out_of_bounds(gapi.get_avatar():bub_pos()))
