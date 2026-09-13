@@ -6,6 +6,7 @@
 #include "filesystem.h"
 #include "game.h"
 #include "sqlite3.h"
+#include "sqlite_file_prefix.h"
 #include "thread_pool.h"
 #include "world.h"
 
@@ -76,28 +77,18 @@ auto write_dimension_save_records(world& w, const std::string& dim_id) -> void {
     REQUIRE(w.write_to_file(dimension_data_file(dim_id), write_empty_json));
 }
 
-auto check_player_dimension_records_exist(world& w, const std::string& dim_id) -> void {
-    CHECK(w.read_overmap_player_visibility(dim_id, dimension_save_om, read_text));
-    CHECK(w.read_player_mm_omt(dim_id, dimension_save_mmr, read_empty_json));
+auto check_player_dimension_records(world& w, const std::string& dim_id, bool expected) -> void {
+    CAPTURE(dim_id, expected);
+    CHECK(w.read_overmap_player_visibility(dim_id, dimension_save_om, read_text) == expected);
+    CHECK(w.read_player_mm_omt(dim_id, dimension_save_mmr, read_empty_json) == expected);
 }
 
-auto check_player_dimension_records_missing(world& w, const std::string& dim_id) -> void {
-    CHECK_FALSE(w.read_overmap_player_visibility(dim_id, dimension_save_om, read_text));
-    CHECK_FALSE(w.read_player_mm_omt(dim_id, dimension_save_mmr, read_empty_json));
-}
-
-auto check_dimension_save_records_exist(world& w, const std::string& dim_id) -> void {
-    CHECK(w.read_map_omt(dim_id, dimension_save_omt, read_empty_json));
-    CHECK(w.read_overmap(dim_id, dimension_save_om, read_text));
-    check_player_dimension_records_exist(w, dim_id);
-    CHECK(w.file_exist(dimension_data_file(dim_id)));
-}
-
-auto check_dimension_save_records_missing(world& w, const std::string& dim_id) -> void {
-    CHECK_FALSE(w.read_map_omt(dim_id, dimension_save_omt, read_empty_json));
-    CHECK_FALSE(w.read_overmap(dim_id, dimension_save_om, read_text));
-    check_player_dimension_records_missing(w, dim_id);
-    CHECK_FALSE(w.file_exist(dimension_data_file(dim_id)));
+auto check_dimension_save_records(world& w, const std::string& dim_id, bool expected) -> void {
+    CAPTURE(dim_id, expected);
+    CHECK(w.read_map_omt(dim_id, dimension_save_omt, read_empty_json) == expected);
+    CHECK(w.read_overmap(dim_id, dimension_save_om, read_text) == expected);
+    check_player_dimension_records(w, dim_id, expected);
+    CHECK(w.file_exist(dimension_data_file(dim_id)) == expected);
 }
 
 } // namespace
@@ -129,20 +120,10 @@ TEST_CASE("sqlite map database accepts concurrent map writes", "[world][sqlite]"
 }
 
 TEST_CASE("dimension prefix queries report SQLite errors", "[world][sqlite]") {
-    auto* const w = g->get_active_world();
-    REQUIRE(w != nullptr);
-    REQUIRE(w->info->world_save_format == save_format::V2_COMPRESSED_SQLITE3);
-    const auto operation = GENERATE(as<std::string>{}, "prepare", "read", "delete");
-    const auto other_save = save_t::from_save_id("sqlite_query_error_" + get_pid_string());
-    const auto db_path = w->info->folder_path() + "/" + other_save.base_path() + ".sqlite3";
-    REQUIRE_FALSE(file_exist(db_path));
-    const auto restore_saves = restore_on_out_of_scope(w->info->world_saves);
+    const auto operation = GENERATE(as<std::string>{}, "prepare", "bind", "read", "delete");
     auto* db = static_cast<sqlite3*>(nullptr);
-    const auto cleanup = on_out_of_scope([&]() {
-        sqlite3_close(db);
-        remove_file(db_path);
-    });
-    REQUIRE(sqlite3_open(db_path.c_str(), &db) == SQLITE_OK);
+    const auto cleanup = on_out_of_scope([&]() { sqlite3_close(db); });
+    REQUIRE(sqlite3_open(":memory:", &db) == SQLITE_OK);
     const auto* sql =
         operation == "prepare" ? "CREATE TABLE unrelated(path TEXT)"
         : operation == "read"
@@ -152,13 +133,49 @@ TEST_CASE("dimension prefix queries report SQLite errors", "[world][sqlite]") {
               "CREATE TRIGGER reject_delete BEFORE DELETE ON files "
               "BEGIN SELECT RAISE(ABORT, 'forced deletion failure'); END;";
     REQUIRE(sqlite3_exec(db, sql, nullptr, nullptr, nullptr) == SQLITE_OK);
-    w->info->add_save(other_save);
-    CAPTURE(operation);
-    if (operation == "delete") {
-        CHECK_THROWS_WITH(w->delete_dimension_data("query_error"), "DB query failed");
-    } else {
-        CHECK_THROWS_WITH(w->has_dimension_data("query_error"), "DB query failed");
+    auto prefix = std::string("dimensions/query_error/");
+    if (operation == "bind") {
+        sqlite3_limit(db, SQLITE_LIMIT_LENGTH, 8);
+        prefix.append(sqlite3_limit(db, SQLITE_LIMIT_LENGTH, -1), 'x');
     }
+    CAPTURE(operation);
+    const auto result = query_sqlite_file_prefix(
+        db, prefix,
+        operation == "delete" ? sqlite_prefix_operation::erase : sqlite_prefix_operation::exists);
+    REQUIRE_FALSE(result.has_value());
+    const auto* expected_error =
+        operation == "prepare" ? "no such table: files"
+        : operation == "bind"  ? "Failed to bind parameter"
+        : operation == "read"
+            ? "integer overflow"
+            : "forced deletion failure";
+    CHECK(result.error().find(expected_error) != std::string::npos);
+    CHECK(sqlite3_next_stmt(db, nullptr) == nullptr);
+    CHECK(sqlite3_exec(db, "SELECT 1", nullptr, nullptr, nullptr) == SQLITE_OK);
+}
+
+TEST_CASE("dimension prefix queries preserve literal prefix boundaries", "[world][sqlite]") {
+    auto* db = static_cast<sqlite3*>(nullptr);
+    const auto cleanup = on_out_of_scope([&]() { sqlite3_close(db); });
+    REQUIRE(sqlite3_open(":memory:", &db) == SQLITE_OK);
+    REQUIRE(
+        sqlite3_exec(
+            db,
+            "CREATE TABLE files(path TEXT PRIMARY KEY);"
+            "INSERT INTO files VALUES('dimensions/pocket_1%/map'), ('dimensions/pocket_1%/seen'),"
+            "('dimensions/pocket_1%_extra/map'), ('dimensions/pocketX1other/map');",
+            nullptr, nullptr, nullptr)
+        == SQLITE_OK);
+    const auto exists = sqlite_prefix_operation::exists;
+    CHECK(query_sqlite_file_prefix(db, "dimensions/pocket_1%/", exists) == SQLITE_ROW);
+    CHECK(query_sqlite_file_prefix(db, "dimensions/pocket_1%/", sqlite_prefix_operation::erase)
+          == SQLITE_DONE);
+    CHECK(sqlite3_changes(db) == 2);
+    CHECK(query_sqlite_file_prefix(db, "dimensions/pocket_1%/", exists) == SQLITE_DONE);
+    CHECK(query_sqlite_file_prefix(db, "dimensions/pocket_1%_extra/", exists) == SQLITE_ROW);
+    CHECK(query_sqlite_file_prefix(db, "dimensions/pocketX1other/", exists) == SQLITE_ROW);
+    CHECK(query_sqlite_file_prefix(db, "", exists) == SQLITE_ROW);
+    CHECK(sqlite3_next_stmt(db, nullptr) == nullptr);
 }
 
 TEST_CASE("delete_dimension_data rejects unsafe dimension ids", "[world]") {
@@ -170,6 +187,7 @@ TEST_CASE("delete_dimension_data rejects unsafe dimension ids", "[world]") {
     CHECK_FALSE(w->delete_dimension_data(".."));
     CHECK_FALSE(w->delete_dimension_data("lua/test"));
     CHECK_FALSE(w->delete_dimension_data("lua\\test"));
+    CHECK_FALSE(w->delete_dimension_data(std::string("lua") + '\0' + "test"));
 }
 
 TEST_CASE("delete_dimension_data removes sqlite dimension save data", "[world][sqlite]") {
@@ -194,27 +212,27 @@ TEST_CASE("delete_dimension_data removes sqlite dimension save data", "[world][s
 
     write_dimension_save_records(*w, dim_id);
     write_dimension_save_records(*w, sibling_dim_id);
-    check_dimension_save_records_exist(*w, dim_id);
-    check_dimension_save_records_exist(*w, sibling_dim_id);
+    check_dimension_save_records(*w, dim_id, true);
+    check_dimension_save_records(*w, sibling_dim_id, true);
 
     w->release_player_db();
     g->u.set_save_id(other_save_id);
     write_player_dimension_records(*w, dim_id);
     write_player_dimension_records(*w, sibling_dim_id);
-    check_player_dimension_records_exist(*w, dim_id);
-    check_player_dimension_records_exist(*w, sibling_dim_id);
+    check_player_dimension_records(*w, dim_id, true);
+    check_player_dimension_records(*w, sibling_dim_id, true);
 
     w->release_player_db();
     g->u.set_save_id(original_save_id);
     CHECK(w->has_dimension_data(dim_id));
     REQUIRE(w->delete_dimension_data(dim_id));
-    check_dimension_save_records_missing(*w, dim_id);
-    check_dimension_save_records_exist(*w, sibling_dim_id);
+    check_dimension_save_records(*w, dim_id, false);
+    check_dimension_save_records(*w, sibling_dim_id, true);
 
     w->release_player_db();
     g->u.set_save_id(other_save_id);
-    check_player_dimension_records_missing(*w, dim_id);
-    check_player_dimension_records_exist(*w, sibling_dim_id);
+    check_player_dimension_records(*w, dim_id, false);
+    check_player_dimension_records(*w, sibling_dim_id, true);
 
     w->release_player_db();
     g->u.set_save_id(original_save_id);
@@ -234,13 +252,13 @@ TEST_CASE("delete_dimension_data removes legacy dimension save data", "[world]")
 
     write_dimension_save_records(*w, dim_id);
     write_dimension_save_records(*w, sibling_dim_id);
-    check_dimension_save_records_exist(*w, dim_id);
-    check_dimension_save_records_exist(*w, sibling_dim_id);
+    check_dimension_save_records(*w, dim_id, true);
+    check_dimension_save_records(*w, sibling_dim_id, true);
 
     CHECK(w->has_dimension_data(dim_id));
     REQUIRE(w->delete_dimension_data(dim_id));
-    check_dimension_save_records_missing(*w, dim_id);
-    check_dimension_save_records_exist(*w, sibling_dim_id);
+    check_dimension_save_records(*w, dim_id, false);
+    check_dimension_save_records(*w, sibling_dim_id, true);
     REQUIRE(w->delete_dimension_data(sibling_dim_id));
 }
 

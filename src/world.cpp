@@ -24,6 +24,7 @@
 #include "path_info.h"
 #include "compress.h"
 #include "sqlite3.h"
+#include "sqlite_file_prefix.h"
 #include "zlib.h"
 
 #define dbg(x) DebugLogFL((x),DC::Main)
@@ -424,61 +425,21 @@ auto lexicographic_prefix_end( std::string prefix ) -> std::string
 
 auto file_prefix_exists_in_db( sqlite3 *db, const std::string &path_prefix ) -> bool
 {
-    const auto path_prefix_end = lexicographic_prefix_end( path_prefix );
-    const auto *sql = path_prefix_end.empty()
-                      ? "SELECT 1 FROM files WHERE path >= :path_prefix LIMIT 1"
-                      : "SELECT 1 FROM files WHERE path >= :path_prefix AND path < :path_prefix_end LIMIT 1";
-    auto *stmt = static_cast<sqlite3_stmt *>( nullptr );
-
-    if( sqlite3_prepare_v2( db, sql, -1, &stmt, nullptr ) != SQLITE_OK ) {
-        dbg( DL::Error ) << "Failed to prepare statement: " << sqlite3_errmsg( db ) << '\n';
+    const auto result = query_sqlite_file_prefix( db, path_prefix, sqlite_prefix_operation::exists );
+    if( !result ) {
+        dbg( DL::Error ) << result.error();
         throw std::runtime_error( "DB query failed" );
     }
-
-    if( sqlite3_bind_text( stmt, sqlite3_bind_parameter_index( stmt, ":path_prefix" ),
-                           path_prefix.c_str(), -1, SQLITE_TRANSIENT ) != SQLITE_OK ||
-        ( !path_prefix_end.empty() &&
-          sqlite3_bind_text( stmt, sqlite3_bind_parameter_index( stmt, ":path_prefix_end" ),
-                             path_prefix_end.c_str(), -1, SQLITE_TRANSIENT ) != SQLITE_OK ) ) {
-        dbg( DL::Error ) << "Failed to bind parameter: " << sqlite3_errmsg( db ) << '\n';
-        sqlite3_finalize( stmt );
-        throw std::runtime_error( "DB query failed" );
-    }
-
-    const auto found = sqlite3_step( stmt ) == SQLITE_ROW;
-    sqlite3_finalize( stmt );
-    return found;
+    return *result == SQLITE_ROW;
 }
 
 auto delete_from_db_by_prefix( sqlite3 *db, const std::string &path_prefix ) -> void
 {
-    const auto path_prefix_end = lexicographic_prefix_end( path_prefix );
-    const auto *sql = path_prefix_end.empty()
-                      ? "DELETE FROM files WHERE path >= :path_prefix"
-                      : "DELETE FROM files WHERE path >= :path_prefix AND path < :path_prefix_end";
-    auto *stmt = static_cast<sqlite3_stmt *>( nullptr );
-
-    if( sqlite3_prepare_v2( db, sql, -1, &stmt, nullptr ) != SQLITE_OK ) {
-        dbg( DL::Error ) << "Failed to prepare statement: " << sqlite3_errmsg( db ) << '\n';
+    const auto result = query_sqlite_file_prefix( db, path_prefix, sqlite_prefix_operation::erase );
+    if( !result ) {
+        dbg( DL::Error ) << result.error();
         throw std::runtime_error( "DB query failed" );
     }
-
-    if( sqlite3_bind_text( stmt, sqlite3_bind_parameter_index( stmt, ":path_prefix" ),
-                           path_prefix.c_str(), -1, SQLITE_TRANSIENT ) != SQLITE_OK ||
-        ( !path_prefix_end.empty() &&
-          sqlite3_bind_text( stmt, sqlite3_bind_parameter_index( stmt, ":path_prefix_end" ),
-                             path_prefix_end.c_str(), -1, SQLITE_TRANSIENT ) != SQLITE_OK ) ) {
-        dbg( DL::Error ) << "Failed to bind parameter: " << sqlite3_errmsg( db ) << '\n';
-        sqlite3_finalize( stmt );
-        throw std::runtime_error( "DB query failed" );
-    }
-
-    if( sqlite3_step( stmt ) != SQLITE_DONE ) {
-        dbg( DL::Error ) << "Failed to execute query: " << sqlite3_errmsg( db ) << '\n';
-        sqlite3_finalize( stmt );
-        throw std::runtime_error( "DB query failed" );
-    }
-    sqlite3_finalize( stmt );
 }
 
 auto read_from_db( sqlite3 *db, const std::string &path, file_read_fn reader,
@@ -548,6 +509,33 @@ auto read_from_db_json( sqlite3 *db, const std::string &path, file_read_json_fn 
 }
 
 } // namespace
+
+auto query_sqlite_file_prefix( sqlite3 *db, const std::string &prefix,
+                               const sqlite_prefix_operation operation ) -> std::expected<int, std::string>
+{
+    const auto prefix_end = lexicographic_prefix_end( prefix );
+    const auto read_only = operation == sqlite_prefix_operation::exists;
+    const auto sql = std::string( read_only ? "SELECT 1 FROM files" : "DELETE FROM files" ) +
+                     " WHERE path >= ?1" + ( prefix_end.empty() ? "" : " AND path < ?2" ) +
+                     ( read_only ? " LIMIT 1" : "" );
+    auto *raw_statement = static_cast<sqlite3_stmt *>( nullptr );
+    const auto prepared = sqlite3_prepare_v2( db, sql.c_str(), -1, &raw_statement, nullptr );
+    const auto statement = std::unique_ptr<sqlite3_stmt, decltype( &sqlite3_finalize )>(
+                               raw_statement, &sqlite3_finalize );
+    if( prepared != SQLITE_OK ) {
+        return std::unexpected( "Failed to prepare statement: " + std::string( sqlite3_errmsg( db ) ) );
+    }
+    if( sqlite3_bind_text( statement.get(), 1, prefix.c_str(), -1, SQLITE_TRANSIENT ) != SQLITE_OK ||
+        ( !prefix_end.empty() &&
+          sqlite3_bind_text( statement.get(), 2, prefix_end.c_str(), -1, SQLITE_TRANSIENT ) != SQLITE_OK ) ) {
+        return std::unexpected( "Failed to bind parameter: " + std::string( sqlite3_errmsg( db ) ) );
+    }
+    const auto result = sqlite3_step( statement.get() );
+    if( result != SQLITE_DONE && !( read_only && result == SQLITE_ROW ) ) {
+        return std::unexpected( "Failed to execute query: " + std::string( sqlite3_errmsg( db ) ) );
+    }
+    return result;
+}
 
 class sqlite_map_db
 {
@@ -758,7 +746,7 @@ static std::string dim_prefix_path( const std::string &dim_id )
 auto is_safe_dimension_data_id( const std::string &dim_id ) -> bool
 {
     return !dim_id.empty() && dim_id != "." && dim_id != ".." &&
-           dim_id.find_first_of( "/\\" ) == std::string::npos;
+           dim_id.find( '\0' ) == std::string::npos && dim_id.find_first_of( "/\\" ) == std::string::npos;
 }
 
 static std::string get_omt_dirname( const std::string &dim_id, const tripoint_abs_omt &omt_addr )
