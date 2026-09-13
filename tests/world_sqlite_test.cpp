@@ -5,6 +5,7 @@
 #include "coordinates.h"
 #include "filesystem.h"
 #include "game.h"
+#include "sqlite3.h"
 #include "thread_pool.h"
 #include "world.h"
 
@@ -125,6 +126,39 @@ TEST_CASE("sqlite map database accepts concurrent map writes", "[world][sqlite]"
             });
         });
     CHECK(all_written);
+}
+
+TEST_CASE("dimension prefix queries report SQLite errors", "[world][sqlite]") {
+    auto* const w = g->get_active_world();
+    REQUIRE(w != nullptr);
+    REQUIRE(w->info->world_save_format == save_format::V2_COMPRESSED_SQLITE3);
+    const auto operation = GENERATE(as<std::string>{}, "prepare", "read", "delete");
+    const auto other_save = save_t::from_save_id("sqlite_query_error_" + get_pid_string());
+    const auto db_path = w->info->folder_path() + "/" + other_save.base_path() + ".sqlite3";
+    REQUIRE_FALSE(file_exist(db_path));
+    const auto restore_saves = restore_on_out_of_scope(w->info->world_saves);
+    auto* db = static_cast<sqlite3*>(nullptr);
+    const auto cleanup = on_out_of_scope([&]() {
+        sqlite3_close(db);
+        remove_file(db_path);
+    });
+    REQUIRE(sqlite3_open(db_path.c_str(), &db) == SQLITE_OK);
+    const auto* sql =
+        operation == "prepare" ? "CREATE TABLE unrelated(path TEXT)"
+        : operation == "read"
+            ? "CREATE VIEW files AS SELECT abs(-9223372036854775808) AS path"
+            : "CREATE TABLE files(path TEXT);"
+              "INSERT INTO files VALUES('dimensions/query_error/record');"
+              "CREATE TRIGGER reject_delete BEFORE DELETE ON files "
+              "BEGIN SELECT RAISE(ABORT, 'forced deletion failure'); END;";
+    REQUIRE(sqlite3_exec(db, sql, nullptr, nullptr, nullptr) == SQLITE_OK);
+    w->info->add_save(other_save);
+    CAPTURE(operation);
+    if (operation == "delete") {
+        CHECK_THROWS_WITH(w->delete_dimension_data("query_error"), "DB query failed");
+    } else {
+        CHECK_THROWS_WITH(w->has_dimension_data("query_error"), "DB query failed");
+    }
 }
 
 TEST_CASE("delete_dimension_data rejects unsafe dimension ids", "[world]") {
