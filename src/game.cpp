@@ -14861,36 +14861,7 @@ auto game::delete_dimension( const dimension_id &dim_id, const bool remove_zones
     return zones_saved;
 }
 
-auto game::reset_dimension( const dimension_id &dim_id ) -> bool
-{
-    if( dim_id.is_empty() || dim_id == current_dimension_id_ ) {
-        return false;
-    }
-
-    auto preserved_info = std::optional<dimension_info> {};
-    if( const auto it = loaded_dimensions_.find( dim_id ); it != loaded_dimensions_.end() ) {
-        preserved_info = it->second;
-    }
-    const auto was_kept = kept_pocket_dimension_id_ == dim_id;
-
-    if( !delete_dimension( dim_id, false ) ) {
-        if( preserved_info ) {
-            loaded_dimensions_[dim_id] = *preserved_info;
-        }
-        if( was_kept ) {
-            kept_pocket_dimension_id_ = dim_id;
-        }
-        return false;
-    }
-
-    if( preserved_info ) {
-        loaded_dimensions_[dim_id] = *preserved_info;
-    }
-    if( was_kept ) {
-        kept_pocket_dimension_id_ = dim_id;
-    }
-    return true;
-}
+auto game::reset_dimension( const dimension_id &dim_id ) -> bool { return delete_dimension( dim_id, false ); }
 
 auto game::set_active_dimension_id( const dimension_id &dim_id ) -> void
 {

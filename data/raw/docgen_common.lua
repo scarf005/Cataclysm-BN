@@ -15,6 +15,10 @@ function remove_hidden_args(arg_list)
   return ret
 end
 
+---@param str string?
+---@param pat string
+---@param sep string
+---@param op? fun(match: string): string?
 function string_concat_matches(str, pat, sep, op)
   if str == nil or str == "" then return "" end
   local tbl = {}
@@ -46,16 +50,6 @@ function get_meta_param_specs(meta)
   for line in string.gmatch(meta, "[^\r\n]+") do
     local raw = string.match(line, "^@param (.*)$")
     if raw ~= nil then table.insert(tbl, parse_meta_param(raw)) end
-  end
-  return tbl
-end
-
----@param meta string
----@return string[]
-function get_meta_params(meta)
-  local tbl = {}
-  for _, param in ipairs(get_meta_param_specs(meta)) do
-    table.insert(tbl, param.name)
   end
   return tbl
 end

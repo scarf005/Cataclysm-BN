@@ -95,24 +95,11 @@ auto read_optional_string( const sol::table &opts, const char *key ) -> std::opt
     return *value;
 }
 
-auto read_optional_abs_omt( const sol::table &opts,
-                            const char *key ) -> std::optional<tripoint_abs_omt>
+template<typename T>
+auto read_optional( const sol::table &opts, const char *key ) -> std::optional<T>
 {
-    const auto value = opts.get<sol::optional<tripoint_abs_omt>>( key );
-    if( !value ) {
-        return std::nullopt;
-    }
-    return *value;
-}
-
-auto read_optional_abs_ms( const sol::table &opts,
-                           const char *key ) -> std::optional<tripoint_abs_ms>
-{
-    const auto value = opts.get<sol::optional<tripoint_abs_ms>>( key );
-    if( !value ) {
-        return std::nullopt;
-    }
-    return *value;
+    const auto value = opts.get<sol::optional<T>>( key );
+    return value ? std::optional<T>( *value ) : std::nullopt;
 }
 
 auto is_dense_lua_array( const sol::table &table ) -> bool
@@ -154,42 +141,35 @@ std::optional<std::vector<overmap_terrain_entry>>
         return std::nullopt;
     }
     auto entries = std::vector<overmap_terrain_entry> {};
-    auto invalid = false;
     const auto layer_count = static_cast<int>( layers.size() );
-    for( auto z_idx = 1; z_idx <= layer_count && !invalid; ++z_idx ) {
+    for( auto z_idx = 1; z_idx <= layer_count; ++z_idx ) {
         const auto layer_obj = layers.get<sol::object>( z_idx );
         if( !layer_obj.is<sol::table>() ) {
-            invalid = true;
-            break;
+            return std::nullopt;
         }
         const auto rows = layer_obj.as<sol::table>();
         if( !is_dense_lua_array( rows ) ) {
-            invalid = true;
-            break;
+            return std::nullopt;
         }
         const auto row_count = static_cast<int>( rows.size() );
-        for( auto y_idx = 1; y_idx <= row_count && !invalid; ++y_idx ) {
+        for( auto y_idx = 1; y_idx <= row_count; ++y_idx ) {
             const auto row_obj = rows.get<sol::object>( y_idx );
             if( !row_obj.is<sol::table>() ) {
-                invalid = true;
-                break;
+                return std::nullopt;
             }
             const auto row = row_obj.as<sol::table>();
             if( !is_dense_lua_array( row ) ) {
-                invalid = true;
-                break;
+                return std::nullopt;
             }
             const auto column_count = static_cast<int>( row.size() );
             for( auto x_idx = 1; x_idx <= column_count; ++x_idx ) {
                 const auto terrain_obj = row.get<sol::object>( x_idx );
                 if( !terrain_obj.is<std::string>() ) {
-                    invalid = true;
-                    break;
+                    return std::nullopt;
                 }
                 const auto terrain = oter_str_id( terrain_obj.as<std::string>() );
                 if( !terrain.is_valid() ) {
-                    invalid = true;
-                    break;
+                    return std::nullopt;
                 }
                 entries.push_back( overmap_terrain_entry{
                     .offset = tripoint_rel_omt( x_idx - 1, y_idx - 1, z_idx - 1 ),
@@ -199,7 +179,7 @@ std::optional<std::vector<overmap_terrain_entry>>
         }
     }
 
-    if( invalid || ( entries.empty() && layers.size() > 0 ) ) {
+    if( entries.empty() && layers.size() > 0 ) {
         return std::nullopt;
     }
     return entries;
@@ -225,8 +205,8 @@ auto is_safe_dimension_save_id( const dimension_id &dim_id ) -> bool
 
 auto parse_dimension_travel_options( const sol::table &opts ) -> dimension_travel_options
 {
-    const auto target_ms = read_optional_abs_ms( opts, "target_ms" );
-    const auto target_omt = read_optional_abs_omt( opts, "target_omt" );
+    const auto target_ms = read_optional<tripoint_abs_ms>( opts, "target_ms" );
+    const auto target_omt = read_optional<tripoint_abs_omt>( opts, "target_omt" );
     return {
         .dim_id = dimension_id( opts.get_or( "dimension_id", std::string{} ) ),
         .target_omt = target_omt.value_or(
@@ -234,13 +214,13 @@ auto parse_dimension_travel_options( const sol::table &opts ) -> dimension_trave
         .target_ms = target_ms,
         .has_target = target_ms.has_value() || target_omt.has_value(),
         .world_type = read_optional_string( opts, "world_type" ),
-        .bounds_min_omt = read_optional_abs_omt( opts, "bounds_min_omt" ),
-        .bounds_max_omt = read_optional_abs_omt( opts, "bounds_max_omt" ),
+        .bounds_min_omt = read_optional<tripoint_abs_omt>( opts, "bounds_min_omt" ),
+        .bounds_max_omt = read_optional<tripoint_abs_omt>( opts, "bounds_max_omt" ),
         .boundary_terrain = read_optional_string( opts, "boundary_terrain" ),
         .boundary_overmap_terrain = read_optional_string( opts, "boundary_overmap_terrain" ),
         .overmap_terrain = read_optional_overmap_terrain_layout( opts ),
         .pregen_special_id = read_optional_string( opts, "pregen_special_id" ),
-        .pregen_special_omt = read_optional_abs_omt( opts, "pregen_special_omt" ),
+        .pregen_special_omt = read_optional<tripoint_abs_omt>( opts, "pregen_special_omt" ),
     };
 }
 
@@ -268,17 +248,6 @@ auto point_is_in_bounds( const tripoint_abs_omt &point, const tripoint_abs_omt &
     return point.x() >= min_bound.x() && point.x() <= max_bound.x() &&
            point.y() >= min_bound.y() && point.y() <= max_bound.y() &&
            point.z() >= min_bound.z() && point.z() <= max_bound.z();
-}
-
-auto has_ordered_dimension_bounds( const dimension_travel_options &opts ) -> bool
-{
-    if( !opts.bounds_min_omt || !opts.bounds_max_omt ) {
-        return true;
-    }
-
-    return opts.bounds_min_omt->x() <= opts.bounds_max_omt->x() &&
-           opts.bounds_min_omt->y() <= opts.bounds_max_omt->y() &&
-           opts.bounds_min_omt->z() <= opts.bounds_max_omt->z();
 }
 
 auto target_coordinates_match( const dimension_travel_options &opts ) -> bool
@@ -399,7 +368,7 @@ auto is_valid_dimension_travel_config( const dimension_travel_options &opts ) ->
     }
 
     if( opts.bounds_min_omt.has_value() != opts.bounds_max_omt.has_value() ||
-        !has_ordered_dimension_bounds( opts ) || !target_fits_bounds( opts ) ) {
+        !target_fits_bounds( opts ) ) {
         return false;
     }
 
