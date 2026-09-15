@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
@@ -197,11 +198,33 @@ auto is_safe_dimension_save_id( const dimension_id &dim_id ) -> bool
              raw_dim_id.find_first_of( "/\\" ) == std::string::npos );
 }
 
-auto parse_dimension_travel_options( const sol::table &opts ) -> dimension_travel_options
+template<typename T>
+auto optional_fields_have_type( const sol::table &opts,
+                                const std::initializer_list<const char *> keys ) -> bool
 {
+    namespace ranges = std::ranges;
+    return ranges::all_of( keys, [&]( const auto * key ) {
+        const auto value = opts.get<sol::object>( key );
+        return value == sol::nil || value.template is<T>();
+    } );
+}
+
+auto parse_dimension_travel_options( const sol::table &opts ) ->
+std::optional<dimension_travel_options>
+{
+    if( !optional_fields_have_type<std::string>( opts, { "dimension_id", "world_type",
+            "boundary_terrain", "boundary_overmap_terrain", "pregen_special_id"
+                                                       } ) ||
+        !optional_fields_have_type<tripoint_abs_omt>( opts, { "target_omt", "bounds_min_omt",
+                "bounds_max_omt", "pregen_special_omt"
+                                                            } ) ||
+        !optional_fields_have_type<tripoint_abs_ms>( opts, { "target_ms" } ) ) {
+        return std::nullopt;
+    }
+
     const auto target_ms = read_optional<tripoint_abs_ms>( opts, "target_ms" );
     const auto target_omt = read_optional<tripoint_abs_omt>( opts, "target_omt" );
-    return {
+    return dimension_travel_options{
         .dim_id = dimension_id( opts.get_or( "dimension_id", std::string{} ) ),
         .target_omt = target_omt.value_or(
             target_ms ? project_to<coords::omt>( *target_ms ) : tripoint_abs_omt( tripoint_zero ) ),
@@ -509,7 +532,8 @@ void cata::detail::reg_game_api( sol::state &lua )
     DOC( "@field pregen_special_omt? TripointAbsOmt Overmap-terrain position for pregen_special_id; defaults to target_omt." );
     DOC_PARAMS( "opts: DimensionTravelOptions" );
     luna::set_fx( lib, "place_player_dimension_at", []( sol::table opts ) -> bool {
-        return place_player_dimension_at( parse_dimension_travel_options( opts ) );
+        const auto parsed = parse_dimension_travel_options( opts );
+        return parsed && place_player_dimension_at( *parsed );
     } );
     DOC( "Fully saves the game, then deletes an inactive, non-primary dimension from memory and save storage." );
     DOC_PARAMS( "dim_id: string" );
