@@ -11,7 +11,7 @@
 
 class avatar;
 class sqlite_map_db;
-class sqlite3;
+struct sqlite3;
 
 class save_t
 {

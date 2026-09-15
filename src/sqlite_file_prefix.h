@@ -3,7 +3,7 @@
 #include <expected>
 #include <string>
 
-class sqlite3;
+struct sqlite3;
 
 enum class sqlite_prefix_operation { exists, erase };
 
