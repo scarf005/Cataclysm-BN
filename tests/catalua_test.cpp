@@ -983,7 +983,7 @@ TEST_CASE("lua_examine_dimension_travel_reenters_mapgen_and_save_hooks", "[lua]"
     const auto return_pos = get_avatar().abs_pos();
     get_map().ter_set(get_avatar().bub_pos(), ter_str_id("t_floor"));
 
-    auto& lua = cata::get_active_lua_state()->lua;
+    auto& lua = DynamicDataLoader::get_instance().lua->lua;
     auto callbacks = lua["game"]["examine_functions"].get<sol::table>();
     auto hooks = lua["game"]["hooks"].get<sol::table>();
     const auto id = std::string("test_dimension_travel_callback");
@@ -1278,7 +1278,7 @@ TEST_CASE("lua_pocket_dimension_api", "[lua]") {
     CHECK(zone_manager::get_manager().has(zone_type_no_auto_pickup, original_pos));
 }
 
-TEST_CASE("dimension deletion unloads caches when saving zones fails", "[lua][sqlite]") {
+TEST_CASE("dimension deletion can retry after saving zones fails", "[lua][sqlite]") {
     clear_all_state();
     initialize_dimension_test_storage();
     const auto target_dimension_id = dimension_id("lua_test_zone_save_failure");
@@ -1300,6 +1300,9 @@ TEST_CASE("dimension deletion unloads caches when saving zones fails", "[lua][sq
               target_pos);
     CHECK(zones.has(zone_type_no_auto_pickup, target_pos));
     REQUIRE(g->travel_to_dimension(dimension_id(), world_type_id(), std::nullopt, std::nullopt));
+    zones.add("overworld zone", zone_type_no_auto_pickup, your_fac, false, true, return_pos,
+              return_pos);
+    const auto zone_count = zones.size();
     REQUIRE(active_world->has_dimension_data(target_dimension_id.str()));
     REQUIRE(MAPBUFFER_REGISTRY.is_registered(target_dimension_id));
     REQUIRE(has_any_overmapbuffer(target_dimension_id));
@@ -1316,14 +1319,31 @@ TEST_CASE("dimension deletion unloads caches when saving zones fails", "[lua][sq
     });
 
     CHECK_FALSE(g->delete_dimension(target_dimension_id));
+    CHECK(zones.size() == zone_count);
+    CHECK(zones.has(zone_type_no_auto_pickup, return_pos));
     CHECK_FALSE(active_world->has_dimension_data(target_dimension_id.str()));
     CHECK_FALSE(MAPBUFFER_REGISTRY.is_registered(target_dimension_id));
     CHECK_FALSE(has_any_overmapbuffer(target_dimension_id));
 
     REQUIRE(g->save(false));
+    const auto saved = read_saved_player_dimension_state(*active_world);
+    REQUIRE(saved.has_value());
+    CHECK(
+        std::ranges::contains(saved->loaded_dimensions, target_dimension_id, &dimension_info::id));
     CHECK_FALSE(active_world->has_dimension_data(target_dimension_id.str()));
     CHECK_FALSE(MAPBUFFER_REGISTRY.is_registered(target_dimension_id));
     CHECK_FALSE(has_any_overmapbuffer(target_dimension_id));
+
+    REQUIRE(remove_directory(zones_path));
+    REQUIRE(g->delete_dimension(target_dimension_id));
+    CHECK(zones.size() == zone_count - 1);
+    zones.load_zones();
+    CHECK(zones.size() == zone_count - 1);
+    CHECK(zones.has(zone_type_no_auto_pickup, return_pos));
+    const auto deleted = read_saved_player_dimension_state(*active_world);
+    REQUIRE(deleted.has_value());
+    CHECK_FALSE(
+        std::ranges::contains(deleted->loaded_dimensions, target_dimension_id, &dimension_info::id));
 }
 
 TEST_CASE("lua dimension cleanup replaces records in temporary sqlite world", "[lua][sqlite]") {

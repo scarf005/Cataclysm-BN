@@ -54,6 +54,25 @@ end
 
 check_location("", return_ms)
 return_home() -- Same-dimension travel is a successful no-op.
+local mistyped_fields = {
+  dimension_id = 123,
+  target_ms = {},
+  target_omt = "bad",
+  world_type = 123,
+  bounds_min_omt = {},
+  bounds_max_omt = {},
+  boundary_terrain = 123,
+  boundary_overmap_terrain = 123,
+  pregen_special_id = 123,
+  pregen_special_omt = {},
+}
+for field, value in pairs(mistyped_fields) do
+  local opts = { dimension_id = "", target_ms = return_ms, target_omt = return_ms:to_omt() }
+  opts[field] = value
+  local ok, result = pcall(gapi.place_player_dimension_at, opts)
+  assert(ok and result == false, field)
+  check_location("", return_ms)
+end
 local partial_bounds = options()
 partial_bounds.bounds_max_omt = nil
 local invalid = {
