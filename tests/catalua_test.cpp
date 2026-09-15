@@ -95,14 +95,26 @@ auto dimension_test_cleanup(std::vector<dimension_id> dimensions) -> on_out_of_s
     const auto original_dimension = g->get_current_dimension_id();
     const auto original_pos = get_avatar().abs_pos();
     const auto original_origin = player_reality_bubble_origin();
-    return on_out_of_scope([=]() {
+    auto saved_zones = std::ostringstream{};
+    auto zones_json = JsonOut(saved_zones);
+    zone_manager::get_manager().serialize(zones_json);
+    return on_out_of_scope([=, original_zones = saved_zones.str()]() {
         if (g->get_current_dimension_id() != original_dimension) {
-            g->travel_to_dimension(
-                original_dimension, world_type_id(), std::nullopt, original_origin);
+            CHECK(g->travel_to_dimension(
+                original_dimension, world_type_id(), std::nullopt, original_origin));
             get_avatar().setpos(original_pos);
             g->update_map(get_avatar());
         }
-        for (const auto& dim : dimensions) { g->delete_dimension(dim); }
+        for (const auto& dim : dimensions) {
+            g->delete_dimension(dim);
+            CHECK_FALSE(g->get_active_world()->has_dimension_data(dim.str()));
+        }
+        auto zones_stream = std::istringstream(original_zones);
+        auto restored_zones = JsonIn(zones_stream);
+        auto& zones = zone_manager::get_manager();
+        zones.deserialize(restored_zones);
+        zones.cache_data();
+        CHECK(zones.save_zones());
         clear_all_state();
     });
 }

@@ -1372,13 +1372,21 @@ auto zone_manager::remove_dimension_zones( const dimension_id &dim_id ) -> bool
         return false;
     }
 
-    const auto removed = std::erase_if( zones, [&]( const zone_data & zone ) {
-        return zone.get_dimension() == dim_id;
-    } );
-    if( removed == 0 ) {
-        return false;
+    namespace ranges = std::ranges;
+    using namespace std::views;
+    auto remaining = zones |
+    filter( [&]( const auto & zone ) { return zone.get_dimension() != dim_id; } ) |
+    ranges::to<std::vector>();
+    if( remaining.size() == zones.size() ) {
+        return true;
     }
 
+    auto restore = on_out_of_scope( [&]() { zones.swap( remaining ); } );
+    zones.swap( remaining );
+    if( !save_zones() ) {
+        return false;
+    }
+    restore.cancel();
     cache_data();
     return true;
 }
@@ -1559,13 +1567,18 @@ void zone_data::deserialize( JsonIn &jsin )
 
 bool zone_manager::save_zones()
 {
+    const auto saved = g->get_active_world()->write_to_player_file( ".zones.json",
+    [&]( std::ostream & fout ) {
+        auto jsout = JsonOut( fout );
+        serialize( jsout );
+    }, _( "zones date" ) );
+    if( !saved ) {
+        return false;
+    }
     added_vzones.clear();
     changed_vzones.clear();
     removed_vzones.clear();
-    return g->get_active_world()->write_to_player_file( ".zones.json", [&]( std::ostream & fout ) {
-        JsonOut jsout( fout );
-        serialize( jsout );
-    }, _( "zones date" ) );
+    return true;
 }
 
 void zone_manager::load_zones()

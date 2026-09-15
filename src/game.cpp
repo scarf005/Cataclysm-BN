@@ -14834,9 +14834,12 @@ auto game::delete_dimension( const dimension_id &dim_id, const bool remove_zones
     MAPBUFFER_REGISTRY.unload_dimension( dim_id );
     unload_overmapbuffer_dimension( dim_id );
 
-    // Finalize a deletion only after its data is gone.  A reset deliberately keeps this metadata
-    // so callers can re-enter without repeating the generation options.
+    // Finalize a deletion only after its data and zones are gone.  Keep metadata on failure so
+    // cleanup can be retried.  A reset keeps both zones and metadata for re-entry.
     if( remove_zones ) {
+        if( !zone_manager::get_manager().remove_dimension_zones( dim_id ) ) {
+            return false;
+        }
         loaded_dimensions_.erase( dim_id );
         if( was_kept ) {
             kept_pocket_dimension_id_ = dimension_id();
@@ -14852,13 +14855,7 @@ auto game::delete_dimension( const dimension_id &dim_id, const bool remove_zones
         }
     }
 
-    auto zones_saved = true;
-    auto &zones = zone_manager::get_manager();
-    if( remove_zones && zones.remove_dimension_zones( dim_id ) ) {
-        zones_saved = zones.save_zones();
-    }
-
-    return zones_saved;
+    return true;
 }
 
 auto game::reset_dimension( const dimension_id &dim_id ) -> bool { return delete_dimension( dim_id, false ); }
