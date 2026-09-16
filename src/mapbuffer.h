@@ -465,7 +465,11 @@ class mapbuffer
         auto add_active_npc( const shared_ptr_fast<npc> &guy ) -> bool;
         auto update_active_npc_pos( const npc &guy, const tripoint_abs_ms &new_pos ) -> bool;
         auto remove_active_npc( const npc &guy ) -> void;
+        /// Acquires ownership; only use on the main thread (shared_ptr_fast is non-atomic).
         auto find_active_npc( const tripoint_abs_ms &p ) const -> shared_ptr_fast<npc>;
+        /// Borrows a live NPC without changing reference counts. Concurrent reads require
+        /// the NPC registry and its creatures to remain unchanged until all readers finish.
+        auto find_active_npc_borrowed( const tripoint_abs_ms &p ) const -> npc *; // *NOPAD*
         auto creature_at( const tripoint_abs_ms &p, bool allow_hallucination = false ) const
         -> const Creature *;
         auto has_creature_at( const tripoint_abs_ms &p, bool allow_hallucination = false ) const -> bool;

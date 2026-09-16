@@ -7214,46 +7214,9 @@ void game::use_computer( const tripoint_bub_ms &p )
 }
 
 template<typename T>
-T *game::critter_at( const tripoint_bub_ms &p, bool allow_hallucination )
+auto game::critter_at( const tripoint_bub_ms &p, bool allow_hallucination ) -> T * // *NOPAD*
 {
-    using lookup_type = std::remove_cv_t<T>;
-    constexpr auto wants_monster = std::is_base_of_v<lookup_type, monster>;
-    constexpr auto wants_player = std::is_base_of_v<lookup_type, avatar>;
-    constexpr auto wants_npc = std::is_base_of_v<lookup_type, npc>;
-    constexpr auto return_ridden_monster = std::is_same_v<lookup_type, monster> ||
-                                           std::is_same_v<lookup_type, Creature>;
-
-    if( const shared_ptr_fast<monster> mon_ptr = critter_tracker->find( p ) ) {
-        if( !allow_hallucination && mon_ptr->is_hallucination() ) {
-            return nullptr;
-        }
-        // if we wanted to check for an NPC / player / avatar,
-        // there is sometimes a monster AND an NPC/player there at the same time.
-        // because the NPC/player etc may be riding that monster.
-        // so only return the monster if we were actually looking for a monster.
-        // otherwise, keep looking for the rider.
-        // critter_at<creature> or critter_at() with no template will still default to returning monster first,
-        // which is ok for the occasions where that happens.
-        if( !mon_ptr->has_effect( effect_ridden ) || return_ridden_monster ) {
-            if constexpr( wants_monster ) {
-                return dynamic_cast<T *>( mon_ptr.get() );
-            } else {
-                return nullptr;
-            }
-        }
-    }
-    if constexpr( wants_player ) {
-        if( p == u.bub_pos() ) {
-            return dynamic_cast<T *>( &u );
-        }
-    }
-    if constexpr( wants_npc ) {
-        if( const auto guy = MAPBUFFER_REGISTRY.get( current_dimension_id_ ).find_active_npc(
-                                 bub_to_abs( p ) ) ) {
-            return dynamic_cast<T *>( guy.get() );
-        }
-    }
-    return nullptr;
+    return critter_at<T>( bub_to_abs( p ), allow_hallucination );
 }
 
 template<typename T>
@@ -7263,7 +7226,7 @@ const T *game::critter_at( const tripoint_bub_ms &p, bool allow_hallucination ) 
 }
 
 template<typename T>
-auto game::critter_at( const tripoint_abs_ms &p, bool allow_hallucination ) -> T *
+auto game::critter_at( const tripoint_abs_ms &p, bool allow_hallucination ) -> T * // *NOPAD*
 {
     using lookup_type = std::remove_cv_t<T>;
     constexpr auto wants_monster = std::is_base_of_v<lookup_type, monster>;
@@ -7272,13 +7235,17 @@ auto game::critter_at( const tripoint_abs_ms &p, bool allow_hallucination ) -> T
     constexpr auto return_ridden_monster = std::is_same_v<lookup_type, monster> ||
                                            std::is_same_v<lookup_type, Creature>;
 
-    if( const shared_ptr_fast<monster> mon_ptr = critter_tracker->find( p ) ) {
-        if( !allow_hallucination && mon_ptr->is_hallucination() ) {
+    // Sight checks call this from parallel monster planning. Borrow from the stable
+    // registries: copying shared_ptr_fast here would race on its reference count.
+    if( auto *mon = critter_tracker->find_borrowed( p ) ) {
+        if( !allow_hallucination && mon->is_hallucination() ) {
             return nullptr;
         }
-        if( !mon_ptr->has_effect( effect_ridden ) || return_ridden_monster ) {
+        // A ridden monster shares its tile with a character. Typed character lookups
+        // continue to the rider; monster and untyped Creature lookups return the mount.
+        if( !mon->has_effect( effect_ridden ) || return_ridden_monster ) {
             if constexpr( wants_monster ) {
-                return dynamic_cast<T *>( mon_ptr.get() );
+                return dynamic_cast<T *>( mon );
             } else {
                 return nullptr;
             }
@@ -7290,8 +7257,8 @@ auto game::critter_at( const tripoint_abs_ms &p, bool allow_hallucination ) -> T
         }
     }
     if constexpr( wants_npc ) {
-        if( const auto guy = MAPBUFFER_REGISTRY.get( current_dimension_id_ ).find_active_npc( p ) ) {
-            return dynamic_cast<T *>( guy.get() );
+        if( auto *guy = MAPBUFFER_REGISTRY.get( current_dimension_id_ ).find_active_npc_borrowed( p ) ) {
+            return dynamic_cast<T *>( guy );
         }
     }
     return nullptr;
@@ -7304,13 +7271,17 @@ auto game::critter_at( const tripoint_abs_ms &p, bool allow_hallucination ) cons
 }
 
 template const monster *game::critter_at<monster>( const tripoint_bub_ms &, bool ) const;
+template monster *game::critter_at<monster>( const tripoint_bub_ms &, bool );
 template const npc *game::critter_at<npc>( const tripoint_bub_ms &, bool ) const;
+template npc *game::critter_at<npc>( const tripoint_bub_ms &, bool );
 template const player *game::critter_at<player>( const tripoint_bub_ms &, bool ) const;
+template player *game::critter_at<player>( const tripoint_bub_ms &, bool );
 template const avatar *game::critter_at<avatar>( const tripoint_bub_ms &, bool ) const;
 template avatar *game::critter_at<avatar>( const tripoint_bub_ms &, bool );
 template const Character *game::critter_at<Character>( const tripoint_bub_ms &, bool ) const;
 template Character *game::critter_at<Character>( const tripoint_bub_ms &, bool );
 template const Creature *game::critter_at<Creature>( const tripoint_bub_ms &, bool ) const;
+template Creature *game::critter_at<Creature>( const tripoint_bub_ms &, bool );
 template const monster *game::critter_at<monster>( const tripoint_abs_ms &, bool ) const;
 template monster *game::critter_at<monster>( const tripoint_abs_ms &, bool );
 template const npc *game::critter_at<npc>( const tripoint_abs_ms &, bool ) const;

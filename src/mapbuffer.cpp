@@ -1978,23 +1978,26 @@ auto mapbuffer::find_active_npc( const tripoint_abs_ms &p ) const -> shared_ptr_
     return nullptr;
 }
 
+auto mapbuffer::find_active_npc_borrowed( const tripoint_abs_ms &p ) const -> npc * // *NOPAD*
+{
+    const auto iter = active_npcs_by_location_.find( p );
+    if( iter != active_npcs_by_location_.end() && iter->second && !iter->second->is_dead() ) {
+        return iter->second.get();
+    }
+    return nullptr;
+}
+
 auto mapbuffer::creature_at( const tripoint_abs_ms &p,
                              const bool allow_hallucination )
 const -> const Creature * // *NOPAD*
 {
-    if( const auto mon_ptr = creature_tracker_.find( p ) ) {
-        if( allow_hallucination || !mon_ptr->is_hallucination() ) {
-            return mon_ptr.get();
-        }
-        return nullptr;
+    if( const auto *mon = creature_tracker_.find_borrowed( p ) ) {
+        return allow_hallucination || !mon->is_hallucination() ? mon : nullptr;
     }
     if( g != nullptr && dimension_id_ == g->get_current_dimension_id() && g->u.abs_pos() == p ) {
         return &g->u;
     }
-    if( const auto guy = find_active_npc( p ) ) {
-        return guy.get();
-    }
-    return nullptr;
+    return find_active_npc_borrowed( p );
 }
 
 auto mapbuffer::has_creature_at(

@@ -46,8 +46,12 @@ class Creature_tracker
          * If there is no monster, it returns a `nullptr`.
          * Dead monsters are ignored and not returned.
          */
+        /// Acquires ownership; only use on the main thread (shared_ptr_fast is non-atomic).
         auto find( const tripoint_bub_ms &pos ) const -> shared_ptr_fast<monster>;
         auto find( const tripoint_abs_ms &pos ) const -> shared_ptr_fast<monster>;
+        /// Borrows a live monster without changing reference counts. Concurrent reads require
+        /// the tracker and its creatures to remain unchanged until all readers have finished.
+        auto find_borrowed( const tripoint_abs_ms &pos ) const -> monster *; // *NOPAD*
         /**
          * Returns a temporary id of the given monster (which must exist in the tracker).
          * The id is valid until monsters are added or removed from the tracker.

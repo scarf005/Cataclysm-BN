@@ -39,6 +39,15 @@ auto Creature_tracker::find( const tripoint_abs_ms &pos ) const -> shared_ptr_fa
     return nullptr;
 }
 
+auto Creature_tracker::find_borrowed( const tripoint_abs_ms &pos ) const -> monster * // *NOPAD*
+{
+    const auto iter = monsters_by_location.find( pos );
+    if( iter != monsters_by_location.end() && !iter->second->is_dead() ) {
+        return iter->second.get();
+    }
+    return nullptr;
+}
+
 int Creature_tracker::temporary_id( const monster &critter ) const
 {
     const auto iter = std::ranges::find_if( monsters_list,
