@@ -473,7 +473,7 @@ void map::update_weather_transparency_lookup() {
     }
 }
 
-bool map::build_transparency_cache(const int zlev) {
+auto map::build_transparency_cache(const int zlev) -> bool {
     ZoneScopedN("build_transparency_cache");
     auto& map_cache = get_cache(zlev);
     auto& transparency_cache = map_cache.transparency_cache;
@@ -925,7 +925,7 @@ auto map::build_transparency_caches(const int minz, const int maxz) -> std::vect
 }
 
 
-bool map::build_vision_transparency_cache(const Character& player) {
+auto map::build_vision_transparency_cache(const Character& player) -> bool {
     const auto& p = player.bub_pos();
 
     bool dirty = false;
@@ -1726,7 +1726,7 @@ void map::add_light_source(const tripoint_bub_ms& p, float luminance, uint32_t c
 
 // Tile light/transparency: 3D
 
-lit_level map::light_at(const tripoint_bub_ms& p) const {
+auto map::light_at(const tripoint_bub_ms& p) const -> lit_level {
     if (!inbounds(p)) {
         return lit_level::DARK; // Out of bounds
     }
@@ -1746,7 +1746,8 @@ lit_level map::light_at(const tripoint_bub_ms& p) const {
     return lit_level::DARK;
 }
 
-float map::ambient_light_at(const tripoint_bub_ms& p, const std::source_location location) const {
+auto map::ambient_light_at(const tripoint_bub_ms& p, const std::source_location location) const
+    -> float {
     if (!inbounds(p)) { return 0.0f; }
 
     const auto& map_cache = get_cache_ref(p.z());
@@ -1797,11 +1798,11 @@ void map::flush_lightmap_cpu_read_counters() const {
     flush_cpu_lm_ambient_location_counters();
 }
 
-bool map::is_transparent(const tripoint_bub_ms& p) const {
+auto map::is_transparent(const tripoint_bub_ms& p) const -> bool {
     return light_transparency(p) > LIGHT_TRANSPARENCY_SOLID;
 }
 
-float map::light_transparency(const tripoint_bub_ms& p) const {
+auto map::light_transparency(const tripoint_bub_ms& p) const -> float {
     const auto& map_cache = get_cache_ref(p.z());
     return map_cache.transparency_cache[map_cache.idx(p.x(), p.y())];
 }
@@ -1915,8 +1916,9 @@ auto map::make_visibility_variables(const int zlev) const -> visibility_variable
     return variables;
 }
 
-map::apparent_light_info map::apparent_light_helper(
-    const level_cache& map_cache, const tripoint_bub_ms& p, const float visibility_scale_factor) {
+auto map::apparent_light_helper(
+    const level_cache& map_cache, const tripoint_bub_ms& p, const float visibility_scale_factor)
+    -> map::apparent_light_info {
     const float vis = std::
         max(map_cache.seen_cache[map_cache.idx(p.x(), p.y())],
             map_cache.camera_cache[map_cache.idx(p.x(), p.y())]);
@@ -1971,13 +1973,14 @@ map::apparent_light_info map::apparent_light_helper(
     return {obstructed, apparent_light};
 }
 
-lit_level map::apparent_light_at(
-    const tripoint_bub_ms& p, const visibility_variables& cache) const {
+auto map::apparent_light_at(const tripoint_bub_ms& p, const visibility_variables& cache) const
+    -> lit_level {
     return apparent_light_at(p, cache, rl_dist(g->u.bub_pos(), p));
 }
 
-lit_level map::apparent_light_at(
-    const tripoint_bub_ms& p, const visibility_variables& cache, const int dist) const {
+auto map::apparent_light_at(
+    const tripoint_bub_ms& p, const visibility_variables& cache, const int dist) const
+    -> lit_level {
     // Clairvoyance overrides everything.
     if (dist <= cache.u_clairvoyance) { return lit_level::BRIGHT; }
     const auto& map_cache = get_cache_ref(p.z());
@@ -2034,7 +2037,7 @@ lit_level map::apparent_light_at(
     }
 }
 
-bool map::pl_sees(const tripoint_bub_ms& t, const int max_range) const {
+auto map::pl_sees(const tripoint_bub_ms& t, const int max_range) const -> bool {
     if (!inbounds(t)) { return false; }
 
     if (max_range >= 0 && square_dist(t, g->u.bub_pos()) > max_range) {
@@ -2061,7 +2064,7 @@ bool map::pl_sees(const tripoint_bub_ms& t, const int max_range) const {
 #endif
 }
 
-bool map::pl_line_of_sight(const tripoint_bub_ms& t, const int max_range) const {
+auto map::pl_line_of_sight(const tripoint_bub_ms& t, const int max_range) const -> bool {
     if (!inbounds(t)) { return false; }
 
     if (max_range >= 0 && square_dist(t, g->u.bub_pos()) > max_range) {
@@ -2654,7 +2657,7 @@ void map::apply_vehicle_optics(const tripoint_bub_ms& origin, const int target_z
 }
 
 // Schraudolph's algorithm with John's constants
-static inline float fastexp(float x) {
+static inline auto fastexp(float x) -> float {
     union {
         float f;
         int i;
@@ -2669,17 +2672,18 @@ static inline float fastexp(float x) {
     return u.f / v.f;
 }
 
-static float light_calc(const float& numerator, const float& transparency, const int& distance) {
+static auto light_calc(const float& numerator, const float& transparency, const int& distance)
+    -> float {
     // Light uses exponential attenuation divided by linear distance.
     return numerator / (fastexp(transparency * distance) * distance);
 }
 
-static bool light_check(const float& transparency, const float& intensity) {
+static auto light_check(const float& transparency, const float& intensity) -> bool {
     return transparency > LIGHT_TRANSPARENCY_SOLID && intensity > LIGHT_AMBIENT_LOW;
 }
 
-static float light_from_lookup(
-    const float& numerator, const float& transparency, const int& distance) {
+static auto light_from_lookup(
+    const float& numerator, const float& transparency, const int& distance) -> float {
     return numerator * transparency / distance;
 }
 

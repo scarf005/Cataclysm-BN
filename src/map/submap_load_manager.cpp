@@ -1041,8 +1041,7 @@ auto submap_load_manager::is_loaded(const dimension_id& dim_id, const point_abs_
 }
 
 auto submap_load_manager::simulated_submaps(const dimension_id& dim_id) const
-    -> std::span<const point_abs_sm> // *NOPAD*
-{
+    -> std::span<const point_abs_sm> {
     const auto it = simulated_submaps_by_dimension_.find(dim_id);
     if (it == simulated_submaps_by_dimension_.end()) { return {}; }
     return it->second;

@@ -35,7 +35,7 @@ enum astar_state { ASL_NONE, ASL_OPEN, ASL_CLOSED };
 
 // Turns two coordinates into an index into the 1D backing array.
 // stride_y is the total tile height of the loaded map.
-static int flat_index(const tripoint_abs_ms& p, const point_abs_ms& origin, int stride_y) {
+static auto flat_index(const tripoint_abs_ms& p, const point_abs_ms& origin, int stride_y) -> int {
     const auto offset = p.xy() - origin;
     return (offset.x() * stride_y) + offset.y();
 }
@@ -89,7 +89,7 @@ struct pathfinder {
         open;
     std::array<std::unique_ptr<path_data_layer>, OVERMAP_LAYERS> path_data;
 
-    path_data_layer& get_layer(const int z) {
+    auto get_layer(const int z) -> path_data_layer& {
         std::unique_ptr<path_data_layer>& ptr = path_data[z + OVERMAP_DEPTH];
         if (ptr != nullptr) { return *ptr; }
 
@@ -98,9 +98,9 @@ struct pathfinder {
         return *ptr;
     }
 
-    bool empty() const { return open.empty(); }
+    auto empty() const -> bool { return open.empty(); }
 
-    tripoint_abs_ms get_next() {
+    auto get_next() -> tripoint_abs_ms {
         const auto pt = open.top();
         open.pop();
         return pt.second;
@@ -137,7 +137,8 @@ struct pathfinder {
 
 // Modifies `t` to be a tile with `flag` in the overmap tile that `t` was originally on
 // return false if it could not find a suitable point
-template <ter_bitflags flag> bool vertical_move_destination(const map& m, tripoint_abs_ms& t) {
+template <ter_bitflags flag>
+auto vertical_move_destination(const map& m, tripoint_abs_ms& t) -> bool {
     const auto omt = project_to<coords::omt>(t);
     auto& buffer = MAPBUFFER_REGISTRY.get(m.get_bound_dimension());
     const auto omt_view = buffer.get_abs_omt_view(omt);
@@ -165,7 +166,7 @@ template <ter_bitflags flag> bool vertical_move_destination(const map& m, tripoi
     return false;
 }
 
-template <class Set1, class Set2> bool is_disjoint(const Set1& set1, const Set2& set2) {
+template <class Set1, class Set2> auto is_disjoint(const Set1& set1, const Set2& set2) -> bool {
     if (set1.empty() || set2.empty()) { return true; }
 
     typename Set1::const_iterator it1 = set1.begin();
@@ -196,18 +197,14 @@ struct legacy_pathfinding_tile {
     int vehicle_part = -1;
     int move_cost = 0;
 
-    auto vehicle_ptr() const -> const vehicle* { // *NOPAD*
-        return vehicle_ptr_;
-    }
+    auto vehicle_ptr() const -> const vehicle* { return vehicle_ptr_; }
 
     auto part_index() const -> int { return vehicle_part; }
 };
 
 // Astyle can snort my carpet dust
-auto get_legacy_pathfinding_tile(
-    const map& here,
-    const tripoint_abs_ms& p) -> std::optional<legacy_pathfinding_tile> // *NOPAD*
-{
+auto get_legacy_pathfinding_tile(const map& here, const tripoint_abs_ms& p)
+    -> std::optional<legacy_pathfinding_tile> {
     const auto bubble_pos = abs_to_map_local(here, p);
     if (!here.inbounds(bubble_pos)) { return std::nullopt; }
 
@@ -258,9 +255,9 @@ auto get_pf_special_abs(const map& here, const tripoint_abs_ms& p) -> pf_special
     return tile ? get_pf_special_from_tile(*tile) : PF_WALL;
 }
 
-std::vector<tripoint_abs_ms> map::route(
+auto map::route(
     const tripoint_abs_ms& f, const tripoint_abs_ms& t, const pathfinding_settings& settings,
-    const std::set<tripoint_abs_ms>& pre_closed) const {
+    const std::set<tripoint_abs_ms>& pre_closed) const -> std::vector<tripoint_abs_ms> {
     /* TODO: If the origin or destination is out of bound, figure out the closest
      * in-bounds point and go to that, then to the real origin/destination.
      */
@@ -622,9 +619,9 @@ std::vector<tripoint_abs_ms> map::route(
     return ret;
 }
 
-std::vector<tripoint_bub_ms> map::route(
+auto map::route(
     const tripoint_bub_ms& f, const tripoint_bub_ms& t, const pathfinding_settings& settings,
-    const std::set<tripoint_bub_ms>& pre_closed) const {
+    const std::set<tripoint_bub_ms>& pre_closed) const -> std::vector<tripoint_bub_ms> {
     auto clipped_f = f;
     auto clipped_t = t;
     clip_to_bounds(clipped_f);

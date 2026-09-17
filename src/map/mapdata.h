@@ -52,7 +52,7 @@ private:
     }
 
 public:
-    bool operator==(const ranged_bash_info& rhs) const = default;
+    auto operator==(const ranged_bash_info& rhs) const -> bool = default;
 };
 
 struct map_bash_info {
@@ -132,7 +132,7 @@ struct map_deconstruct_info {
     ter_str_id ter_set;   // terrain to set (REQUIRED for terrain))
     furn_str_id furn_set; // furniture to set (only used by furniture, not terrain)
     map_deconstruct_info();
-    bool load(const JsonObject& jsobj, const std::string& member, bool is_furniture);
+    auto load(const JsonObject& jsobj, const std::string& member, bool is_furniture) -> bool;
 };
 struct furn_workbench_info {
     // Base multiplier applied for crafting here
@@ -143,7 +143,7 @@ struct furn_workbench_info {
     furn_workbench_info();
     void deserialize(JsonIn& jsin);
 
-    bool operator==(const furn_workbench_info& rhs) const = default;
+    auto operator==(const furn_workbench_info& rhs) const -> bool = default;
 };
 struct enchant_info {
     // Internal id referenced for use in saveload
@@ -173,7 +173,7 @@ struct enchant_info {
 
     void deserialize(JsonIn& jsin);
 
-    bool operator==(const enchant_info& rhs) const = default;
+    auto operator==(const enchant_info& rhs) const -> bool = default;
 };
 
 struct plant_data {
@@ -190,7 +190,7 @@ struct plant_data {
 
     void deserialize(JsonIn& jsin);
 
-    bool operator==(const plant_data& rhs) const = default;
+    auto operator==(const plant_data& rhs) const -> bool = default;
 };
 
 struct pry_result {
@@ -227,7 +227,7 @@ struct pry_result {
     translation break_message;
     pry_result();
     enum map_object_type { furniture = 0, terrain };
-    bool load(const JsonObject& jsobj, const std::string& member, map_object_type obj_type);
+    auto load(const JsonObject& jsobj, const std::string& member, map_object_type obj_type) -> bool;
 };
 
 /*
@@ -384,7 +384,7 @@ struct activity_byproduct {
     int random_min = 0;
     int random_max = 0;
 
-    int roll() const;
+    auto roll() const -> int;
 
     bool was_loaded = false;
     void load(const JsonObject& jo);
@@ -394,15 +394,15 @@ class activity_data_common {
 public:
     activity_data_common() = default;
 
-    bool valid() const { return valid_; }
+    auto valid() const -> bool { return valid_; }
 
-    const time_duration& duration() const { return duration_; }
+    auto duration() const -> const time_duration& { return duration_; }
 
-    const translation& message() const { return message_; }
+    auto message() const -> const translation& { return message_; }
 
-    const translation& sound() const { return sound_; }
+    auto sound() const -> const translation& { return sound_; }
 
-    const std::vector<activity_byproduct>& byproducts() const { return byproducts_; }
+    auto byproducts() const -> const std::vector<activity_byproduct>& { return byproducts_; }
 
     bool was_loaded = false;
     void load(const JsonObject& jo);
@@ -419,7 +419,7 @@ class activity_data_ter: public activity_data_common {
 public:
     activity_data_ter() = default;
 
-    const ter_str_id& result() const { return result_; }
+    auto result() const -> const ter_str_id& { return result_; }
 
     void load(const JsonObject& jo);
 
@@ -431,7 +431,7 @@ class activity_data_furn: public activity_data_common {
 public:
     activity_data_furn() = default;
 
-    const furn_str_id& result() const { return result_; }
+    auto result() const -> const furn_str_id& { return result_; }
 
     void load(const JsonObject& jo);
 
@@ -448,8 +448,8 @@ public:
     virtual ~map_data_common_t() = default;
 
 protected:
-    friend furn_t null_furniture_t();
-    friend ter_t null_terrain_t();
+    friend auto null_furniture_t() -> furn_t;
+    friend auto null_terrain_t() -> ter_t;
     // The (untranslated) plaintext name of the terrain type the user would see (i.e. dirt)
     std::string name_;
 
@@ -461,12 +461,12 @@ private:
 public:
     ter_str_id curtain_transform;
 
-    bool has_curtains() const {
+    auto has_curtains() const -> bool {
         return !(curtain_transform.is_empty() || curtain_transform.is_null());
     }
 
 public:
-    std::string name() const;
+    auto name() const -> std::string;
 
     /*
      * The symbol drawn on the screen for the terrain. Please note that
@@ -513,11 +513,11 @@ public:
 
     bool transparent = false;
 
-    const std::set<std::string>& get_flags() const { return flags; }
+    auto get_flags() const -> const std::set<std::string>& { return flags; }
 
-    bool has_flag(const std::string& flag) const { return flags.contains(flag); }
+    auto has_flag(const std::string& flag) const -> bool { return flags.contains(flag); }
 
-    bool has_flag(const ter_bitflags flag) const { return bitflags.test(flag); }
+    auto has_flag(const ter_bitflags flag) const -> bool { return bitflags.test(flag); }
 
     void set_flag(const std::string& flag);
 
@@ -525,23 +525,23 @@ public:
 
     void set_connects(const std::string& connect_group_string);
 
-    bool connects(int& ret) const;
+    auto connects(int& ret) const -> bool;
 
-    bool connects_to(int test_connect_group) const {
+    auto connects_to(int test_connect_group) const -> bool {
         return connect_group != TERCONN_NONE && connect_group == test_connect_group;
     }
 
-    int symbol() const;
-    nc_color color() const;
+    auto symbol() const -> int;
+    auto color() const -> nc_color;
 
-    const harvest_id& get_harvest() const;
+    auto get_harvest() const -> const harvest_id&;
     /**
      * Returns a set of names of the items that would be dropped.
      * Used for NPC whitelist checking.
      */
-    const std::set<std::string>& get_harvest_names() const;
+    auto get_harvest_names() const -> const std::set<std::string>&;
 
-    std::string extended_description() const;
+    auto extended_description() const -> std::string;
 
     bool was_loaded = false;
 
@@ -586,15 +586,15 @@ struct ter_t: map_data_common_t {
 
     ter_t();
 
-    static size_t count();
+    static auto count() -> size_t;
 
-    bool is_null() const;
+    auto is_null() const -> bool;
 
     void load(const JsonObject& jo, const std::string& src) override;
     void check() const override;
-    static const std::vector<ter_t>& get_all();
+    static auto get_all() -> const std::vector<ter_t>&;
 
-    bool is_diggable() const;
+    auto is_diggable() const -> bool;
 
     LUA_TYPE_OPS(ter_t, id);
 };
@@ -676,18 +676,18 @@ struct furn_t: map_data_common_t {
     cata::poly_serialized<active_tile_data> active;
     std::optional<fluid_grid_data> fluid_grid;
 
-    std::vector<itype> crafting_pseudo_item_types() const;
-    std::vector<itype> crafting_ammo_item_types() const;
+    auto crafting_pseudo_item_types() const -> std::vector<itype>;
+    auto crafting_ammo_item_types() const -> std::vector<itype>;
 
     furn_t();
 
-    static size_t count();
+    static auto count() -> size_t;
 
-    bool is_movable() const;
+    auto is_movable() const -> bool;
 
     void load(const JsonObject& jo, const std::string& src) override;
     void check() const override;
-    static const std::vector<furn_t>& get_all();
+    static auto get_all() -> const std::vector<furn_t>&;
 
     LUA_TYPE_OPS(furn_t, id);
 };

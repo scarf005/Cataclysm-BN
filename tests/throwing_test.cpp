@@ -239,7 +239,8 @@ struct throw_test_pstats {
     int per;
 };
 
-static std::ostream& operator<<(std::ostream& stream, const throw_test_pstats& pstats) {
+static auto operator<<(std::ostream& stream, const throw_test_pstats& pstats)
+    -> std::ostream& { // *NOPAD*
     return (stream << "STR: " << pstats.str << " DEX: " << pstats.dex << " PER: " << pstats.per
                    << " SKL: " << pstats.skill_lvl);
 }

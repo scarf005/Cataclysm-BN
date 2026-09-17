@@ -26,7 +26,7 @@ std::unordered_map<vplacement_id, VehiclePlacement> vplacements;
 std::unordered_map<vspawn_id, VehicleSpawn> vspawns;
 
 /** @relates string_id */
-template <> const VehicleGroup& string_id<VehicleGroup>::obj() const {
+template <> auto string_id<VehicleGroup>::obj() const -> const VehicleGroup& {
     const auto iter = vgroups.find(*this);
     if (iter == vgroups.end()) {
         debugmsg("invalid vehicle group id %s", c_str());
@@ -36,18 +36,20 @@ template <> const VehicleGroup& string_id<VehicleGroup>::obj() const {
     return iter->second;
 }
 
-units::angle VehicleFacings::pick() const { return random_entry(values); }
+auto VehicleFacings::pick() const -> units::angle { return random_entry(values); }
 
-point_bub_ms VehicleLocation::pick_point() const { return point_bub_ms(x.get(), y.get()); }
+auto VehicleLocation::pick_point() const -> point_bub_ms { return point_bub_ms(x.get(), y.get()); }
 
 auto VehicleLocation::pick_omt_point() const -> point_omt_ms {
     return point_omt_ms(x.get(), y.get());
 }
 
 /** @relates string_id */
-template <> bool string_id<VehicleGroup>::is_valid() const { return vgroups.contains(*this); }
+template <> auto string_id<VehicleGroup>::is_valid() const -> bool {
+    return vgroups.contains(*this);
+}
 
-template <> const VehiclePlacement& string_id<VehiclePlacement>::obj() const {
+template <> auto string_id<VehiclePlacement>::obj() const -> const VehiclePlacement& {
     const auto iter = vplacements.find(*this);
     if (iter == vplacements.end()) {
         debugmsg("invalid vehicle placement id %s", c_str());
@@ -57,7 +59,7 @@ template <> const VehiclePlacement& string_id<VehiclePlacement>::obj() const {
     return iter->second;
 }
 
-template <> bool string_id<VehiclePlacement>::is_valid() const {
+template <> auto string_id<VehiclePlacement>::is_valid() const -> bool {
     return vplacements.contains(*this);
 }
 
@@ -99,7 +101,7 @@ void VehiclePlacement::load(const JsonObject& jo) {
 
 void VehiclePlacement::reset() { vplacements.clear(); }
 
-const VehicleLocation* VehiclePlacement::pick() const {
+auto VehiclePlacement::pick() const -> const VehicleLocation* {
     if (const auto chosen = random_entry_opt(locations)) { return &chosen->get(); }
     debugmsg("vehicleplacement has no locations");
     return nullptr;
@@ -167,7 +169,7 @@ auto VehicleFunction_json::apply(mapgen_constructor& m, const std::string& terra
     }
 }
 
-template <> const VehicleSpawn& string_id<VehicleSpawn>::obj() const {
+template <> auto string_id<VehicleSpawn>::obj() const -> const VehicleSpawn& {
     const auto iter = vspawns.find(*this);
     if (iter == vspawns.end()) {
         debugmsg("invalid vehicle spawn id %s", c_str());
@@ -177,7 +179,9 @@ template <> const VehicleSpawn& string_id<VehicleSpawn>::obj() const {
     return iter->second;
 }
 
-template <> bool string_id<VehicleSpawn>::is_valid() const { return vspawns.contains(*this); }
+template <> auto string_id<VehicleSpawn>::is_valid() const -> bool {
+    return vspawns.contains(*this);
+}
 
 void VehicleSpawn::load(const JsonObject& jo) {
     VehicleSpawn& spawn = vspawns[vspawn_id(jo.get_string("id"))];

@@ -97,7 +97,7 @@ public:
 
     // Non-copyable
     submap_load_manager(const submap_load_manager&) = delete;
-    submap_load_manager& operator=(const submap_load_manager&) = delete;
+    auto operator=(const submap_load_manager&) -> submap_load_manager& = delete;
 
     /**
      * Register a new load request.  The request always covers all z-levels
@@ -330,7 +330,7 @@ private:
     std::map<omt_key, std::future<lazy_omt_load_result>> lazy_omt_futures_;
 
     /** Compute the simulated desired set (excludes lazy_border). */
-    key_set compute_desired_set() const;
+    auto compute_desired_set() const -> key_set;
     auto rebuild_simulated_submaps_by_dimension(const key_set& simulated) -> void;
 
     /** Compute OMT-space lazy-border columns. */

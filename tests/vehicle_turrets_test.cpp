@@ -29,7 +29,7 @@
 #include <utility>
 #include <vector>
 
-static std::vector<const vpart_info*> turret_types() {
+static auto turret_types() -> std::vector<const vpart_info*> {
     std::vector<const vpart_info*> res;
 
     for (const auto& vp : vpart_info::get_all()) {

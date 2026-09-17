@@ -110,7 +110,7 @@ static void clear_grid_connections(map& m) {
     om.om->set_electric_grid_connections(om.local, {});
 }
 
-static grid_setup set_up_grid(map& m) {
+static auto set_up_grid(map& m) -> grid_setup {
     // TODO: clear_grids()
     clear_grid_connections(m);
 
@@ -180,7 +180,7 @@ struct grid_setup_watcher {
 };
 
 template <typename T, typename S>
-static S set_up_grid_with_consumer(map& m, const furn_str_id& act_tile_id) {
+static auto set_up_grid_with_consumer(map& m, const furn_str_id& act_tile_id) -> S {
     // TODO: clear_grids()
     const auto z = g->u.abs_pos().z();
     clear_grid_connections(m);

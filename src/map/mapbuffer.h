@@ -264,8 +264,8 @@ public:
         mapbuffer_lookup_options options = {});
     mapbuffer_bounds_view() = default;
 
-    mapbuffer_bounds_view& operator=(const mapbuffer_bounds_view&) = delete;
-    mapbuffer_bounds_view& operator=(mapbuffer_bounds_view&&) noexcept;
+    auto operator=(const mapbuffer_bounds_view&) -> mapbuffer_bounds_view& = delete;
+    auto operator=(mapbuffer_bounds_view&&) noexcept -> mapbuffer_bounds_view&;
 
     auto begin() const -> point_abs_sm;
     auto end() const -> point_abs_sm;
@@ -327,9 +327,7 @@ public:
     auto release() -> void;
     explicit operator bool() const { return handle_ != 0; }
 
-    auto view() const -> const mapbuffer_bounds_view& { // *NOPAD*
-        return view_;
-    }
+    auto view() const -> const mapbuffer_bounds_view& { return view_; }
     auto submaps() const -> std::span<const mapbuffer_abs_submap_view> { return view_.submaps(); }
 
 private:
@@ -394,7 +392,7 @@ public:
      * is already a submap with the specified coordinates. The submap
      * is not stored and the given unique_ptr retains ownsership.
      */
-    bool add_submap(const tripoint_abs_sm& p, std::unique_ptr<submap>& sm);
+    auto add_submap(const tripoint_abs_sm& p, std::unique_ptr<submap>& sm) -> bool;
 
     /**
      * Absolute submap lookup with explicit residency/loading policy.
@@ -633,7 +631,7 @@ public:
      * and could not be loaded. The mapbuffer takes care of the returned
      * submap object, don't delete it on your own.
      */
-    submap* lookup_submap(const tripoint_abs_sm& p);
+    auto lookup_submap(const tripoint_abs_sm& p) -> submap*;
 
     /** Get a submap only if it's already loaded in memory.
      * Unlike lookup_submap(), this does NOT query the database for missing submaps.
@@ -642,7 +640,7 @@ public:
      *
      * Thread-safe: may be called from background worker threads (under gen_mutex).
      */
-    submap* lookup_submap_in_memory(const tripoint_abs_sm& p) {
+    auto lookup_submap_in_memory(const tripoint_abs_sm& p) -> submap* {
         std::lock_guard<std::recursive_mutex> lk(submaps_mutex_);
         const auto iter = submaps.find(p);
         return iter != submaps.end() ? iter->second.get() : nullptr;
@@ -654,7 +652,7 @@ public:
      * intended for use by submap_load_manager and related systems.
      * Returns nullptr if the submap does not exist on disk.
      */
-    submap* load_submap(const tripoint_abs_sm& pos);
+    auto load_submap(const tripoint_abs_sm& pos) -> submap*;
 
     /**
      * Parallel-safe omt prefetch: reads all submaps in the OMT at
@@ -679,7 +677,7 @@ public:
      * (pending_writes_) rather than from disk.  A cache-loaded omt has not yet
      * been flushed to actual disk files and must be re-saved before eviction.
      */
-    bool preload_omt(const tripoint_abs_omt& omt_addr);
+    auto preload_omt(const tripoint_abs_omt& omt_addr) -> bool;
 
     /**
      * Generate all submaps in the OMT at @p omt_addr if any are not yet
@@ -797,8 +795,8 @@ private:
     std::map<tripoint_abs_omt, std::string> pending_writes_;
 
 public:
-    submap_map_t::iterator begin() { return submaps.begin(); }
-    submap_map_t::iterator end() { return submaps.end(); }
+    auto begin() -> submap_map_t::iterator { return submaps.begin(); }
+    auto end() -> submap_map_t::iterator { return submaps.end(); }
 
     /**
      * Iterate all submaps under @c submaps_mutex_, allowing background
@@ -819,26 +817,24 @@ public:
         return submaps.size();
     }
 
-    bool is_submap_loaded(const tripoint_abs_sm& p) const { return submaps.contains(p); }
+    auto is_submap_loaded(const tripoint_abs_sm& p) const -> bool { return submaps.contains(p); }
 
     /** Return true if no submaps are currently held in this buffer. */
-    bool is_empty() const { return submaps.empty(); }
+    auto is_empty() const -> bool { return submaps.empty(); }
 
     /**
      * Return the dimension ID this buffer belongs to.
      * Set by mapbuffer_registry::get() at construction time.
      * Empty string ("") = the overworld (primary dimension, legacy path).
      */
-    auto get_dimension_id() const -> const dimension_id& { // *NOPAD*
-        return dimension_id_;
-    }
+    auto get_dimension_id() const -> const dimension_id& { return dimension_id_; }
 
     /** Set the dimension ID — called only by mapbuffer_registry. */
     auto set_dimension_id(const dimension_id& id) -> void { dimension_id_ = id; }
 
     auto set_pocket_info(const pocket_dimension_data& info) -> void { pocket_info_ = info; }
 
-    auto get_pocket_info() const -> const std::optional<pocket_dimension_data>& { // *NOPAD*
+    auto get_pocket_info() const -> const std::optional<pocket_dimension_data>& {
         return pocket_info_;
     }
 

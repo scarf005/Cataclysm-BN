@@ -326,8 +326,9 @@ static time_point midday = calendar::turn_zero + 12_hours;
 
 // This tries to actually run the whole craft activity, which is more thorough,
 // but slow
-static int actually_test_craft(
-    const recipe_id& rid, std::vector<detached_ptr<item>>& tools, int interrupt_after_turns) {
+static auto actually_test_craft(
+    const recipe_id& rid, std::vector<detached_ptr<item>>& tools, int interrupt_after_turns)
+    -> int {
     avatar& you = get_avatar();
     prep_craft(rid, tools, true);
     set_time(midday); // Ensure light for crafting
@@ -503,7 +504,7 @@ TEST_CASE("Component same as tool", "[crafting][tool]") {
 }
 
 // Resume the first in progress craft found in the player's inventory
-static int resume_craft() {
+static auto resume_craft() -> int {
     avatar& you = get_avatar();
     std::vector<item*> crafts = you.items_with([](const item& itm) { return itm.is_craft(); });
     REQUIRE(crafts.size() == 1);

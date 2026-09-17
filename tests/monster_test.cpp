@@ -229,8 +229,9 @@ TEST_CASE(
     CHECK(slot_items.size() > 1);
 }
 
-static int moves_to_destination(
-    const std::string& monster_type, const tripoint_bub_ms& start, const tripoint_bub_ms& end) {
+static auto moves_to_destination(
+    const std::string& monster_type, const tripoint_bub_ms& start, const tripoint_bub_ms& end)
+    -> int {
     clear_creatures();
     REQUIRE(g->num_creatures() == 1); // the player
     monster& test_monster = spawn_test_monster(monster_type, start);
@@ -265,13 +266,14 @@ struct track {
     tripoint_bub_ms location;
 };
 
-static std::ostream& operator<<(std::ostream& os, track const& value) {
+static auto operator<<(std::ostream& os, track const& value) -> std::ostream& { // *NOPAD*
     os << value.participant << " l:" << value.location << " d:" << value.distance
        << " m:" << value.moves;
     return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, const std::vector<track>& vec) {
+static auto operator<<(std::ostream& os, const std::vector<track>& vec)
+    -> std::ostream& { // *NOPAD*
     for (auto& track_instance : vec) { os << track_instance << " "; }
     return os;
 }
@@ -279,8 +281,8 @@ static std::ostream& operator<<(std::ostream& os, const std::vector<track>& vec)
 /**
  * Simulate a player running from the monster, checking if it can catch up.
  **/
-static int can_catch_player(
-    const std::string& monster_type, const tripoint_rel_ms& direction_of_flight) {
+static auto can_catch_player(
+    const std::string& monster_type, const tripoint_rel_ms& direction_of_flight) -> int {
     clear_map();
     REQUIRE(g->num_creatures() == 1); // the player
     player& test_player = get_avatar();

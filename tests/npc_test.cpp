@@ -127,7 +127,7 @@ static void create_model(npc& model_npc) {
     model_npc.set_mutation(trait_id("WEB_WEAVER"));
 }
 
-static std::string get_list_of_npcs(const std::string& title) {
+static auto get_list_of_npcs(const std::string& title) -> std::string {
 
     std::ostringstream npc_list;
     npc_list << title << ":\n";

@@ -29,7 +29,7 @@
 #include <memory>
 #include <utility>
 
-static bool popup_string(std::string& result, std::string& title) {
+static auto popup_string(std::string& result, std::string& title) -> bool {
     string_input_popup popup;
     popup.title(title);
     popup.text("").only_digits(false);
@@ -39,7 +39,8 @@ static bool popup_string(std::string& result, std::string& title) {
     return true;
 }
 
-bool teleporter_list::activate_teleporter(const tripoint_abs_omt& omt_pt, const tripoint_bub_ms&) {
+auto teleporter_list::activate_teleporter(const tripoint_abs_omt& omt_pt, const tripoint_bub_ms&)
+    -> bool {
     std::string point_name;
     std::string title = _("Name this gate.");
     popup_string(point_name, title);
@@ -52,7 +53,8 @@ void teleporter_list::deactivate_teleporter(
 }
 
 // returns the first valid teleport location near a teleporter
-static std::optional<tripoint_omt_ms> find_valid_teleporters_omt(const tripoint_abs_omt& omt_pt) {
+static auto find_valid_teleporters_omt(const tripoint_abs_omt& omt_pt)
+    -> std::optional<tripoint_omt_ms> {
     // this is the top left hand square of the global absolute coordinate
     // of the overmap terrain we want to try to teleport to.
     // an OMT is SEEX * SEEY in size
@@ -78,7 +80,8 @@ static std::optional<tripoint_omt_ms> find_valid_teleporters_omt(const tripoint_
     return std::nullopt;
 }
 
-bool teleporter_list::place_avatar_overmap(Character& you, const tripoint_abs_omt& omt_pt) const {
+auto teleporter_list::place_avatar_overmap(Character& you, const tripoint_abs_omt& omt_pt) const
+    -> bool {
     std::optional<tripoint_omt_ms> omt_dest = find_valid_teleporters_omt(omt_pt);
     if (!omt_dest) { return false; }
     // WARN: Legacy hack here
@@ -119,7 +122,7 @@ void teleporter_list::translocate(const std::set<tripoint_bub_ms>& targets) {
     if (!valid_targets) { add_msg(_("No valid targets to teleport.")); }
 }
 
-bool teleporter_list::knows_translocator(const tripoint_abs_omt& omt_pos) const {
+auto teleporter_list::knows_translocator(const tripoint_abs_omt& omt_pos) const -> bool {
     return known_teleporters.contains(omt_pos);
 }
 
@@ -179,7 +182,7 @@ public:
     }
 };
 
-std::optional<tripoint_abs_omt> teleporter_list::choose_teleport_location() {
+auto teleporter_list::choose_teleport_location() -> std::optional<tripoint_abs_omt> {
     std::optional<tripoint_abs_omt> ret = std::nullopt;
 
     uilist teleport_selector;

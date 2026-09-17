@@ -24,8 +24,8 @@
 #include <set>
 #include <vector>
 
-static tripoint_bub_ms projectile_end_point(
-    const std::vector<tripoint_bub_ms>& range, const item& gun, int proj_range) {
+static auto projectile_end_point(
+    const std::vector<tripoint_bub_ms>& range, const item& gun, int proj_range) -> tripoint_bub_ms {
     projectile test_proj;
     test_proj.speed = gun.gun_speed();
     test_proj.range = proj_range;

@@ -27,7 +27,7 @@ extern fallback_t default_fallback;
 extern sequential_until_done_t default_until_done;
 } // namespace behavior
 
-static behavior::node_t make_test_node(std::string goal, const behavior::status_t* status) {
+static auto make_test_node(std::string goal, const behavior::status_t* status) -> behavior::node_t {
     behavior::node_t node;
     if (!goal.empty()) { node.set_goal(goal); }
     node.set_predicate([status](const behavior::oracle_t*) { return *status; });

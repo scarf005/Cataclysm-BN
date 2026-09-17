@@ -12,31 +12,31 @@ class emit {
 public:
     emit();
 
-    const emit_id& id() const { return id_; }
+    auto id() const -> const emit_id& { return id_; }
 
     /** When null @ref field is always fd_null */
-    bool is_null() const;
+    auto is_null() const -> bool;
 
     /** When valid @ref field is never fd_null */
-    bool is_valid() const;
+    auto is_valid() const -> bool;
 
     /** Type of field to emit @see emit::is_valid */
-    field_type_id field() const { return field_; }
+    auto field() const -> field_type_id { return field_; }
 
     /** Intensity of output fields, range [1..maximum_intensity] */
-    int intensity() const { return intensity_; }
+    auto intensity() const -> int { return intensity_; }
 
     /** Units of field to generate per turn subject to @ref chance */
-    int qty() const { return qty_; }
+    auto qty() const -> int { return qty_; }
 
     /** Chance to emit each turn, range [1..100] */
-    int chance() const { return chance_; }
+    auto chance() const -> int { return chance_; }
 
     /** Load emission data from JSON definition */
     static void load_emit(const JsonObject& jo);
 
     /** Get all currently loaded emission data */
-    static const std::map<emit_id, emit>& all();
+    static auto all() -> const std::map<emit_id, emit>&;
 
     /** Check consistency of all loaded emission data */
     static void finalize();

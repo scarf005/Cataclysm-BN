@@ -8,21 +8,22 @@
 #include <memory>
 #include <vector>
 
-static double mean_abs_running_diff(std::vector<double> const& v) {
+static auto mean_abs_running_diff(std::vector<double> const& v) -> double {
     double x = 0;
     int n = v.size() - 1;
     for (int i = 0; i < n; ++i) { x += std::abs(v[i + 1] - v[i]); }
     return x / n;
 }
 
-static double mean_pairwise_diffs(std::vector<double> const& a, std::vector<double> const& b) {
+static auto mean_pairwise_diffs(std::vector<double> const& a, std::vector<double> const& b)
+    -> double {
     double x = 0;
     int n = a.size();
     for (int i = 0; i < n; ++i) { x += a[i] - b[i]; }
     return x / n;
 }
 
-static double proportion_gteq_x(std::vector<double> const& v, double x) {
+static auto proportion_gteq_x(std::vector<double> const& v, double x) -> double {
     int count = 0;
     for (auto i : v) { count += (i >= x); }
     return static_cast<double>(count) / v.size();

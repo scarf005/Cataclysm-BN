@@ -1074,7 +1074,7 @@ TEST_CASE("placed_monsters_inherit_bound_dimension") {
     CHECK(mon->get_dimension() == test_dim);
 }
 
-static std::ostream& operator<<(std::ostream& os, const ter_id& tid) {
+static auto operator<<(std::ostream& os, const ter_id& tid) -> std::ostream& { // *NOPAD*
     os << tid.id().c_str();
     return os;
 }

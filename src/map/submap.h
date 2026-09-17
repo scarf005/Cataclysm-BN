@@ -66,12 +66,12 @@ struct spawn_point {
     // helper function to convert internal disposition into a binary bool value.
     // This is required to preserve save game compatibility because submaps store/load
     // their spawn_points using a boolean flag.
-    bool is_friendly() const { return disposition != spawn_disposition::SpawnDisp_Default; }
+    auto is_friendly() const -> bool { return disposition != spawn_disposition::SpawnDisp_Default; }
 
     // helper function to convert binary bool friendly value to internal disposition.
     // This is required to preserve save game compatibility because submaps store/load
     // their spawn_points using a boolean flag.
-    static spawn_disposition friendly_to_spawn_disposition(bool friendly) {
+    static auto friendly_to_spawn_disposition(bool friendly) -> spawn_disposition {
         return friendly ? spawn_disposition::SpawnDisp_Friendly
                         : spawn_disposition::SpawnDisp_Default;
     }
@@ -98,18 +98,18 @@ public:
     submap(const tripoint_abs_sm& position, const dimension_id& dim);
     ~submap();
 
-    const dimension_id get_dimension() const { return dim_; }
-    const tripoint_abs_sm position() const { return pos_; }
+    auto get_dimension() const -> const dimension_id { return dim_; }
+    auto position() const -> const tripoint_abs_sm { return pos_; }
     auto set_dimension(const dimension_id& dim) -> void;
     auto set_position(const tripoint_abs_sm& position) -> void;
 
-    trap_id get_trap(const point_sm_ms& p) const { return trp[p.x()][p.y()]; }
+    auto get_trap(const point_sm_ms& p) const -> trap_id { return trp[p.x()][p.y()]; }
 
     /// The effective trap at a tile: a terrain-attached trap (ter_t::trap) takes
     /// precedence over a standalone trap in the trp array. Mirrors map::tr_at().
     /// Use this (not get_trap()) when a tile may carry a terrain-attached trap,
     /// e.g. a gutter downspout's funnel.
-    trap_id get_effective_trap(const point_sm_ms& p) const {
+    auto get_effective_trap(const point_sm_ms& p) const -> trap_id {
         const trap_id ter_trap = get_ter(p).obj().trap;
         if (ter_trap != tr_null) { return ter_trap; }
         return get_trap(p);
@@ -126,7 +126,7 @@ public:
         trap_cache.clear();
     }
 
-    furn_id get_furn(const point_sm_ms& p) const { return frn[p.x()][p.y()]; }
+    auto get_furn(const point_sm_ms& p) const -> furn_id { return frn[p.x()][p.y()]; }
 
     void set_furn(const point_sm_ms& p, furn_id furn) {
         is_uniform = false;
@@ -145,7 +145,7 @@ public:
         frn_vars.clear();
     }
 
-    ter_id get_ter(const point_sm_ms& p) const { return ter[p.x()][p.y()]; }
+    auto get_ter(const point_sm_ms& p) const -> ter_id { return ter[p.x()][p.y()]; }
 
     void set_ter(const point_sm_ms& p, ter_id terr) {
         is_uniform = false;
@@ -159,14 +159,14 @@ public:
         emitter_cache = std::nullopt;
     }
 
-    int get_radiation(const point_sm_ms& p) const { return rad[p.x()][p.y()]; }
+    auto get_radiation(const point_sm_ms& p) const -> int { return rad[p.x()][p.y()]; }
 
     void set_radiation(const point_sm_ms& p, const int radiation) {
         is_uniform = false;
         rad[p.x()][p.y()] = radiation;
     }
 
-    uint8_t get_lum(const point_sm_ms& p) const { return lum[p.x()][p.y()]; }
+    auto get_lum(const point_sm_ms& p) const -> uint8_t { return lum[p.x()][p.y()]; }
 
     auto static_emitter_tiles() const -> const std::vector<point_sm_ms>&;
 
@@ -183,26 +183,28 @@ public:
     void update_lum_rem(const point_sm_ms& p, const item& i);
 
     // TODO: Replace this as it essentially makes itm public
-    location_vector<item>& get_items(const point_sm_ms& p) { return itm[p.x()][p.y()]; }
+    auto get_items(const point_sm_ms& p) -> location_vector<item>& { return itm[p.x()][p.y()]; }
 
-    const location_vector<item>& get_items(const point_sm_ms& p) const { return itm[p.x()][p.y()]; }
+    auto get_items(const point_sm_ms& p) const -> const location_vector<item>& {
+        return itm[p.x()][p.y()];
+    }
 
     // TODO: Replace this as it essentially makes fld public
-    field& get_field(const point_sm_ms& p) { return fld[p.x()][p.y()]; }
+    auto get_field(const point_sm_ms& p) -> field& { return fld[p.x()][p.y()]; }
 
-    const field& get_field(const point_sm_ms& p) const { return fld[p.x()][p.y()]; }
+    auto get_field(const point_sm_ms& p) const -> const field& { return fld[p.x()][p.y()]; }
 
-    data_vars::data_set& get_ter_vars(const point_sm_ms& p) { return ter_vars[p]; };
+    auto get_ter_vars(const point_sm_ms& p) -> data_vars::data_set& { return ter_vars[p]; };
 
-    data_vars::data_set& get_furn_vars(const point_sm_ms& p) { return frn_vars[p]; };
+    auto get_furn_vars(const point_sm_ms& p) -> data_vars::data_set& { return frn_vars[p]; };
 
-    const data_vars::data_set& get_ter_vars(const point_sm_ms& p) const {
+    auto get_ter_vars(const point_sm_ms& p) const -> const data_vars::data_set& {
         const auto it = ter_vars.find(p);
         if (it == ter_vars.end()) { return EMPTY_VARS; }
         return it->second;
     };
 
-    const data_vars::data_set& get_furn_vars(const point_sm_ms& p) const {
+    auto get_furn_vars(const point_sm_ms& p) const -> const data_vars::data_set& {
         const auto it = ter_vars.find(p);
         if (it == ter_vars.end()) { return EMPTY_VARS; }
         return it->second;
@@ -216,33 +218,33 @@ public:
 
     void insert_cosmetic(const point_sm_ms& p, const std::string& type, const std::string& str);
 
-    int get_temperature() const { return temperature; }
+    auto get_temperature() const -> int { return temperature; }
 
     void set_temperature(int new_temperature) { temperature = new_temperature; }
 
-    bool has_graffiti(const point_sm_ms& p) const;
-    const std::string& get_graffiti(const point_sm_ms& p) const;
+    auto has_graffiti(const point_sm_ms& p) const -> bool;
+    auto get_graffiti(const point_sm_ms& p) const -> const std::string&;
     void set_graffiti(const point_sm_ms& p, const std::string& new_graffiti);
     void delete_graffiti(const point_sm_ms& p);
 
     // Signage is a pretend union between furniture on a square and stored
     // writing on the square. When both are present, we have signage.
     // Its effect is meant to be cosmetic and atmospheric only.
-    bool has_signage(const point_sm_ms& p) const;
+    auto has_signage(const point_sm_ms& p) const -> bool;
     // Dependent on furniture + cosmetics.
-    std::string get_signage(const point_sm_ms& p) const;
+    auto get_signage(const point_sm_ms& p) const -> std::string;
     // Can be used anytime (prevents code from needing to place sign first.)
     void set_signage(const point_sm_ms& p, const std::string& s);
     // Can be used anytime (prevents code from needing to place sign first.)
     void delete_signage(const point_sm_ms& p);
 
-    bool has_computer(const point_sm_ms& p) const;
-    const computer* get_computer(const point_sm_ms& p) const;
-    computer* get_computer(const point_sm_ms& p);
+    auto has_computer(const point_sm_ms& p) const -> bool;
+    auto get_computer(const point_sm_ms& p) const -> const computer*;
+    auto get_computer(const point_sm_ms& p) -> computer*;
     void set_computer(const point_sm_ms& p, const computer& c);
     void delete_computer(const point_sm_ms& p);
 
-    bool contains_vehicle(vehicle*);
+    auto contains_vehicle(vehicle*) -> bool;
 
     void rotate(int turns);
 
@@ -369,41 +371,43 @@ private:
     submap* const sm;
     point_sm_ms pos_;
 
-    point_sm_ms pos() const { return pos_; }
+    auto pos() const -> point_sm_ms { return pos_; }
 
     maptile(submap* sub, const point_sm_ms& p): sm(sub), pos_(p) {}
 
 public:
-    trap_id get_trap() const { return sm->get_trap(pos()); }
+    auto get_trap() const -> trap_id { return sm->get_trap(pos()); }
 
-    furn_id get_furn() const { return sm->get_furn(pos()); }
+    auto get_furn() const -> furn_id { return sm->get_furn(pos()); }
 
-    ter_id get_ter() const { return sm->get_ter(pos()); }
+    auto get_ter() const -> ter_id { return sm->get_ter(pos()); }
 
-    const trap& get_trap_t() const { return sm->get_trap(pos()).obj(); }
+    auto get_trap_t() const -> const trap& { return sm->get_trap(pos()).obj(); }
 
-    const furn_t& get_furn_t() const { return sm->get_furn(pos()).obj(); }
-    const ter_t& get_ter_t() const { return sm->get_ter(pos()).obj(); }
+    auto get_furn_t() const -> const furn_t& { return sm->get_furn(pos()).obj(); }
+    auto get_ter_t() const -> const ter_t& { return sm->get_ter(pos()).obj(); }
 
-    const field& get_field() const { return sm->get_field(pos()); }
+    auto get_field() const -> const field& { return sm->get_field(pos()); }
 
-    field_entry* find_field(const field_type_id& field_to_find) {
+    auto find_field(const field_type_id& field_to_find) -> field_entry* {
         return sm->get_field(pos()).find_field(field_to_find);
     }
 
-    int get_radiation() const { return sm->get_radiation(pos()); }
+    auto get_radiation() const -> int { return sm->get_radiation(pos()); }
 
-    bool has_graffiti() const { return sm->has_graffiti(pos()); }
+    auto has_graffiti() const -> bool { return sm->has_graffiti(pos()); }
 
-    const std::string& get_graffiti() const { return sm->get_graffiti(pos()); }
+    auto get_graffiti() const -> const std::string& { return sm->get_graffiti(pos()); }
 
-    bool has_signage() const { return sm->has_signage(pos()); }
+    auto has_signage() const -> bool { return sm->has_signage(pos()); }
 
-    std::string get_signage() const { return sm->get_signage(pos()); }
+    auto get_signage() const -> std::string { return sm->get_signage(pos()); }
 
     // For map::draw_maptile
-    size_t get_item_count() const { return sm->get_items(pos()).size(); }
+    auto get_item_count() const -> size_t { return sm->get_items(pos()).size(); }
 
     // Assumes there is at least one item
-    const item& get_uppermost_item() const { return **std::prev(sm->get_items(pos()).cend()); }
+    auto get_uppermost_item() const -> const item& {
+        return **std::prev(sm->get_items(pos()).cend());
+    }
 };

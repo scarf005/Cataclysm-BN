@@ -113,7 +113,7 @@ void create_burnproducts(
 }
 
 // Use a helper for a bit less boilerplate
-int map::burn_body_part(player& u, field_entry& cur, body_part bp_token, const int scale) {
+auto map::burn_body_part(player& u, field_entry& cur, body_part bp_token, const int scale) -> int {
     bodypart_str_id bp = convert_bp(bp_token);
     int total_damage = 0;
     const int intensity = cur.get_field_intensity();
@@ -131,11 +131,11 @@ int map::burn_body_part(player& u, field_entry& cur, body_part bp_token, const i
 }
 
 
-bool ter_furn_has_flag(const ter_t& ter, const furn_t& furn, const ter_bitflags flag) {
+auto ter_furn_has_flag(const ter_t& ter, const furn_t& furn, const ter_bitflags flag) -> bool {
     return ter.has_flag(flag) || furn.has_flag(flag);
 }
 
-static inline bool check_flammable(const map_data_common_t& t) {
+static inline auto check_flammable(const map_data_common_t& t) -> bool {
     return t.has_flag(TFLAG_FLAMMABLE) || t.has_flag(TFLAG_FLAMMABLE_ASH)
         || t.has_flag(TFLAG_FLAMMABLE_HARD);
 }
@@ -797,8 +797,8 @@ void map::monster_in_field(monster& z) {
     }
 }
 
-std::tuple<maptile, maptile, maptile> map::get_wind_blockers(
-    const int& winddirection, const tripoint_bub_ms& pos) {
+auto map::get_wind_blockers(const int& winddirection, const tripoint_bub_ms& pos)
+    -> std::tuple<maptile, maptile, maptile> {
     static const std::array<std::pair<int, std::tuple<point, point, point>>, 9> outputs = {
         {{330, std::make_tuple(point_east, point_north_east, point_south_east)},
          {301, std::make_tuple(point_south_east, point_east, point_south)},
@@ -915,9 +915,7 @@ struct SubTile {
     [[nodiscard]] auto get_field() const -> field& { return sm->get_field(local); }
     [[nodiscard]] auto get_ter_t() const -> const ter_t& { return sm->get_ter(local).obj(); }
     [[nodiscard]] auto get_furn_t() const -> const furn_t& { return sm->get_furn(local).obj(); }
-    [[nodiscard]] auto get_items() const -> location_vector<item>& {
-        return sm->get_items(local);
-    } // *NOPAD*
+    [[nodiscard]] auto get_items() const -> location_vector<item>& { return sm->get_items(local); }
 };
 
 struct field_cache_dirty_context {

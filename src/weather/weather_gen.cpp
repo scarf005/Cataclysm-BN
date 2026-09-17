@@ -41,9 +41,9 @@ struct weather_gen_common {
     season_type season;
 };
 
-static weather_gen_common get_common_data(
+static auto get_common_data(
     const point_abs_ms& location, const time_point& t, const calendar_config& calendar_config,
-    unsigned seed) {
+    unsigned seed) -> weather_gen_common {
     weather_gen_common result;
     // Integer x position / widening factor of the Perlin function.
     result.x = location.x() / 2000.0;
@@ -71,7 +71,7 @@ static weather_gen_common get_common_data(
     return result;
 }
 
-static units::temperature season_temp(const weather_generator& wg, double year_fraction) {
+static auto season_temp(const weather_generator& wg, double year_fraction) -> units::temperature {
     // Interpolate seasons temperature
     // Scale year_fraction [0, 1) to [0.0, 4.0). So [0.0, 1.0) - spring, [1.0, 2.0) - summer,
     // [2.0, 3.0) - autumn, [3.0, 4.0) - winter.
@@ -87,8 +87,9 @@ static units::temperature season_temp(const weather_generator& wg, double year_f
          + units::multiply_any_unit(wg.season_stats[next_season].average_temperature, t);
 }
 
-static units::temperature weather_temperature_from_common_data(
-    const weather_generator& wg, const weather_gen_common& common, const time_point& t) {
+static auto weather_temperature_from_common_data(
+    const weather_generator& wg, const weather_gen_common& common, const time_point& t)
+    -> units::temperature {
     const double x(common.x);
     const double y(common.y);
     const double z(common.z);
@@ -107,21 +108,21 @@ static units::temperature weather_temperature_from_common_data(
     return units::from_celsius(temperature_celsius);
 }
 
-units::temperature weather_generator::get_weather_temperature(
+auto weather_generator::get_weather_temperature(
     const tripoint_abs_ms& location, const time_point& t, const calendar_config& calendar_config,
-    unsigned seed) const {
+    unsigned seed) const -> units::temperature {
     return weather_temperature_from_common_data(
         *this, get_common_data(location.xy(), t, calendar_config, seed), t);
 }
 
-w_point weather_generator::get_weather(
-    const tripoint_abs_ms& location, const time_point& t, unsigned seed) const {
+auto weather_generator::get_weather(
+    const tripoint_abs_ms& location, const time_point& t, unsigned seed) const -> w_point {
     return get_weather(tripoint_abs_ms(location), t, calendar::config, seed);
 }
 
-w_point weather_generator::get_weather(
+auto weather_generator::get_weather(
     const tripoint_abs_ms& location, const time_point& t, const calendar_config& calendar_config,
-    unsigned seed) const {
+    unsigned seed) const -> w_point {
     const weather_gen_common common = get_common_data(location.xy(), t, calendar_config, seed);
 
     const double x(common.x);
@@ -176,9 +177,11 @@ w_point weather_generator::get_weather(
     return w_point{T, H, P, W, wind_desc, current_winddir, acid};
 }
 
-const weather_type_id& weather_generator::get_default_weather() const { return weather_types[0]; }
+auto weather_generator::get_default_weather() const -> const weather_type_id& {
+    return weather_types[0];
+}
 
-const weather_type_id& weather_generator::get_bad_weather() const {
+auto weather_generator::get_bad_weather() const -> const weather_type_id& {
     const weather_type_id* bad_weather = &get_default_weather();
     for (const weather_type_id& wt : weather_types) {
         if (wt->precip == precip_class::heavy) { bad_weather = &wt; }
@@ -186,19 +189,20 @@ const weather_type_id& weather_generator::get_bad_weather() const {
     return *bad_weather;
 }
 
-int weather_generator::forecast_priority(const weather_type_id& w) const {
+auto weather_generator::forecast_priority(const weather_type_id& w) const -> int {
     auto it = std::ranges::find(weather_types, w);
     if (it == weather_types.end()) { return -1; }
     return std::distance(weather_types.begin(), it);
 }
 
-const weather_type_id& weather_generator::get_weather_conditions(
-    const tripoint_abs_ms& location, const time_point& t, unsigned seed) const {
+auto weather_generator::get_weather_conditions(
+    const tripoint_abs_ms& location, const time_point& t, unsigned seed) const
+    -> const weather_type_id& {
     w_point w(get_weather(location, t, seed));
     return get_weather_conditions(w);
 }
 
-const weather_type_id& weather_generator::get_weather_conditions(const w_point& w) const {
+auto weather_generator::get_weather_conditions(const w_point& w) const -> const weather_type_id& {
     w_point wp2 = w;
     const weather_type_id* current_conditions = &weather_type_id::NULL_ID();
     for (const weather_type_id& type : weather_types) {
@@ -239,7 +243,7 @@ const weather_type_id& weather_generator::get_weather_conditions(const w_point& 
     return current_conditions->obj().id;
 }
 
-int weather_generator::get_wind_direction(const season_type season) const {
+auto weather_generator::get_wind_direction(const season_type season) const -> int {
     cata_default_random_engine& wind_dir_gen = rng_get_engine();
     // Assign chance to angle direction
     if (season == SPRING) {
@@ -263,15 +267,15 @@ int weather_generator::get_wind_direction(const season_type season) const {
     }
 }
 
-int weather_generator::convert_winddir(const int inputdir) const {
+auto weather_generator::convert_winddir(const int inputdir) const -> int {
     // Convert from discrete distribution output to angle
     float finputdir = inputdir * 22.5;
     return static_cast<int>(finputdir);
 }
 
-units::temperature weather_generator::get_water_temperature(
+auto weather_generator::get_water_temperature(
     const tripoint_abs_ms& location, const time_point& time, const calendar_config& calendar_config,
-    unsigned seed) const {
+    unsigned seed) const -> units::temperature {
     // Instead of using a realistic model, we'll just smooth out air temperature
     // Smooth out both in time and intensity
     // And add caps - it must stay liquid water
@@ -339,9 +343,9 @@ void weather_generator::test_weather(unsigned seed = 1000) const {
         "weather test file");
 }
 
-inline bool maybe_temperature_reader(
+inline auto maybe_temperature_reader(
     const JsonObject& jo, const std::string& member_name, units::temperature& member,
-    bool was_loaded) {
+    bool was_loaded) -> bool {
     try {
         return temperature_reader()(jo, member_name, member, was_loaded);
     } catch (const JsonError&) {
@@ -352,7 +356,7 @@ inline bool maybe_temperature_reader(
     return true;
 }
 
-weather_generator weather_generator::load(const JsonObject& jo) {
+auto weather_generator::load(const JsonObject& jo) -> weather_generator {
     static const std::array<std::pair<std::string, int>, NUM_SEASONS> legacy_temp_id_values = {{
         {"spring_temp_manual_mod", 0},
         {"summer_temp_manual_mod", 10},

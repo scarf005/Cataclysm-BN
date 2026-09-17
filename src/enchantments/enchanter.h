@@ -6,9 +6,9 @@
 
 namespace enchanter {
 
-requirement_data total_requirements(const enchant_info& info);
+auto total_requirements(const enchant_info& info) -> requirement_data;
 
-std::vector<std::string> enchantment_info(
-    const enchant_info& info, Character& crafter, int fold_width, item& itm);
+auto enchantment_info(const enchant_info& info, Character& crafter, int fold_width, item& itm)
+    -> std::vector<std::string>;
 
 } // namespace enchanter

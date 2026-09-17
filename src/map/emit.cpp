@@ -11,14 +11,14 @@
 static std::map<emit_id, emit> emits_all;
 
 /** @relates string_id */
-template <> bool string_id<emit>::is_valid() const {
+template <> auto string_id<emit>::is_valid() const -> bool {
     const auto found = emits_all.find(*this);
     if (found == emits_all.end()) { return false; }
     return !found->second.field().id().is_null();
 }
 
 /** @relates string_id */
-template <> const emit& string_id<emit>::obj() const {
+template <> auto string_id<emit>::obj() const -> const emit& {
     const auto found = emits_all.find(*this);
     if (found == emits_all.end()) {
         debugmsg("Tried to get invalid emission data: %s", c_str());
@@ -30,7 +30,7 @@ template <> const emit& string_id<emit>::obj() const {
 
 emit::emit(): id_(emit_id::NULL_ID()) {}
 
-bool emit::is_null() const { return id_ == emit_id::NULL_ID(); }
+auto emit::is_null() const -> bool { return id_ == emit_id::NULL_ID(); }
 
 void emit::load_emit(const JsonObject& jo) {
     emit et;
@@ -45,7 +45,7 @@ void emit::load_emit(const JsonObject& jo) {
     emits_all[et.id_] = et;
 }
 
-const std::map<emit_id, emit>& emit::all() { return emits_all; }
+auto emit::all() -> const std::map<emit_id, emit>& { return emits_all; }
 
 void emit::finalize() {
     for (auto& e : emits_all) { e.second.field_ = field_type_id(e.second.field_name); }

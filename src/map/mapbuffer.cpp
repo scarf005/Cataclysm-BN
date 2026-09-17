@@ -792,8 +792,7 @@ mapbuffer_bounds_view::mapbuffer_bounds_view(
 }
 
 auto mapbuffer_bounds_view::operator=(mapbuffer_bounds_view&& rhs) noexcept
-    -> mapbuffer_bounds_view& // *NOPAD*
-{
+    -> mapbuffer_bounds_view& {
     if (this == &rhs) { return *this; }
 
     buffer_ = std::exchange(rhs.buffer_, nullptr);
@@ -916,8 +915,7 @@ mapbuffer_load_region::mapbuffer_load_region(mapbuffer_load_region&& rhs) noexce
 }
 
 auto mapbuffer_load_region::operator=(mapbuffer_load_region&& rhs) noexcept
-    -> mapbuffer_load_region& // *NOPAD*
-{
+    -> mapbuffer_load_region& {
     if (this == &rhs) { return *this; }
 
     release();
@@ -1113,7 +1111,7 @@ void mapbuffer::clear() {
     pending_writes_.clear();
 }
 
-bool mapbuffer::add_submap(const tripoint_abs_sm& p, std::unique_ptr<submap>& sm) {
+auto mapbuffer::add_submap(const tripoint_abs_sm& p, std::unique_ptr<submap>& sm) -> bool {
     auto lk = std::lock_guard<std::recursive_mutex>(submaps_mutex_);
     if (submaps.contains(p)) { return false; }
 
@@ -1180,7 +1178,7 @@ void mapbuffer::transfer_all_to(mapbuffer& dest) {
     submaps.clear();
 }
 
-submap* mapbuffer::load_submap(const tripoint_abs_sm& pos) {
+auto mapbuffer::load_submap(const tripoint_abs_sm& pos) -> submap* {
     ZoneScoped;
     // lookup_submap already handles the disk-read path transparently.
     return lookup_submap(pos);
@@ -1272,7 +1270,7 @@ void mapbuffer::unload_omt(const tripoint_abs_omt& omt_addr, bool save) {
     }
 }
 
-submap* mapbuffer::lookup_submap(const tripoint_abs_sm& p) {
+auto mapbuffer::lookup_submap(const tripoint_abs_sm& p) -> submap* {
     // Fast path: submap already resident in memory.
     auto* resident_sm = static_cast<submap*>(nullptr);
     { resident_sm = lookup_submap_in_memory(p); }
@@ -1352,10 +1350,8 @@ auto mapbuffer::get_submap(const tripoint_abs_sm& p, const mapbuffer_lookup_opti
     return nullptr;
 }
 
-auto mapbuffer::get_abs_tile(
-    const tripoint_abs_ms& p,
-    const mapbuffer_lookup_options options) -> std::optional<mapbuffer_abs_tile_view> // *NOPAD*
-{
+auto mapbuffer::get_abs_tile(const tripoint_abs_ms& p, const mapbuffer_lookup_options options)
+    -> std::optional<mapbuffer_abs_tile_view> {
     if (is_outside_pocket_dimension_bounds(p)) { return std::nullopt; }
 
     const auto split = project_remain<coords::sm>(p);
@@ -1366,10 +1362,8 @@ auto mapbuffer::get_abs_tile(
 }
 
 auto mapbuffer::get_abs_tile_with_vehicle(
-    const tripoint_abs_ms& p,
-    const mapbuffer_lookup_options options)
-    -> std::optional<mapbuffer_abs_tile_with_vehicle_view> // *NOPAD*
-{
+    const tripoint_abs_ms& p, const mapbuffer_lookup_options options)
+    -> std::optional<mapbuffer_abs_tile_with_vehicle_view> {
     const auto tile = get_abs_tile(p, options);
     if (!tile) { return std::nullopt; }
 
@@ -1377,19 +1371,16 @@ auto mapbuffer::get_abs_tile_with_vehicle(
 }
 
 auto mapbuffer::get_abs_submap_view(
-    const tripoint_abs_sm& p,
-    const mapbuffer_lookup_options options) -> std::optional<mapbuffer_abs_submap_view> // *NOPAD*
-{
+    const tripoint_abs_sm& p, const mapbuffer_lookup_options options)
+    -> std::optional<mapbuffer_abs_submap_view> {
     auto* const sm = get_submap(p, options);
     if (sm == nullptr) { return std::nullopt; }
 
     return mapbuffer_abs_submap_view(p, *sm);
 }
 
-auto mapbuffer::get_abs_omt_view(
-    const tripoint_abs_omt& p,
-    const mapbuffer_lookup_options options) -> std::optional<mapbuffer_abs_omt_view> // *NOPAD*
-{
+auto mapbuffer::get_abs_omt_view(const tripoint_abs_omt& p, const mapbuffer_lookup_options options)
+    -> std::optional<mapbuffer_abs_omt_view> {
     auto submaps = std::array<const submap*, 4>{};
     auto found_any = false;
     for (const auto& local : omt_submap_offsets()) {
@@ -1575,8 +1566,7 @@ auto mapbuffer::run_submap_batch_turns(const mapbuffer_run_submap_batch_turns_op
 }
 
 auto mapbuffer::make_abs_tile_reader(const mapbuffer_lookup_options options)
-    -> mapbuffer_abs_tile_reader // *NOPAD*
-{
+    -> mapbuffer_abs_tile_reader {
     return mapbuffer_abs_tile_reader(*this, options);
 }
 
@@ -1593,10 +1583,8 @@ auto mapbuffer::find_active_npc(const tripoint_abs_ms& p) const -> shared_ptr_fa
     return nullptr;
 }
 
-auto mapbuffer::creature_at(
-    const tripoint_abs_ms& p,
-    const bool allow_hallucination) const -> const Creature* // *NOPAD*
-{
+auto mapbuffer::creature_at(const tripoint_abs_ms& p, const bool allow_hallucination) const
+    -> const Creature* {
     if (const auto mon_ptr = creature_tracker_.find(p)) {
         if (allow_hallucination || !mon_ptr->is_hallucination()) { return mon_ptr.get(); }
         return nullptr;
@@ -1608,10 +1596,8 @@ auto mapbuffer::creature_at(
     return nullptr;
 }
 
-auto mapbuffer::has_creature_at(
-    const tripoint_abs_ms& p,
-    const bool allow_hallucination) const -> bool // *NOPAD*
-{
+auto mapbuffer::has_creature_at(const tripoint_abs_ms& p, const bool allow_hallucination) const
+    -> bool {
     return creature_at(p, allow_hallucination) != nullptr;
 }
 
@@ -2877,8 +2863,8 @@ auto mapbuffer::partial_con_remove(const tripoint_abs_ms& p, const mapbuffer_loo
     return tile->sm->partial_constructions.erase(tripoint_sm_ms(tile->local, p.z())) > 0;
 }
 
-std::optional<tripoint_bub_ms> mapbuffer::active_reality_bubble_local(
-    const tripoint_abs_ms& p) const {
+auto mapbuffer::active_reality_bubble_local(const tripoint_abs_ms& p) const
+    -> std::optional<tripoint_bub_ms> {
     if (g == nullptr) { return std::nullopt; }
 
     if (g->m.get_bound_dimension() != dimension_id_) { return std::nullopt; }
@@ -3293,7 +3279,7 @@ void mapbuffer::deserialize_into_vec(
     }
 }
 
-bool mapbuffer::preload_omt(const tripoint_abs_omt& omt_addr) {
+auto mapbuffer::preload_omt(const tripoint_abs_omt& omt_addr) -> bool {
     ZoneScoped;
     // Disk I/O and JSON parsing — runs outside submaps_mutex_ so
     // different omts can be prefetched concurrently on worker threads.

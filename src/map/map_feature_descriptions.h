@@ -23,6 +23,6 @@ struct map_feature_description {
 
 void load_map_feature_descriptions(const JsonObject& jo);
 void reset_map_feature_descriptions();
-const std::vector<map_feature_description>& get_map_feature_descriptions();
+auto get_map_feature_descriptions() -> const std::vector<map_feature_description>&;
 
 } // namespace map_feature_descriptions

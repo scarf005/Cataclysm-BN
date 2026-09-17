@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-template <typename T> static int count_items(const T& src, const itype_id& id) {
+template <typename T> static auto count_items(const T& src, const itype_id& id) -> int {
     int n = 0;
     src.visit_items([&n, &id](const item* e) {
         n += (e->typeId() == id);

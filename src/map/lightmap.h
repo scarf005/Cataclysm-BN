@@ -51,19 +51,19 @@ enum class lit_level : int {
     BLANK      // blank space, not an actual light level
 };
 
-template <typename T> constexpr bool operator>(const T& lhs, const lit_level& rhs) {
+template <typename T> constexpr auto operator>(const T& lhs, const lit_level& rhs) -> bool {
     return lhs > static_cast<T>(rhs);
 }
 
-template <typename T> constexpr bool operator<=(const T& lhs, const lit_level& rhs) {
+template <typename T> constexpr auto operator<=(const T& lhs, const lit_level& rhs) -> bool {
     return !operator>(lhs, rhs);
 }
 
-template <typename T> constexpr bool operator!=(const lit_level& lhs, const T& rhs) {
+template <typename T> constexpr auto operator!=(const lit_level& lhs, const T& rhs) -> bool {
     return static_cast<T>(lhs) != rhs;
 }
 
-inline std::ostream& operator<<(std::ostream& os, const lit_level& ll) {
+inline auto operator<<(std::ostream& os, const lit_level& ll) -> std::ostream& {
     return os << static_cast<int>(ll);
 }
 

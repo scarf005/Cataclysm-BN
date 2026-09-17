@@ -35,11 +35,11 @@ enum class vision_test_flags {
     crouching = 1 << 1,
 };
 
-static vision_test_flags operator&(vision_test_flags l, vision_test_flags r) {
+static auto operator&(vision_test_flags l, vision_test_flags r) -> vision_test_flags {
     return static_cast<vision_test_flags>(static_cast<unsigned>(l) & static_cast<unsigned>(r));
 }
 
-static bool operator!(vision_test_flags f) { return !static_cast<unsigned>(f); }
+static auto operator!(vision_test_flags f) -> bool { return !static_cast<unsigned>(f); }
 
 static void full_map_test(
     const std::vector<std::string>& setup, const std::vector<std::string>& expected_results,

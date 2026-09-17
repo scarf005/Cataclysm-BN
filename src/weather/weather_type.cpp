@@ -14,7 +14,7 @@ generic_factory<weather_type> weather_type_factory("weather_type");
 IMPLEMENT_STRING_AND_INT_IDS(weather_type, weather_type_factory);
 
 namespace io {
-template <> std::string enum_to_string<precip_class>(precip_class data) {
+template <> auto enum_to_string<precip_class>(precip_class data) -> std::string {
     switch (data) {
         case precip_class::none:
             return "none";
@@ -33,7 +33,7 @@ template <> std::string enum_to_string<precip_class>(precip_class data) {
     abort();
 }
 
-template <> std::string enum_to_string<sun_intensity_type>(sun_intensity_type data) {
+template <> auto enum_to_string<sun_intensity_type>(sun_intensity_type data) -> std::string {
     switch (data) {
         case sun_intensity_type::none:
             return "none";
@@ -51,7 +51,8 @@ template <> std::string enum_to_string<sun_intensity_type>(sun_intensity_type da
 }
 
 template <>
-std::string enum_to_string<weather_time_requirement_type>(weather_time_requirement_type data) {
+auto enum_to_string<weather_time_requirement_type>(weather_time_requirement_type data)
+    -> std::string {
     switch (data) {
         case weather_time_requirement_type::day:
             return "day";
@@ -66,7 +67,8 @@ std::string enum_to_string<weather_time_requirement_type>(weather_time_requireme
     abort();
 }
 
-template <> std::string enum_to_string<weather_sound_category>(weather_sound_category data) {
+template <>
+auto enum_to_string<weather_sound_category>(weather_sound_category data) -> std::string {
     switch (data) {
         case weather_sound_category::drizzle:
             return "drizzle";
@@ -239,7 +241,9 @@ void weather_types::reset() { weather_type_factory.reset(); }
 
 void weather_types::finalize_all() { weather_type_factory.finalize(); }
 
-const std::vector<weather_type>& weather_types::get_all() { return weather_type_factory.get_all(); }
+auto weather_types::get_all() -> const std::vector<weather_type>& {
+    return weather_type_factory.get_all();
+}
 
 void weather_types::check_consistency() { weather_type_factory.check(); }
 

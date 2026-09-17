@@ -73,7 +73,7 @@ struct body_part_temp {
     bodypart_str_id part;
     int temperature;
 
-    bool operator==(const body_part_temp& other) const {
+    auto operator==(const body_part_temp& other) const -> bool {
         return part == other.part && temperature == other.temperature;
     }
 };
@@ -81,7 +81,7 @@ struct body_part_temp {
 namespace std {
 
 template <> struct hash<body_part_temp> {
-    std::size_t operator()(body_part_temp const& bpt) const noexcept {
+    auto operator()(body_part_temp const& bpt) const noexcept -> std::size_t {
         auto tuple_hash = cata::auto_hash<std::tuple<const bodypart_str_id&, const int&>>();
         return tuple_hash(std::forward_as_tuple(bpt.part, bpt.temperature));
     }
@@ -106,14 +106,16 @@ constexpr std::array<temperature_threshold, 7> bodytemps = {
 
 #undef t
 
-std::ostream& operator<<(std::ostream& os, const body_part_temp& bpt);
-std::ostream& operator<<(std::ostream& os, const body_part_temp& bpt) {
+auto operator<<(std::ostream& os, const body_part_temp& bpt) -> std::ostream&;  // *NOPAD*
+auto operator<<(std::ostream& os, const body_part_temp& bpt) -> std::ostream& { // *NOPAD*
     // Stringify the temperature to avoid Catch adding hex
     return os << std::to_string(bpt.temperature);
 }
 
-std::ostream& operator<<(std::ostream& os, const std::vector<body_part_temp>& bpts);
-std::ostream& operator<<(std::ostream& os, const std::vector<body_part_temp>& bpts) {
+auto operator<<(std::ostream& os, const std::vector<body_part_temp>& bpts)
+    -> std::ostream&; // *NOPAD*
+auto operator<<(std::ostream& os, const std::vector<body_part_temp>& bpts)
+    -> std::ostream& { // *NOPAD*
     os << "[";
     for (const auto& e : bpts) { os << e << ","; }
     return os << "]\n";
@@ -126,8 +128,8 @@ public:
     temperatures_wrapper(const base_type& base): base_type(base) {}
 };
 
-std::ostream& operator<<(std::ostream& os, const temperatures_wrapper& arr);
-std::ostream& operator<<(std::ostream& os, const temperatures_wrapper& arr) {
+auto operator<<(std::ostream& os, const temperatures_wrapper& arr) -> std::ostream&;  // *NOPAD*
+auto operator<<(std::ostream& os, const temperatures_wrapper& arr) -> std::ostream& { // *NOPAD*
     os << "[\n";
     for (size_t i = 0; i < arr.size() / 2; i++) { os << string_format("%6d, ", arr[i]); }
     // Ugly split like that because otherwise it gets wrapped seemingly randomly
@@ -141,7 +143,7 @@ std::ostream& operator<<(std::ostream& os, const temperatures_wrapper& arr) {
     return os;
 }
 
-static int get_temp_cur(const Character& c, const bodypart_str_id& bp) {
+static auto get_temp_cur(const Character& c, const bodypart_str_id& bp) -> int {
     auto iter = c.get_body().find(bp);
     if (iter == c.get_body().end()) {
         debugmsg("%s has no %s", c.disp_name().c_str(), bp.c_str());
@@ -152,9 +154,9 @@ static int get_temp_cur(const Character& c, const bodypart_str_id& bp) {
 }
 
 // Run update_bodytemp() until core body temperature settles.
-static std::vector<int> converge_temperature(
-    player& p, size_t iters,
-    int start_temperature = units::to_legacy_bodypart_temp(BODYTEMP_NORM)) {
+static auto converge_temperature(
+    player& p, size_t iters, int start_temperature = units::to_legacy_bodypart_temp(BODYTEMP_NORM))
+    -> std::vector<int> {
     constexpr size_t n_history = 10;
     REQUIRE(get_weather().weather_id == WEATHER_CLOUDY);
     REQUIRE(get_weather().windspeed == 0);
@@ -212,7 +214,7 @@ static void equip_clothing(player& p, const std::vector<std::string>& clothing) 
  * Table of temperature ranges closest to given body temperature.
  * That is, [0] to [1] is the range where FREEZING is the closest.
  */
-static std::array<int, 8> bodytemp_voronoi() {
+static auto bodytemp_voronoi() -> std::array<int, 8> {
     std::array<int, 8> midpoints;
     midpoints[0] = INT_MIN;
     midpoints[7] = INT_MAX;
@@ -363,7 +365,7 @@ TEST_CASE("Player body temperatures within expected bounds.", "[bodytemp][slow]"
  * Finds air temperatures for which body temperature is closest to exact "named" value.
  * FREEZING, HOT, etc.
  */
-static std::array<units::temperature, bodytemps.size()> find_temperature_points(player& p) {
+static auto find_temperature_points(player& p) -> std::array<units::temperature, bodytemps.size()> {
     constexpr int min_air_temp = -200;
     constexpr int max_air_temp = 200;
     std::array<std::pair<int, int>, bodytemps.size()> value_distances;
@@ -450,8 +452,8 @@ TEST_CASE("Find air temperatures for given body temperatures.", "[.][bodytemp]")
 }
 
 // Ugly pasta, for simplicity
-static int find_converging_water_temp(
-    player& p, int expected_water, units::temperature expected_bodytemp) {
+static auto find_converging_water_temp(
+    player& p, int expected_water, units::temperature expected_bodytemp) -> int {
     constexpr int tol = 100;
     const auto legacy_expected_bodytemp = units::to_legacy_bodypart_temp(expected_bodytemp);
     REQUIRE(get_map().has_flag(TFLAG_SWIMMABLE, p.bub_pos()));

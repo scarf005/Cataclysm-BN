@@ -15,7 +15,7 @@
 
 namespace io {
 
-template <> std::string enum_to_string<game_message_type>(game_message_type data) {
+template <> auto enum_to_string<game_message_type>(game_message_type data) -> std::string {
     switch (data) {
             // *INDENT-OFF*
         case game_message_type::m_good:
@@ -46,7 +46,7 @@ template <> std::string enum_to_string<game_message_type>(game_message_type data
     abort();
 }
 
-template <> std::string enum_to_string<description_affix>(description_affix data) {
+template <> auto enum_to_string<description_affix>(description_affix data) -> std::string {
     switch (data) {
         // *INDENT-OFF*
         case description_affix::DESCRIPTION_AFFIX_IN:
@@ -69,7 +69,7 @@ template <> std::string enum_to_string<description_affix>(description_affix data
     return "invalid";
 }
 
-template <> std::string enum_to_string<fields::stacking_type>(fields::stacking_type data) {
+template <> auto enum_to_string<fields::stacking_type>(fields::stacking_type data) -> std::string {
     switch (data) {
         // *INDENT-OFF*
         case fields::stacking_type::intensity:
@@ -94,7 +94,7 @@ generic_factory<field_type> all_field_types("field types");
 
 IMPLEMENT_STRING_AND_INT_IDS(field_type, all_field_types);
 
-const field_intensity_level& field_type::get_intensity_level(int level) const {
+auto field_type::get_intensity_level(int level) const -> const field_intensity_level& {
     if (level < 0 || static_cast<size_t>(level) >= intensity_levels.size()) {
         // level + 1 for the original intensity number
         debugmsg("Unknown intensity level %d for field type %s.", level + 1, id.str());
@@ -272,7 +272,7 @@ void field_type::check() const {
     bash_info.check(id.str(), map_bash_info::map_object_type::field);
 }
 
-size_t field_type::count() { return all_field_types.size(); }
+auto field_type::count() -> size_t { return all_field_types.size(); }
 
 void field_types::load(const JsonObject& jo, const std::string& src) {
     all_field_types.load(jo, src);
@@ -290,7 +290,7 @@ void field_types::check_consistency() { all_field_types.check(); }
 
 void field_types::reset() { all_field_types.reset(); }
 
-const std::vector<field_type>& field_types::get_all() { return all_field_types.get_all(); }
+auto field_types::get_all() -> const std::vector<field_type>& { return all_field_types.get_all(); }
 
 field_type_id fd_null, fd_blood, fd_bile, fd_gibs_flesh, fd_gibs_veggy, fd_web, fd_slime, fd_acid,
     fd_sap, fd_sludge, fd_fire, fd_smoke, fd_toxic_gas, fd_tear_gas, fd_nuke_gas, fd_gas_vent,
@@ -356,7 +356,7 @@ void field_types::set_field_type_ids() {
     fd_tindalos_rift = field_type_id("fd_tindalos_rift");
 }
 
-field_type field_types::get_field_type_by_legacy_enum(int legacy_enum_id) {
+auto field_types::get_field_type_by_legacy_enum(int legacy_enum_id) -> field_type {
     for (const auto& ft : all_field_types.get_all()) {
         if (legacy_enum_id == ft.legacy_enum_id) { return ft; }
     }
