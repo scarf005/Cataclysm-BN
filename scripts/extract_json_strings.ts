@@ -9,9 +9,8 @@
 
 import { Command } from "@cliffy/command"
 import { walk } from "@std/fs"
-import { dirname, normalize } from "@std/path"
+import { dirname, normalize, relative, resolve, SEPARATOR } from "@std/path"
 import { parse as parseJsonc } from "@std/jsonc"
-import luaparse from "npm:luaparse@0.3.1"
 
 import {
   addContext,
@@ -44,8 +43,6 @@ import type {
   JsonObject,
   JsonValue,
   LuaComment,
-  LuaCommentRaw,
-  LuaNode,
   PotEntry,
 } from "./extract_json_strings_support.ts"
 
@@ -54,9 +51,9 @@ const warnedUnknownTypes = new Set<string>()
 
 const jsonStringPattern = String.raw`"(?:\\.|[^"\\])*"`
 const memberStringPattern = new RegExp(
-  String.raw`^(\s*)(${jsonStringPattern}\s*:\s*)(${jsonStringPattern})(\s*,?\s*)$`,
+  String.raw`^(\s*)(${jsonStringPattern}\s*:\s*)(${jsonStringPattern})(\s*,?\s*(?://.*)?)$`,
 )
-const arrayStringPattern = new RegExp(String.raw`^(\s*)(${jsonStringPattern})(\s*,?\s*)$`)
+const arrayStringPattern = new RegExp(String.raw`^(\s*)(${jsonStringPattern})(\s*,?\s*(?://.*)?)$`)
 const translationStringKeys = new Set(["str", "str_sp", "str_pl"])
 
 const injectJsoncTranslatorComments = (raw: string): string => {
@@ -64,7 +61,11 @@ const injectJsoncTranslatorComments = (raw: string): string => {
   let pendingComments: string[] = []
   let pendingLineIndices: number[] = []
 
-  for (const line of raw.match(/^.*(?:\r\n|\n|\r|$)/gm) ?? []) {
+  const withoutBlockComments = raw.replace(
+    /"(?:\\.|[^"\\])*"|\/\/[^\r\n]*|\/\*[\s\S]*?\*\//g,
+    (token) => token.startsWith("/*") ? token.replace(/[^\r\n]/g, " ") : token,
+  )
+  for (const line of withoutBlockComments.match(/^.*(?:\r\n|\n|\r|$)/gm) ?? []) {
     if (line.length === 0) continue
     const lineBody = line.replace(/[\r\n]+$/, "")
     const newline = line.slice(lineBody.length)
@@ -81,7 +82,7 @@ const injectJsoncTranslatorComments = (raw: string): string => {
       const memberMatch = lineBody.match(memberStringPattern)
       const arrayMatch = lineBody.match(arrayStringPattern)
       if (memberMatch) {
-        const key = JSON.parse(memberMatch[2].split(":", 1)[0].trim()) as string
+        const key = JSON.parse(memberMatch[2].match(jsonStringPattern)![0]) as string
         if (translationStringKeys.has(key)) {
           out[pendingLineIndices.at(-1)!] = `${memberMatch[1]}"//~": ${commentJson},${newline}`
           out.push(line)
@@ -99,8 +100,6 @@ const injectJsoncTranslatorComments = (raw: string): string => {
           }${newline}`,
         )
       } else {
-        const indent = lineBody.match(/^(\s*)/)?.[1] ?? ""
-        out[pendingLineIndices.at(-1)!] = `${indent}"//~": ${commentJson},${newline}`
         out.push(line)
       }
       pendingComments = []
@@ -784,7 +783,8 @@ const extractSpecials = new Map<string, (state: ExtractorState, item: JsonObject
 
 const shouldSuppressWarning = (state: ExtractorState, file: string): boolean => {
   for (const suppressed of state.suppressWarningForFiles) {
-    if (file.startsWith(suppressed)) return true
+    const path = relative(suppressed, resolve(file))
+    if (path === "" || (path !== ".." && !path.startsWith(`..${SEPARATOR}`))) return true
   }
   return false
 }
@@ -825,7 +825,7 @@ const extractJsonObject = (state: ExtractorState, item: JsonObject) => {
   const name = item.name
   const nameText = rawTranslationString(name)
   const commentNameText = nameText ?? "None"
-  if (nameText === "none") return
+  if (name === "none") return
   if (name !== undefined) {
     writeString(state, name, { pluralFormat: needsPlural.has(objectType) })
     wrote = true
@@ -985,219 +985,261 @@ const extractJsonFile = async (state: ExtractorState, path: string) => {
   for (const entry of parseJsonObjects(data)) extractJsonObject(state, entry)
 }
 
-const luaLiteralValue = (raw: string): string => {
-  const rawBody = raw.slice(1, -1)
-  return rawBody
-    .replaceAll("\\n", "\n")
-    .replaceAll("\\t", "\t")
-    .replaceAll("\\r", "\r")
-    .replaceAll("\\\\", "\\")
+type LuaToken = {
+  kind: "identifier" | "string" | "punctuation" | "other"
+  value: string
+  raw: string
+  line: number
 }
 
-const luaStringValue = (node: LuaNode | undefined): string => {
-  if (!node || node.type !== "StringLiteral") {
-    throw new Error("argument to translation call should be string")
+type LuaScanResult = {
+  tokens: LuaToken[]
+  comments: LuaComment[]
+}
+
+const luaLongDelimiter = (source: string, start: number): number | undefined => {
+  if (source[start] !== "[") return undefined
+  let index = start + 1
+  while (source[index] === "=") index++
+  return source[index] === "[" ? index - start - 1 : undefined
+}
+
+const luaLongEnd = (source: string, start: number, equals: number): number => {
+  const closing = `]${"=".repeat(equals)}]`
+  const end = source.indexOf(closing, start)
+  return end < 0 ? source.length : end + closing.length
+}
+
+const scanLua = (source: string): LuaScanResult => {
+  const tokens: LuaToken[] = []
+  const comments: LuaComment[] = []
+  let index = 0
+  let line = 1
+  const advance = (raw: string) => {
+    line += (raw.match(/\r\n|\r|\n/g) ?? []).length
   }
-  if (typeof node.value === "string") return node.value
-  if (typeof node.raw === "string") {
-    const quote = node.raw[0]
-    if ((quote === '"' || quote === "'") && node.raw.at(-1) === quote) {
-      return luaLiteralValue(node.raw)
+  const addToken = (kind: LuaToken["kind"], start: number, value: string) => {
+    tokens.push({ kind, value, raw: source.slice(start, index), line })
+  }
+
+  while (index < source.length) {
+    const char = source[index]
+    if (/\s/.test(char)) {
+      const start = index++
+      while (index < source.length && /\s/.test(source[index])) index++
+      advance(source.slice(start, index))
+      continue
     }
-  }
-  throw new Error("argument to translation call should be string")
-}
-
-const collectLuaCalls = (node: LuaNode | unknown, calls: LuaNode[] = []): LuaNode[] => {
-  if (!node || typeof node !== "object") return calls
-  const typedNode = node as LuaNode
-  if (typedNode.type === "CallExpression") calls.push(typedNode)
-  for (const value of Object.values(typedNode)) {
-    if (Array.isArray(value)) {
-      for (const entry of value) collectLuaCalls(entry, calls)
-    } else if (value && typeof value === "object") {
-      collectLuaCalls(value, calls)
+    if (source.startsWith("--", index)) {
+      const start = index
+      index += 2
+      const equals = luaLongDelimiter(source, index)
+      if (equals !== undefined) index = luaLongEnd(source, index, equals)
+      else while (index < source.length && !"\r\n".includes(source[index])) index++
+      const raw = source.slice(start, index)
+      const translatorComment = equals === undefined ? raw.match(/^--\s*~(.*)$/) : null
+      if (translatorComment) {
+        comments.push({
+          line,
+          text: translatorComment[1].trim(),
+          isTranslatorComment: true,
+          used: false,
+        })
+      } else if (equals === undefined) {
+        comments.push({ line, text: raw.slice(2).trim(), isTranslatorComment: false, used: false })
+      }
+      advance(raw)
+      continue
     }
+    const longEquals = luaLongDelimiter(source, index)
+    if (longEquals !== undefined) {
+      const start = index
+      index = luaLongEnd(source, index, longEquals)
+      const raw = source.slice(start, index)
+      addToken("string", start, raw)
+      advance(raw)
+      continue
+    }
+    if (char === '"' || char === "'") {
+      const start = index++
+      let escaped = false
+      while (index < source.length) {
+        const current = source[index++]
+        if (escaped) escaped = false
+        else if (current === "\\") escaped = true
+        else if (current === char) break
+      }
+      const raw = source.slice(start, index)
+      addToken("string", start, raw)
+      advance(raw)
+      continue
+    }
+    if (/[A-Za-z_]/.test(char)) {
+      const start = index++
+      while (index < source.length && /[A-Za-z0-9_]/.test(source[index])) index++
+      addToken("identifier", start, source.slice(start, index))
+      continue
+    }
+    const start = index++
+    addToken(/[0-9]/.test(char) ? "other" : "punctuation", start, char)
   }
-  return calls
+  return { tokens, comments }
 }
 
-const luaFunctionName = (call: LuaNode): string | undefined => {
-  const base = call.base
-  if (!base) return undefined
-  if (base.type === "Identifier") return base.name
-  if (base.type === "MemberExpression" || base.type === "IndexExpression") {
-    const identifier = base.identifier
-    if (identifier?.name) return identifier.name
+const decodeLuaString = (literal: string): string => {
+  if (literal[0] === "[") {
+    const equals = luaLongDelimiter(literal, 0)
+    if (equals === undefined) throw new Error("invalid long string")
+    return literal.slice(equals + 2, -equals - 2).replace(/\r\n|\n\r|\r/g, "\n").replace(/^\n/, "")
   }
-  return undefined
-}
-
-const parseLuaComments = (rawComments: LuaCommentRaw[] = []): LuaComment[] => {
-  return rawComments.map((comment) => {
-    const raw = comment.raw ?? ""
-    const value = comment.value ?? raw.replace(/^--/, "")
-    const isTranslatorComment = raw.startsWith("--~") || value.trimStart().startsWith("~")
-    const text = isTranslatorComment ? value.replace(/^\s*~\s?/, "").trim() : value.trim()
-    return { line: comment.loc?.start?.line ?? 0, text, isTranslatorComment, used: false }
-  })
-}
-
-const findAdjacentLuaTranslatorComments = (
-  comments: LuaComment[],
-  line: number,
-): string[] => {
-  const found: string[] = []
-  let nextLine = line - 1
-  while (true) {
-    const comment = comments.find((entry) => entry.isTranslatorComment && entry.line === nextLine)
-    if (!comment) break
-    comment.used = true
-    found.unshift(comment.text)
-    nextLine -= 1
+  const encodeBytes = (text: string) =>
+    Array.from(new TextEncoder().encode(text), (byte) => String.fromCharCode(byte)).join("")
+  const raw = encodeBytes(literal)
+  let value = ""
+  for (let index = 1; index < raw.length - 1; index++) {
+    const char = raw[index]
+    if (char !== "\\") {
+      value += char
+      continue
+    }
+    const escaped = raw[++index]
+    const simpleEscapes: Record<string, string> = {
+      a: "\x07",
+      b: "\b",
+      f: "\f",
+      n: "\n",
+      r: "\r",
+      t: "\t",
+      v: "\v",
+      "\\": "\\",
+      '"': '"',
+      "'": "'",
+    }
+    if (simpleEscapes[escaped] !== undefined) value += simpleEscapes[escaped]
+    else if (escaped === "z") { while (/\s/.test(raw[index + 1] ?? "")) index++ }
+    else if (escaped === "x") {
+      const hex = raw.slice(index + 1, index + 3)
+      if (!/^[0-9a-fA-F]{2}$/.test(hex)) throw new Error("invalid hexadecimal escape")
+      value += String.fromCodePoint(Number.parseInt(hex, 16))
+      index += 2
+    } else if (escaped === "u" && raw[index + 1] === "{") {
+      const end = raw.indexOf("}", index + 2)
+      const codePoint = end < 0 ? "" : raw.slice(index + 2, end)
+      if (!/^[0-9a-fA-F]+$/.test(codePoint)) throw new Error("invalid Unicode escape")
+      value += encodeBytes(String.fromCodePoint(Number.parseInt(codePoint, 16)))
+      index = end
+    } else if (/\d/.test(escaped)) {
+      const decimal = raw.slice(index, index + 3).match(/^\d{1,3}/)?.[0] ?? ""
+      const byte = Number.parseInt(decimal, 10)
+      if (byte > 255) throw new Error("decimal escape exceeds one byte")
+      value += String.fromCharCode(byte)
+      index += decimal.length - 1
+    } else if (escaped === "\n") value += "\n"
+    else if (escaped === "\r") {
+      if (raw[index + 1] === "\n") index++
+      value += "\n"
+    } else throw new Error(`invalid escape sequence \\\\${escaped}`)
   }
-  return found
+  return new TextDecoder("utf-8", { fatal: true }).decode(
+    Uint8Array.from(value, (byte) => byte.charCodeAt(0)),
+  )
 }
 
 const findLuaTranslatorCommentsBefore = (
   comments: LuaComment[],
   line: number,
 ): string | undefined => {
-  let cursorLine = line
-  while (true) {
-    const found = findAdjacentLuaTranslatorComments(comments, cursorLine)
-    if (found.length > 0) return found.join("\n")
-    const regularComment = comments.find(
-      (entry) => !entry.isTranslatorComment && entry.line === cursorLine - 1,
-    )
-    if (!regularComment) return undefined
-    cursorLine = regularComment.line
+  const found: string[] = []
+  for (let previousLine = line - 1;; previousLine--) {
+    const comment = comments.find((entry) => entry.line === previousLine)
+    if (!comment || (!comment.isTranslatorComment && found.length)) break
+    if (comment.isTranslatorComment) {
+      comment.used = true
+      found.unshift(comment.text)
+    }
   }
+  return found.length ? found.join("\n") : undefined
 }
 
-const luaCallRanges = (line: string): Array<{ name: string; args: string }> => {
-  const ranges: Array<{ name: string; args: string }> = []
-  const callStart = /\b(gettext|pgettext|vgettext|vpgettext)\s*\(/g
-  for (const match of line.matchAll(callStart)) {
-    const name = match[1]
-    let idx = (match.index ?? 0) + match[0].length
-    let depth = 1
-    let quote = ""
-    let escaped = false
-    const start = idx
-    while (idx < line.length) {
-      const ch = line[idx]
-      if (quote) {
-        if (escaped) escaped = false
-        else if (ch === "\\") escaped = true
-        else if (ch === quote) quote = ""
-      } else if (ch === '"' || ch === "'") quote = ch
-      else if (ch === "(") depth += 1
-      else if (ch === ")") {
-        depth -= 1
-        if (depth === 0) break
+const luaCallArguments = (tokens: LuaToken[], index: number): LuaToken[][] | undefined => {
+  if (tokens[index + 1]?.kind === "string") return [[tokens[index + 1]]]
+  if (tokens[index + 1]?.value !== "(") return undefined
+  const args: LuaToken[][] = []
+  const stack = ["("]
+  let start = index + 2
+  for (let cursor = start; cursor < tokens.length; cursor++) {
+    const value = tokens[cursor].value
+    if (["(", "[", "{"].includes(value)) stack.push(value)
+    else if ([")", "]", "}"].includes(value)) {
+      if (stack.pop() !== { ")": "(", "]": "[", "}": "{" }[value]) return undefined
+      if (stack.length === 0) {
+        if (cursor > start || args.length) args.push(tokens.slice(start, cursor))
+        return args
       }
-      idx += 1
+    } else if (value === "," && stack.length === 1) {
+      args.push(tokens.slice(start, cursor))
+      start = cursor + 1
     }
-    if (depth === 0) ranges.push({ name, args: line.slice(start, idx) })
   }
-  return ranges
+  return undefined
 }
 
 const extractLuaCall = (
   state: ExtractorState,
-  call: { name: string; args: string },
-  commentText?: string,
+  tokens: LuaToken[],
+  index: number,
+  comments: LuaComment[],
 ) => {
-  if (call.args.includes("..")) return
-  const literalRegex = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g
-  const args = [...call.args.matchAll(literalRegex)].map((match) => luaLiteralValue(match[0]))
-  if (call.name === "gettext" && args.length >= 1) {
-    writeStringBasic(state, args[0], undefined, undefined, commentText, true)
-  } else if (call.name === "pgettext" && args.length >= 2) {
-    writeStringBasic(state, args[1], undefined, args[0], commentText, true)
-  } else if (call.name === "vgettext" && args.length >= 2) {
-    writeStringBasic(state, args[0], args[1], undefined, commentText, true)
-  } else if (call.name === "vpgettext" && args.length >= 3) {
-    writeStringBasic(state, args[1], args[2], args[0], commentText, true)
+  const token = tokens[index]
+  if (!token || token.kind !== "identifier" || !gettextFunctions.has(token.value)) return
+  if (tokens[index - 1]?.value === "function") return
+  const args = luaCallArguments(tokens, index)
+  if (!args) return
+  const spec = gettextFunctions.get(token.value)!
+  if (args.length !== spec.expected) {
+    console.log(
+      `WARNING: invalid amount of arguments in translation call (found ${args.length}, expected ${spec.expected})`,
+    )
+    return
   }
-}
-
-const extractLuaWithRegex = (state: ExtractorState, raw: string) => {
-  const pendingComments: string[] = []
-  let inBlockComment = false
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trimStart()
-    if (inBlockComment) {
-      if (trimmed.includes("]]")) inBlockComment = false
-      continue
+  const offset = spec.context ? 1 : 0
+  const literalArguments = [
+    spec.context ? 0 : undefined,
+    offset,
+    spec.plural ? offset + 1 : undefined,
+  ]
+    .filter((argumentIndex): argumentIndex is number => argumentIndex !== undefined)
+  const values = new Map<number, string>()
+  try {
+    for (const argumentIndex of literalArguments) {
+      const argument = args[argumentIndex]
+      if (argument.length !== 1 || argument[0].kind !== "string") {
+        throw new Error("argument to translation call should be string")
+      }
+      values.set(argumentIndex, decodeLuaString(argument[0].raw))
     }
-    if (trimmed.startsWith("--[[")) {
-      if (!trimmed.includes("]]")) inBlockComment = true
-      continue
-    }
-    const comment = line.match(/^\s*--~\s?(.*)$/)
-    if (comment) {
-      pendingComments.push(comment[1].trim())
-      continue
-    }
-    if (trimmed.startsWith("--")) continue
-    const calls = luaCallRanges(line)
-    if (calls.length === 0) {
-      if (line.trim()) pendingComments.length = 0
-      continue
-    }
-    for (const call of calls) {
-      const commentText = pendingComments.length > 0 ? pendingComments.join("\n") : undefined
-      pendingComments.length = 0
-      extractLuaCall(state, call, commentText)
-    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.log(`WARNING: ${message}`)
+    return
   }
-
-  const blocklessRaw = raw
-    .replace(/--\[\[[\s\S]*?\]\]/g, "")
-    .replace(/^\s*--.*$/gm, "")
-  for (const call of luaCallRanges(blocklessRaw)) {
-    if (call.args.includes("\n")) extractLuaCall(state, call)
-  }
+  const context = spec.context ? values.get(0) : undefined
+  const comment = findLuaTranslatorCommentsBefore(comments, token.line)
+  writeStringBasic(
+    state,
+    values.get(offset)!,
+    spec.plural ? values.get(offset + 1) : undefined,
+    context,
+    comment,
+    true,
+  )
 }
 
 const extractLuaFile = async (state: ExtractorState, path: string) => {
   state.currentSourceFile = sourceName(path)
   logVerbose(state, `Loading ${path}`)
-  const raw = await Deno.readTextFile(path)
-  let ast: LuaNode
-  try {
-    ast = luaparse.parse(raw, { comments: true, locations: true, ranges: true }) as LuaNode
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.log(`WARNING: Could not parse Lua file '${state.currentSourceFile}': ${message}`)
-    extractLuaWithRegex(state, raw)
-    return
-  }
-  const comments = parseLuaComments(ast.comments)
-  for (const call of collectLuaCalls(ast)) {
-    const functionName = luaFunctionName(call)
-    const spec = functionName ? gettextFunctions.get(functionName) : undefined
-    if (!spec) continue
-    const args = call.arguments ?? []
-    if (args.length !== spec.expected) {
-      console.log(
-        `WARNING: invalid amount of arguments in translation call (found ${args.length}, expected ${spec.expected})`,
-      )
-      continue
-    }
-    try {
-      const msgctxt = spec.context ? luaStringValue(args[0]) : undefined
-      const msgid = luaStringValue(args[spec.context ? 1 : 0])
-      const msgidPlural = spec.plural ? luaStringValue(args[spec.context ? 2 : 1]) : undefined
-      const comment = findLuaTranslatorCommentsBefore(comments, call.loc?.start?.line ?? 0)
-      writeStringBasic(state, msgid, msgidPlural, msgctxt, comment, true)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.log(`WARNING: ${message}`)
-    }
-  }
+  const { tokens, comments } = scanLua(await Deno.readTextFile(path))
+  for (let index = 0; index < tokens.length; index++) extractLuaCall(state, tokens, index, comments)
   for (const comment of comments) {
     if (comment.isTranslatorComment && !comment.used) {
       console.log(
@@ -1213,7 +1255,9 @@ const trackedFiles = async (): Promise<Set<string>> => {
   if (code !== 0) {
     throw new Error(new TextDecoder().decode(stderr))
   }
-  return new Set(new TextDecoder().decode(stdout).split(/\r?\n/).filter(Boolean).map(normalize))
+  return new Set(
+    new TextDecoder().decode(stdout).split(/\r?\n/).filter(Boolean).map((path) => resolve(path)),
+  )
 }
 
 const extractAllFromDir = async (
@@ -1229,12 +1273,18 @@ const extractAllFromDir = async (
   }
   entries.sort()
   for (const path of entries) {
-    const normalized = normalize(path)
+    const normalized = resolve(path)
     if (options.ignoredFiles.has(normalized)) {
       logVerbose(state, `Skipping file (ignored): '${path}'`)
       continue
     }
-    if ([...options.ignoredDirs].some((dir) => normalized.startsWith(dir))) {
+    if (
+      [...options.ignoredDirs].some((dir) => {
+        const relativePath = relative(dir, normalized)
+        return relativePath === "" ||
+          (!relativePath.startsWith(`..${SEPARATOR}`) && relativePath !== "..")
+      })
+    ) {
       logVerbose(state, `Skipping file in ignored dir: '${path}'`)
       continue
     }
@@ -1345,10 +1395,10 @@ const run = async (options: CliOptions) => {
     projectName: options.project,
     verbose: options.verbose ?? false,
     warnUnusedTypes: options.warnUnusedTypes ?? false,
-    suppressWarningForFiles: new Set(toArray(options.suppress).map(normalize)),
+    suppressWarningForFiles: new Set(toArray(options.suppress).map((path) => resolve(path))),
   }
-  const ignoredFiles = new Set(toArray(options.exclude).map(normalize))
-  const ignoredDirs = new Set(toArray(options.excludeDir).map(normalize))
+  const ignoredFiles = new Set(toArray(options.exclude).map((path) => resolve(path)))
+  const ignoredDirs = new Set(toArray(options.excludeDir).map((path) => resolve(path)))
 
   console.log("==> Parsing JSON")
   for (const directory of inputFolders.map(normalize).sort()) {

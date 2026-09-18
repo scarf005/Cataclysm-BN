@@ -34,27 +34,6 @@ export type CliOptions = {
   warnUnusedTypes?: boolean
 }
 
-export type LuaNode = {
-  type?: string
-  name?: string
-  identifier?: { name?: string }
-  base?: LuaNode
-  expression?: LuaNode
-  arguments?: LuaNode[]
-  body?: LuaNode[]
-  comments?: LuaCommentRaw[]
-  loc?: { start?: { line?: number }; end?: { line?: number } }
-  raw?: string
-  value?: string | number | boolean | null
-  [key: string]: unknown
-}
-
-export type LuaCommentRaw = {
-  value?: string
-  raw?: string
-  loc?: { start?: { line?: number }; end?: { line?: number } }
-}
-
 export type LuaComment = {
   line: number
   text: string
