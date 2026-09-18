@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
-/** Tools for merging and validating gettext POT files. */
+/** @module Tools for merging and validating gettext POT files. */
 
 import PO from "pofile"
 
@@ -13,6 +13,7 @@ type PoItem = {
   references?: string[]
   extractedComments?: string[]
   flags?: Record<string, boolean>
+  toString(): string
 }
 
 type PoFile = {
@@ -59,57 +60,6 @@ const poEscape = (text: string): string =>
     .replaceAll("\n", "\\n")
     .replaceAll('"', '\\"')
 
-const wrapText = (text: string, width: number): string[] => {
-  if (text.length <= width) return [text]
-  const chunks = text.match(/ +|[^ ]+/g) ?? []
-  const lines: string[] = []
-  let current = ""
-  let pendingSpace = ""
-  for (const chunk of chunks) {
-    if (chunk.trim() === "") {
-      pendingSpace += chunk
-      continue
-    }
-    const separator = current || pendingSpace ? pendingSpace : ""
-    const candidate = `${current}${separator}${chunk}`
-    if (candidate.length <= width) {
-      current = candidate
-      pendingSpace = ""
-      continue
-    }
-    const remainingWidth = width - current.length - separator.length
-    const hyphenIndex = chunk.lastIndexOf("-", remainingWidth)
-    if (current && hyphenIndex > 0) {
-      lines.push(`${current}${separator}${chunk.slice(0, hyphenIndex + 1)}`)
-      current = chunk.slice(hyphenIndex + 1)
-      pendingSpace = ""
-      continue
-    }
-    if (current) lines.push(`${current}${pendingSpace}`)
-    current = chunk
-    pendingSpace = ""
-  }
-  if (current || pendingSpace || lines.length === 0) lines.push(`${current}${pendingSpace}`)
-  return lines
-}
-
-const poField = (key: string, value: string, pluralIndex = ""): string[] => {
-  const escaped = poEscape(value)
-  const prefix = `${key}${pluralIndex}`
-  const firstLineWidth = 78 - prefix.length - 3
-  if (!escaped.includes("\\n") && escaped.length <= firstLineWidth) {
-    return [`${prefix} "${escaped}"`]
-  }
-  return [`${prefix} ""`, ...wrapText(escaped, 76).map((line) => `"${line}"`)]
-}
-
-const wrapPoComment = (prefix: string, comment: string): string[] => {
-  if (comment.length + prefix.length <= 78) return [`${prefix}${comment}`]
-  return wrapText(comment.replaceAll(/\s/g, " "), 78 - prefix.length).map((line) =>
-    `${prefix}${line.trimEnd()}`
-  )
-}
-
 const normalizeReference = (reference: string): string => reference.replace(/:\d+$/, "")
 
 const normalizedReferences = (
@@ -125,21 +75,22 @@ const normalizedReferences = (
 const firstOccurrence = (entry: PoItem): string => entry.references?.[0] ?? "unknown_file"
 
 const itemFlags = (entry: PoItem): string[] =>
-  Object.entries(entry.flags ?? {}).filter(([, enabled]) => enabled).map(([flag]) => flag)
+  Object.entries(entry.flags ?? {}).filter(([, enabled]) => enabled).map(([flag]) => flag.trim())
 
 const itemComment = (entry: PoItem): string => (entry.extractedComments ?? []).join("\n")
 
-const cloneItem = (entry: PoItem): PoItem => ({
-  msgid: entry.msgid,
-  msgctxt: entry.msgctxt ?? null,
-  msgid_plural: entry.msgid_plural ?? null,
-  msgstr: entry.msgid_plural ? ["", ""] : [""],
-  references: normalizedReferences(entry.references),
-  extractedComments: itemComment(entry) ? [itemComment(entry)] : [],
-  flags: Object.fromEntries(
-    itemFlags(entry).filter((flag) => flag === "c-format").map((flag) => [flag, true]),
-  ),
-})
+const cloneItem = (entry: PoItem): PoItem =>
+  Object.assign(new PO.Item(), {
+    msgid: entry.msgid,
+    msgctxt: entry.msgctxt ?? null,
+    msgid_plural: entry.msgid_plural ?? null,
+    msgstr: entry.msgid_plural ? ["", ""] : [""],
+    references: normalizedReferences(entry.references),
+    extractedComments: itemComment(entry) ? [itemComment(entry)] : [],
+    flags: Object.fromEntries(
+      itemFlags(entry).map((flag) => [flag, true]),
+    ),
+  })
 
 const mergeItem = (target: PoItem, source: PoItem) => {
   const sourceComment = itemComment(source)
@@ -148,7 +99,7 @@ const mergeItem = (target: PoItem, source: PoItem) => {
   }
 
   target.flags = target.flags ?? {}
-  for (const flag of itemFlags(source).filter((flag) => flag === "c-format")) {
+  for (const flag of itemFlags(source)) {
     target.flags[flag] = true
   }
 
@@ -184,7 +135,7 @@ const dedupItems = (items: PoItem[]): PoItem[] => {
         }`,
       )
     }
-    const key = `${normalized.msgctxt ?? ""}\u0000${normalized.msgid}`
+    const key = JSON.stringify([normalized.msgctxt, normalized.msgid])
     const existing = indexes.get(key)
     if (existing === undefined) {
       indexes.set(key, deduped.length)
@@ -203,21 +154,11 @@ const formatPo = (po: PoFile, items: PoItem[]): string => {
   lines.push("")
 
   for (const item of items) {
-    for (const comment of item.extractedComments ?? []) {
-      for (const line of comment.split("\n")) lines.push(...wrapPoComment("#. ", line))
-    }
-    const references = item.references ?? []
-    if (references.length > 0) lines.push(...wrapPoComment("#: ", references.join(" ")))
-    const flags = itemFlags(item)
-    if (flags.length > 0) lines.push(`#, ${flags.join(", ")}`)
-    if (item.msgctxt) lines.push(...poField("msgctxt", item.msgctxt))
-    lines.push(...poField("msgid", item.msgid))
-    if (item.msgid_plural) {
-      lines.push(...poField("msgid_plural", item.msgid_plural))
-      lines.push('msgstr[0] ""')
-      lines.push('msgstr[1] ""')
-    } else lines.push('msgstr ""')
-    lines.push("")
+    const normalized = cloneItem(item)
+    normalized.extractedComments = (normalized.extractedComments ?? []).flatMap((comment) =>
+      comment.split("\n")
+    )
+    lines.push(normalized.toString(), "")
   }
   return `${lines.join("\n")}`
 }
@@ -241,8 +182,10 @@ const unicodeCheck = async ([file]: string[]) => {
   await readText(file)
 }
 
-const [command, ...args] = Deno.args
-if (command === "concat") await concat(args)
-else if (command === "dedup") await dedup(args)
-else if (command === "unicode-check") await unicodeCheck(args)
-else usage()
+if (import.meta.main) {
+  const [command, ...args] = Deno.args
+  if (command === "concat") await concat(args)
+  else if (command === "dedup") await dedup(args)
+  else if (command === "unicode-check") await unicodeCheck(args)
+  else usage()
+}
