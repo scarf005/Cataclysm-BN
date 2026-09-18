@@ -24,7 +24,7 @@
     "docs:translation-warning": "deno run --allow-read --allow-run=git,gh --allow-env=GH_TOKEN,GITHUB_TOKEN,PATH scripts/docs_translation_warning.ts",
     "affected-files": "deno run --allow-read --allow-write --allow-run=git --allow-env=PATH scripts/affected_files.ts",
   },
-  "test": { "include": ["scripts", ".agents"] },
+  "test": { "include": ["scripts", "build-scripts", ".agents"] },
   "lint": {
     "include": ["scripts", "build-scripts", ".agents"],
     "rules": { "exclude": ["no-unversioned-import", "no-import-prefix"] },
