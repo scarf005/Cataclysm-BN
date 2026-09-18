@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "flag.h"
 #include "item.h"
-#include "rot_calculation.h"
+#include "rot/rot_calculation.h"
 #include "state_helpers.h"
 #include "units_temperature.h"
 
