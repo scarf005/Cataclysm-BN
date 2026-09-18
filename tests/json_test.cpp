@@ -87,6 +87,30 @@ TEST_CASE("read_jsonc", "[json]") {
     jo.finish();
 }
 
+TEST_CASE("jsonc_comment_boundaries", "[json]") {
+    for (const auto* input :
+         {R"([/* before */"// literal /* text */",// after value
+                                "escaped \\\" quote",/* before close */])",
+          R"(["// literal /* text */","escaped \\\" quote"])"}) {
+        auto stream = std::istringstream(input);
+        auto reader = JsonIn(stream);
+        auto values = reader.get_array();
+        REQUIRE(values.size() == 2);
+        CHECK(values.get_string(0) == "// literal /* text */");
+        CHECK(values.get_string(1) == "escaped \\\" quote");
+    }
+    for (const auto* input : {"[/* unterminated", "[/ 1]", "[1, /* unterminated"}) {
+        auto stream = std::istringstream(input);
+        auto reader = JsonIn(stream);
+        CHECK_THROWS_AS(reader.get_array(), JsonError);
+    }
+    for (const auto* input : {"// eof", "// windows\r\n", "/* closed */", "/* **/"}) {
+        auto stream = std::istringstream(input);
+        auto reader = JsonIn(stream);
+        CHECK_NOTHROW(reader.eat_whitespace());
+    }
+}
+
 template <typename Matcher>
 static void test_translation_text_style_check(Matcher&& matcher, const std::string& json) {
     std::istringstream iss(json);
