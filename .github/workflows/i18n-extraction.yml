@@ -5,8 +5,9 @@ on:
     paths:
       - "src/**/*.cpp"
       - "lang/bn_extract_json_strings.sh"
-      - "scripts/extract_json_strings.ts"
-      - "scripts/extract_json_strings_test.ts"
+      - "lang/update_pot.sh"
+      - "scripts/extract_json_strings*.ts"
+      - "scripts/pot_tools*.ts"
       - "scripts/testdata/extract_json_strings/**"
       - "deno.jsonc"
       - "deno.lock"
