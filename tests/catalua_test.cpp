@@ -319,6 +319,9 @@ TEST_CASE("lua_activity_bindings", "[lua]") {
 
     auto test_data = lua.create_table();
     lua.globals()["test_data"] = test_data;
+    test_data["adl_check_hook"] = sol::meta::meta_detail::is_adl_sol_lua_check_v<tripoint_bub_ms>;
+    test_data["adl_check_get_hook"] =
+        sol::meta::meta_detail::is_adl_sol_lua_check_get_v<tripoint_bub_ms>;
     lua["probe_native_pos"] = [](const sol::object& pos) { return pos.is<tripoint_bub_ms>(); };
     lua["probe_proxy_pos"] = [](const sol::object& pos) {
         return pos.is<cata::detail::lua_coords::lua_tripoint_coord>();
@@ -336,13 +339,15 @@ TEST_CASE("lua_activity_bindings", "[lua]") {
     CHECK(test_data.get<int>("activity_moves_total") == to_moves<int>(5_minutes));
     CHECK(test_data.get<bool>("activity_interruptable"));
     INFO(
-        "input_pos=" << test_data.get<std::string>("input_pos")
-                     << " native_pos=" << test_data.get<bool>("native_pos")
-                     << " proxy_pos=" << test_data.get<bool>("proxy_pos")
-                     << " cpp_pos=" << test_data.get<bool>("cpp_pos")
-                     << " coords_count=" << test_data.get<int>("activity_coords_count")
-                     << " activity_coord=" << test_data.get<std::string>("activity_coord")
-                     << " placement=" << test_data.get<std::string>("activity_placement"));
+        "input_pos="
+        << test_data.get<std::string>("input_pos") << " native_pos="
+        << test_data.get<bool>("native_pos") << " proxy_pos=" << test_data.get<bool>("proxy_pos")
+        << " cpp_pos=" << test_data.get<bool>("cpp_pos")
+        << " adl_check=" << test_data.get<bool>("adl_check_hook")
+        << " adl_check_get=" << test_data.get<bool>("adl_check_get_hook")
+        << " coords_count=" << test_data.get<int>("activity_coords_count")
+        << " activity_coord=" << test_data.get<std::string>("activity_coord")
+        << " placement=" << test_data.get<std::string>("activity_placement"));
     CHECK(test_data.get<std::string>("activity_coord").starts_with("TripointAbsMs"));
 
     get_avatar().activity->moves_left = 0;
