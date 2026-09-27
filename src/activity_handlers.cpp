@@ -40,7 +40,6 @@
 // TODO (https://github.com/cataclysmbn/Cataclysm-BN/issues/1612):
 // Remove that include after implementing repair_activity_actor.
 #include "catalua_hooks.h"
-#include "catalua_coord.h"
 #include "distribution_grid.h"
 #include "enums.h"
 #include "event.h"
