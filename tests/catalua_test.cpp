@@ -320,6 +320,12 @@ TEST_CASE("lua_activity_bindings", "[lua]") {
     auto test_data = lua.create_table();
     lua.globals()["test_data"] = test_data;
     lua["probe_native_pos"] = [](const sol::object& pos) { return pos.is<tripoint_bub_ms>(); };
+    lua["probe_proxy_pos"] = [](const sol::object& pos) {
+        return pos.is<cata::detail::lua_coords::lua_tripoint_coord>();
+    };
+    lua["probe_cpp_pos"] = [](const sol::object& pos) {
+        return cata::detail::lua_coords::as_cpp<tripoint_bub_ms>(pos).has_value();
+    };
 
     run_lua_test_script(lua, "activity_binding_test.lua");
 
@@ -329,11 +335,14 @@ TEST_CASE("lua_activity_bindings", "[lua]") {
     REQUIRE(test_data.get<std::string>("activity_name") == "test wash");
     CHECK(test_data.get<int>("activity_moves_total") == to_moves<int>(5_minutes));
     CHECK(test_data.get<bool>("activity_interruptable"));
-    INFO("input_pos=" << test_data.get<std::string>("input_pos")
-                      << " native_pos=" << test_data.get<bool>("native_pos")
-                      << " coords_count=" << test_data.get<int>("activity_coords_count")
-                      << " activity_coord=" << test_data.get<std::string>("activity_coord")
-                      << " placement=" << test_data.get<std::string>("activity_placement"));
+    INFO(
+        "input_pos=" << test_data.get<std::string>("input_pos")
+                     << " native_pos=" << test_data.get<bool>("native_pos")
+                     << " proxy_pos=" << test_data.get<bool>("proxy_pos")
+                     << " cpp_pos=" << test_data.get<bool>("cpp_pos")
+                     << " coords_count=" << test_data.get<int>("activity_coords_count")
+                     << " activity_coord=" << test_data.get<std::string>("activity_coord")
+                     << " placement=" << test_data.get<std::string>("activity_placement"));
     CHECK(test_data.get<std::string>("activity_coord").starts_with("TripointAbsMs"));
 
     get_avatar().activity->moves_left = 0;

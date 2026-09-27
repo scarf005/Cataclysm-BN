@@ -8,6 +8,8 @@
 ---@field activity_coord string
 ---@field input_pos string
 ---@field native_pos boolean
+---@field proxy_pos boolean
+---@field cpp_pos boolean
 ---@field activity_coords_count integer
 ---@field activity_placement string
 ---@field turn_called boolean
@@ -45,6 +47,8 @@ local avatar = gapi.get_avatar()
 local input_pos = TripointBubMs.new(9, 8, 0)
 test_data.input_pos = tostring(input_pos)
 test_data.native_pos = probe_native_pos(input_pos)
+test_data.proxy_pos = probe_proxy_pos(input_pos)
+test_data.cpp_pos = probe_cpp_pos(input_pos)
 avatar:assign_lua_activity({
   type = ActivityTypeId.new("ACT_WAIT"),
   duration = TimeDuration.from_minutes(5),
