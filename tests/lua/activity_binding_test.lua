@@ -6,6 +6,9 @@
 ---@field activity_moves_total integer
 ---@field activity_interruptable boolean
 ---@field activity_coord string
+---@field input_pos string
+---@field activity_coords_count integer
+---@field activity_placement string
 ---@field turn_called boolean
 ---@field turn_name string
 ---@field finish_called boolean
@@ -38,13 +41,15 @@ game.activity_functions["TEST_CALLBACK"] = function(params)
 end
 
 local avatar = gapi.get_avatar()
+local input_pos = TripointBubMs.new(9, 8, 0)
+test_data.input_pos = tostring(input_pos)
 avatar:assign_lua_activity({
   type = ActivityTypeId.new("ACT_WAIT"),
   duration = TimeDuration.from_minutes(5),
   on_finish = "TEST_CALLBACK",
   on_turn = "TEST_TURN",
   name = "test wash",
-  pos = TripointBubMs.new(9, 8, 0),
+  pos = input_pos,
   data = {
     mode = "test_shower",
     is_warm = true,
@@ -59,3 +64,5 @@ test_data.activity_name = activity.name
 test_data.activity_moves_total = activity.moves_total
 test_data.activity_interruptable = activity.interruptable_with_kb
 test_data.activity_coord = tostring(activity.coords[1])
+test_data.activity_coords_count = #activity.coords
+test_data.activity_placement = tostring(activity.placement)
