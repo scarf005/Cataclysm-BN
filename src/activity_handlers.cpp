@@ -40,6 +40,7 @@
 // TODO (https://github.com/cataclysmbn/Cataclysm-BN/issues/1612):
 // Remove that include after implementing repair_activity_actor.
 #include "catalua_hooks.h"
+#include "catalua_coord.h"
 #include "distribution_grid.h"
 #include "enums.h"
 #include "event.h"
@@ -4911,7 +4912,7 @@ void activity_handlers::spellcasting_finish( player_activity *act, player *p )
     [ & ]( sol::table & params ) {
         params["char"] = p;
         params["spell"] = spell_being_cast;
-        params["target_pos"] = &target;
+        params["target_pos"] = target;
     } );
     if( spell_being_cast.type->lua_callbacks ) {
         spell_being_cast.type->lua_callbacks->call_on_cast( *p->as_character(), spell_being_cast, target );
