@@ -322,6 +322,36 @@ Deno.test("runProcess bounds large debugger output", async () => {
   })
 })
 
+Deno.test("discoverTags accepts Catch2 tag-count exit status", async () => {
+  if (Deno.build.os === "windows") return
+  await withTempDir(async (dir) => {
+    const testBin = join(dir, "catch-list-tags.sh")
+    await Deno.writeTextFile(
+      testBin,
+      "#!/bin/sh\nprintf '  1 [#fixture_test]\\n1 tag\\n\\n'\nexit 1\n",
+    )
+    await Deno.chmod(testBin, 0o755)
+    const result = await discoverTags(
+      {
+        mode: "file-tags",
+        jobs: 1,
+        slowShards: 1,
+        nonSlowShards: 1,
+        dryRun: false,
+        diagnostics: false,
+        shardTimeoutSeconds: 2,
+        discoveryTimeoutSeconds: 1,
+        testBin,
+        testOpts: [],
+      },
+      dir,
+      dir,
+    )
+    assertEquals(result.allTags, ["[#fixture_test]"])
+    assertEquals(result.slowTags, ["[#fixture_test]"])
+  })
+})
+
 Deno.test("extractFileTags returns sorted unique file tags", () => {
   assertEquals(extractFileTags("x [#b_test] [foo] [#a_test] [#b_test]"), ["[#a_test]", "[#b_test]"])
 })
