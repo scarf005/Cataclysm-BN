@@ -6,7 +6,7 @@ on:
       suite:
         description: Benchmark suite
         type: choice
-        options: [baseline, candidate, cache-policy]
+        options: [baseline, candidate, cache-policy, shader-cache]
         default: baseline
 permissions:
   contents: read
@@ -25,6 +25,23 @@ jobs:
       bundle-registry-mods: false
       package-artifacts: false
       run-tests: true
+      upload-artifacts: false
+      upload-to-release: false
+  platform-candidate:
+    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'candidate'
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: speed-candidate
+      mode: ci
+      matrix-json: >-
+        [{"name":"Windows shard comparison","platform":"windows","artifact":"speedtest-windows","os":"windows-2022","arch":"x64","tiles":true,"sound":true,"ext":"zip","content-type":"application/zip"},
+         {"name":"Android shader reuse","platform":"android","artifact":"android-x64","os":"ubuntu-latest","android":"arm64","tiles":true,"sound":true,"ext":"apk","content-type":"application/apk"}]
+      download-translations: false
+      bundle-tilesets: false
+      bundle-registry-mods: false
+      package-artifacts: false
+      run-tests: true
+      android-localize: false
       upload-artifacts: false
       upload-to-release: false
   cache-seed:
@@ -97,3 +114,104 @@ jobs:
         run: |
           test '${{ steps.restore.outputs.cache-hit }}' = true
           sha256sum --check cache-fixture/SHA256SUMS
+  shader-cold:
+    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'shader-cache'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
+      - name: Cold pinned shadercross setup
+        run: |
+          mkdir -p out/shader-benchmark
+          /usr/bin/time -f '%e' -o out/shader-benchmark/cold-seconds.txt bash build-scripts/install-shadercross-vcpkg.sh
+      - name: Generate and validate real shaders
+        run: |
+          bash build-scripts/generate-shaders.sh
+          bash build-scripts/verify-shader-artifacts.sh
+      - uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: bn-speed-shader-tool-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: speed-shaders
+          path: data/shaders/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shader-cold-evidence
+          path: out/shader-benchmark/
+  shader-warm:
+    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'shader-cache'
+    needs: shader-cold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
+      - name: Mark cache restore start
+        run: |
+          mkdir -p out/shader-benchmark
+          date +%s.%N > out/shader-benchmark/restore-start.txt
+      - name: Restore pinned shadercross tree
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: bn-speed-shader-tool-${{ github.run_id }}
+          fail-on-cache-miss: true
+      - name: Warm shadercross setup
+        run: |
+          date +%s.%N > out/shader-benchmark/restore-end.txt
+          /usr/bin/time -f '%e' -o out/shader-benchmark/warm-seconds.txt bash build-scripts/install-shadercross-vcpkg.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: speed-shaders
+          path: data/shaders/
+      - name: Compare cold and restored tool outputs
+        run: |
+          cp data/shaders/shader-artifacts.manifest out/shader-benchmark/cold.manifest
+          bash build-scripts/generate-shaders.sh
+          bash build-scripts/verify-shader-artifacts.sh
+          diff -u out/shader-benchmark/cold.manifest data/shaders/shader-artifacts.manifest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shader-warm-evidence
+          path: out/shader-benchmark/
+  android-shader-task:
+    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'shader-cache'
+    needs: shader-cold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+      - uses: actions/download-artifact@v4
+        with:
+          name: speed-shaders
+          path: data/shaders/
+      - name: Consume shaders without installing shadercross
+        working-directory: android
+        run: |
+          mkdir -p ../out/android-shader-task
+          /usr/bin/time -f '%e' -o ../out/android-shader-task/consume-seconds.txt ./gradlew :app:compileAndroidShaders --rerun-tasks -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false
+      - name: Reject corrupt downloaded shaders
+        working-directory: android
+        run: |
+          artifact=$(find ../data/shaders -name '*.spv' | sort | head -n 1)
+          printf corrupt >> "$artifact"
+          if ./gradlew :app:compileAndroidShaders --rerun-tasks -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false > ../out/android-shader-task/corrupt.log 2>&1; then
+            echo 'Corrupt shaders unexpectedly accepted' >&2
+            exit 1
+          fi
+          grep -Ei 'stale|hash|mismatch' ../out/android-shader-task/corrupt.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-shader-task-evidence
+          path: out/android-shader-task/

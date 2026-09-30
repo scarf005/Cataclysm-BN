@@ -862,7 +862,7 @@ jobs:
         shell: bash
 
       - name: Run sharded tests (desktop)
-        if: inputs.run-tests && (runner.os == 'Windows' || (runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')))
+        if: inputs.version-label != 'speed-candidate' && inputs.run-tests && (runner.os == 'Windows' || (runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')))
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -897,3 +897,21 @@ jobs:
             $testBin `
             -- `
             @testOpts
+
+      - name: Compare measured Windows test shards
+        if: inputs.version-label == 'speed-candidate' && inputs.run-tests && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          deno run --allow-read --allow-write --allow-run --allow-env `
+            build-scripts/benchmark-test-shards.ts `
+            --test-bin "${{ github.workspace }}/out/build/windows-tiles-sounds-x64-msvc/tests/cata_test-tiles.exe" `
+            --output-dir "${{ github.workspace }}/out/shard-benchmark"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload shard benchmark evidence
+        if: always() && inputs.version-label == 'speed-candidate' && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-shard-benchmark-${{ github.run_id }}
+          path: out/shard-benchmark/
+          if-no-files-found: warn
