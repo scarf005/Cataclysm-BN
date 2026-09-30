@@ -52,7 +52,7 @@ const benchmark = async (testBin: string, outputDir: string): Promise<void> => {
       "--rng-seed",
       "1",
       "--error-format=github-action",
-      "--gpu-backend=software",
+      ...(Deno.build.os === "windows" ? [] : ["--gpu-backend=software"]),
     ]
     const startedAt = new Date().toISOString()
     const start = performance.now()
