@@ -37,6 +37,7 @@ auto clear_states(const enum_bitset<test_state>& states) -> void {
         weather.windspeed = 0;
         weather.wind_direction_override = std::nullopt;
         weather.windspeed_override = std::nullopt;
+        weather.clear_all_omt_weather_overrides();
         weather.clear_temp_cache();
     }
 
