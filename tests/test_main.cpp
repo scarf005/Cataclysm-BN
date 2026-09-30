@@ -61,6 +61,10 @@
 #include <utility>
 #include <vector>
 
+#if defined(__linux__)
+#    include <sys/prctl.h>
+#endif
+
 #if defined(CATA_SDL)
 #    if !defined(SDL_MAIN_HANDLED)
 #        if defined(__clang__)
@@ -81,6 +85,33 @@
 
 using name_value_pair_t = std::pair<std::string, std::string>;
 using option_overrides_t = std::vector<name_value_pair_t>;
+
+namespace {
+
+auto test_diagnostics_enabled() -> bool {
+    const auto value = std::getenv("CATA_TEST_SHARD_DIAGNOSTICS");
+    return value != nullptr && (std::strcmp(value, "1") == 0 || std::strcmp(value, "true") == 0);
+}
+
+auto test_diagnostic_shard() -> const char* // *NOPAD*
+{
+    const auto shard = std::getenv("CATA_TEST_SHARD_NAME");
+    return shard != nullptr && shard[0] != '\0' ? shard : "unknown";
+}
+
+#if defined(__linux__)
+auto allow_test_diagnostic_debugger() -> void {
+    if (test_diagnostics_enabled()) {
+        // GitHub-hosted Linux runners commonly enable Yama ptrace restrictions.  This
+        // opt-in test-only allowance lets the runner obtain a stack from this process.
+        (void)prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY);
+    }
+}
+#else
+auto allow_test_diagnostic_debugger() -> void {}
+#endif
+
+} // namespace
 
 #if defined(CATA_SDL)
 namespace {
@@ -301,6 +332,15 @@ static auto extract_user_dir(std::vector<const char*>& arg_vec) -> std::string {
 struct CataListener: Catch::TestEventListenerBase {
     using TestEventListenerBase::TestEventListenerBase;
 
+    auto testCaseStarting(Catch::TestCaseInfo const& testCaseInfo) -> void override {
+        TestEventListenerBase::testCaseStarting(testCaseInfo);
+        if (test_diagnostics_enabled()) {
+            std::printf("CATA_TEST_DIAGNOSTIC shard=%s seed=%u test=%s\n", test_diagnostic_shard(),
+                        m_config->rngSeed(), testCaseInfo.name.c_str());
+            std::fflush(stdout);
+        }
+    }
+
     void sectionStarting(Catch::SectionInfo const& sectionInfo) override {
         TestEventListenerBase::sectionStarting(sectionInfo);
         // Initialize the cata RNG with the Catch seed for reproducible tests
@@ -326,6 +366,7 @@ struct CataListener: Catch::TestEventListenerBase {
 CATCH_REGISTER_LISTENER(CataListener)
 
 auto main(int argc, const char* argv[]) -> int {
+    allow_test_diagnostic_debugger();
     Catch::Session session;
 
     std::vector<const char*> arg_vec(argv, argv + argc);
@@ -404,6 +445,11 @@ auto main(int argc, const char* argv[]) -> int {
         // If the run is terminated due to a crash during initialization, we won't
         // see the seed unless it's printed out in advance, so do that here.
         printf("Randomness seeded to: %u\n", seed);
+    }
+    if (test_diagnostics_enabled()) {
+        std::printf("CATA_TEST_DIAGNOSTIC shard=%s seed=%u event=seed-resolved\n",
+                    test_diagnostic_shard(), seed);
+        std::fflush(stdout);
     }
     DebugLog(DL::Info, DC::Main) << "Randomness seeded to: " << seed;
 

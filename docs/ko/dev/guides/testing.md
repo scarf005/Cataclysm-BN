@@ -4,6 +4,28 @@
 
 `tests/cata_test --help`를 실행하면 사용 가능한 명령줄 옵션을 확인할 수 있고, [Catch2 튜토리얼](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md)에서 더 자세한 내용을 볼 수 있습니다.
 
+## 샤드 테스트 진단
+
+`build-scripts/run-linux-test-shards.ts`는 파일명 태그별로 테스트를 나누어 실행합니다. 주요 옵션은
+`--mode file-tags|legacy`, `--jobs`, `--non-slow-shards`, `--diagnostics`,
+`--shard-timeout-seconds`, `--discovery-timeout-seconds`입니다. 그 뒤에 테스트 바이너리, `--`,
+Catch2 옵션을 순서대로 지정합니다. `--diagnostics`는 테스트 목록 검색 또는 테스트 프로세스마다
+태그가 붙은 로그를 작성합니다. 로컬 진단 실행이 실패하면 로그를 보존하고 디렉토리를 출력합니다.
+`CATA_TEST_SHARD_LOG_DIR`로 보존할 디렉토리를 직접 지정할 수도 있습니다.
+
+실행기는 `CATA_TEST_SHARD_TIMEOUT_SECONDS`, `CATA_TEST_DISCOVERY_TIMEOUT_SECONDS`,
+`CATA_TEST_SHARD_DIR`, `CATA_TEST_USER_DIR_PREFIX`, `CATA_TEST_COMPUTE_ACCELERATION`도
+지원합니다. 테스트 바이너리에는 `CATA_TEST_SHARD_DIAGNOSTICS`와 `CATA_TEST_SHARD_NAME`을
+설정합니다. 각 샤드 로그에는 필터, 확정된 난수 시드, JSON 형식의 재현 명령을 기록하므로 테스트
+프로세스가 시작 중에 멈추더라도 확인할 수 있습니다.
+
+Linux에서는 `gdb`를 사용할 수 있으면 시간 초과 시 스택을 수집합니다. 테스트 바이너리는
+`CATA_TEST_SHARD_DIAGNOSTICS=1`일 때만 Yama의 ptrace 제한에 대한 예외를 허용합니다. 컨테이너나
+보안이 강화된 커널에서는 연결이 거부될 수 있으며, 이 경우 로그에 수집 실패를 기록합니다. Linux
+하위 프로세스는 별도의 세션에서 실행되므로 출력 파이프를 유지하는 자식 프로세스도 샤드와 함께
+종료됩니다. Windows에서는 실행 시간이 제한된 `taskkill /T /F`를 사용하며 gdb 스택 수집은
+지원하지 않습니다.
+
 ## 가이드라인
 
 테스트를 작성할 때는 (직간접적으로) 사용되는 모든 객체가 테스트 전에 완전히 초기화되도록 해야 합니다. 여러 테스트가 랜덤 생성된 객체의 속성이나 전역 객체 (주로 플레이어 객체)를 통한 테스트 간 상호작용으로 인해 불안정해졌습니다. 일반적으로 테스트 케이스는 독립적이어야 합니다 (한 테스트가 다른 테스트의 출력에 의존하지 않아야 함).

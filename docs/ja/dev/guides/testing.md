@@ -6,6 +6,28 @@
 利用可能なコマンドラインオプションを確認するには `tests/cata_test --help` を実行するか、より詳細な入門については
 [Catch2 チュートリアル](https://github.com/catchorg/Catch2/blob/devel/docs/tutorial.md) を参照してください。
 
+## シャード化されたテストの診断
+
+`build-scripts/run-linux-test-shards.ts` はファイル名タグごとにテストを分割して実行します。主なオプションは
+`--mode file-tags|legacy`、`--jobs`、`--non-slow-shards`、`--diagnostics`、
+`--shard-timeout-seconds`、`--discovery-timeout-seconds` です。その後にテストバイナリ、`--`、
+Catch2 オプションを順に指定します。`--diagnostics` はテスト一覧の検索またはテストプロセスごとに
+タグ付きログを作成します。ローカルの診断実行が失敗するとログを保持し、そのディレクトリを表示します。
+`CATA_TEST_SHARD_LOG_DIR` で保持先のディレクトリを明示的に指定することもできます。
+
+ランナーは `CATA_TEST_SHARD_TIMEOUT_SECONDS`、`CATA_TEST_DISCOVERY_TIMEOUT_SECONDS`、
+`CATA_TEST_SHARD_DIR`、`CATA_TEST_USER_DIR_PREFIX`、`CATA_TEST_COMPUTE_ACCELERATION` も
+受け付けます。テストバイナリには `CATA_TEST_SHARD_DIAGNOSTICS` と `CATA_TEST_SHARD_NAME` を
+設定します。各シャードのログにはフィルター、確定した乱数シード、JSON 形式の再現コマンドを記録するため、
+テストプロセスが起動中に停止した場合でも確認できます。
+
+Linux では `gdb` が利用可能な場合、タイムアウト時にスタックを収集します。テストバイナリは
+`CATA_TEST_SHARD_DIAGNOSTICS=1` の場合にのみ Yama の ptrace 制限に対する例外を許可します。
+コンテナや強化されたカーネルでは接続が拒否される場合があり、その場合はログに収集失敗を記録します。
+Linux のサブプロセスは専用セッションで実行されるため、出力パイプを保持する子孫プロセスもシャードとともに
+終了します。Windows では実行時間を制限した `taskkill /T /F` を使用し、gdb によるスタック収集は
+提供しません。
+
 ## ガイドライン
 
 テストを作成する際は、使用されるすべてのオブジェクト（直接的または間接的）が、テストの前に完全にリセットされていることを確認してください。ランダムに生成されたオブジェクトのプロパティや、グローバルオブジェクト（多くの場合プレイヤーオブジェクト）を介したテスト間の相互作用により、不安定なテストになる事例がいくつか発生しています。一般的なガイドラインとして、テストケースはスタンドアロンであるべきです（あるテストが別のテストの出力に依存すべきではありません）。

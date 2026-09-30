@@ -861,6 +861,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 
+      - name: Install gdb for test timeout diagnostics
+        if: inputs.run-tests && runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')
+        shell: bash
+        run: |
+          if ! command -v gdb >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y gdb
+          fi
+
       - name: Run sharded tests (desktop)
         if: inputs.run-tests && (runner.os == 'Windows' || (runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')))
         shell: pwsh
@@ -875,6 +884,7 @@ jobs:
           if ($IsWindows) {
             $exeName = "$exeName.exe"
           }
+          $env:CATA_TEST_SHARD_LOG_DIR = Join-Path "${{ github.workspace }}" "cata-test-shard-logs"
           $testBin = Join-Path $buildDir (Join-Path "tests" $exeName)
           if (-not (Test-Path $testBin)) {
             throw "Missing test executable: $testBin"
@@ -894,6 +904,17 @@ jobs:
             --mode file-tags `
             --jobs 4 `
             --non-slow-shards 8 `
+            --diagnostics `
+            --shard-timeout-seconds 1200 `
+            --discovery-timeout-seconds 120 `
             $testBin `
             -- `
             @testOpts
+
+      - name: Upload test diagnostics if failed
+        if: failure() && inputs.run-tests
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: cata-test-shard-diagnostics-${{ matrix.platform }}-${{ matrix.tiles }}
+          path: cata-test-shard-logs
+          if-no-files-found: ignore

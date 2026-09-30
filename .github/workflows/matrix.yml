@@ -121,7 +121,7 @@ jobs:
         if: ${{ env.SKIP == 'false' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libncursesw5-dev mold gettext parallel libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb autoconf autoconf-archive automake libtool libltdl-dev
+          sudo apt-get install -y libncursesw5-dev mold gettext parallel libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb autoconf autoconf-archive automake libtool libltdl-dev gdb
           sudo locale-gen en_US.UTF-8 fr_FR.UTF-8 ru_RU.UTF-8
 
       - name: Setup LLVM build tools
@@ -234,8 +234,9 @@ jobs:
           export LP_NUM_THREADS=2
           sleep 1
 
+          export CATA_TEST_SHARD_LOG_DIR="$GITHUB_WORKSPACE/cata-test-shard-logs"
           test_bin="build/tests/cata_test${{ matrix.tiles == 1 && '-tiles' || '' }}"
-          build-scripts/run-linux-test-shards.ts --mode file-tags --jobs 4 --non-slow-shards 8 "$test_bin" -- \
+          build-scripts/run-linux-test-shards.ts --mode file-tags --jobs 4 --non-slow-shards 8 --diagnostics --shard-timeout-seconds 1200 --discovery-timeout-seconds 120 "$test_bin" -- \
             --min-duration 20 \
             --use-colour yes \
             --rng-seed time \
@@ -250,6 +251,14 @@ jobs:
                 $test_bin $test_opts '~*' --user-dir=all_modded --mods="${mods}"
               done
           fi
+
+      - name: upload test diagnostics if failed
+        uses: actions/upload-artifact@v4.6.0
+        if: failure()
+        with:
+          name: cata-test-shard-diagnostics-${{ matrix.tiles == 1 && 'tiles' || 'curses' }}
+          path: cata-test-shard-logs
+          if-no-files-found: ignore
 
       - name: upload artifacts if failed
         uses: actions/upload-artifact@v4.6.0
