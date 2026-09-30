@@ -1,6 +1,7 @@
 #include "../src/overmap/overmap.h"
 #include "../src/overmap/overmapbuffer.h"
 #include "calendar.h"
+#include "cata_utility.h"
 #include "catch/catch.hpp"
 #include "coordinates.h"
 #include "enums.h"
@@ -24,6 +25,7 @@
 
 TEST_CASE("overmap_weather_uses_queried_region_generator", "[overmap][weather]") {
     clear_all_state();
+    const auto restore_turn = restore_on_out_of_scope<time_point>(calendar::turn);
     const auto first_region_id = std::string("test_weather_region_first");
     const auto second_region_id = std::string("test_weather_region_second");
     const auto original_region_type = ACTIVE_OVERMAP_BUFFER.current_region_type;
@@ -56,6 +58,9 @@ TEST_CASE("overmap_weather_uses_queried_region_generator", "[overmap][weather]")
     REQUIRE(
         overmap_buffer.get_om_global(second_location).om->get_settings().id == second_region_id);
 
+    // Query on two different turns so neither pre-existing nor test-local UI cache entries leak.
+    overmap_ui::get_weather_at_point(first_location.xy());
+    calendar::turn += 1_turns;
     CHECK(overmap_ui::get_weather_at_point(first_location.xy())
           == weather_type_id("test_weather_basic"));
     CHECK(overmap_ui::get_weather_at_point(second_location.xy())

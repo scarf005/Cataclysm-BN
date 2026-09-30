@@ -178,6 +178,7 @@ TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][we
         )",
         sol::script_pass_on_error);
     REQUIRE(set_result.valid());
+    CHECK(get_weather().weather_id == weather_type_id("lightning"));
     CHECK(test_data.get<std::string>("center_before") == "lightning");
     CHECK(test_data.get<std::string>("neighbor_before") == "lightning");
     CHECK_FALSE(test_data["outside_before"].valid());
@@ -186,6 +187,7 @@ TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][we
         R"(gapi.set_omt_weather_override(test_data["center"], 0, "thunder"))",
         sol::script_pass_on_error);
     REQUIRE(overwrite_result.valid());
+    CHECK(get_weather().weather_id == weather_type_id("thunder"));
     CHECK(get_weather().get_omt_weather_override(center)->str() == "thunder");
     CHECK(get_weather().get_omt_weather_override(neighbor)->str() == "lightning");
 
@@ -229,25 +231,28 @@ TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][we
     get_weather().update_weather();
     CHECK(get_weather().weather_id == weather_type_id("lightning"));
 
-    const auto expires_at = calendar::turn + 30_minutes;
+    const auto regular_refresh = get_weather().nextweather;
+    const auto expires_at = regular_refresh - 1_turns;
+    REQUIRE(expires_at > calendar::turn);
     test_data["expires_at"] = expires_at;
     auto expiry_result = lua.safe_script(
         R"(gapi.set_omt_weather_override(test_data["center"], 0, "lightning", test_data["expires_at"]))",
         sol::script_pass_on_error);
     REQUIRE(expiry_result.valid());
-    CHECK(get_weather().has_omt_weather_override(center, calendar::turn + 29_minutes));
+    CHECK(get_weather().weather_id == weather_type_id("lightning"));
+    CHECK(get_weather().nextweather == expires_at);
+    CHECK(get_weather().has_omt_weather_override(center, expires_at - 1_turns));
     CHECK_FALSE(get_weather().has_omt_weather_override(center, expires_at));
+    const auto expected_weather = current_weather(get_avatar().abs_pos(), expires_at);
 
     calendar::turn = expires_at - 1_turns;
-    get_weather().nextweather = calendar::turn;
     get_weather().update_weather();
     CHECK(get_weather().weather_id == weather_type_id("lightning"));
     CHECK(get_weather().nextweather == expires_at);
 
     calendar::turn = expires_at;
-    get_weather().nextweather = calendar::turn;
     get_weather().update_weather();
-    CHECK_FALSE(get_weather().weather_id == weather_type_id("lightning"));
+    CHECK(get_weather().weather_id == expected_weather);
     CHECK_FALSE(get_weather().has_omt_weather_override(center));
 
     auto weather_state = enum_bitset<test_state>();
