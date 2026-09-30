@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+vcpkg_commit="${VCPKG_COMMIT:-a8f78d257ade3c2e7999c1129a6d29971ae32006}"
 vcpkg_root="${1:-${VCPKG_ROOT:-}}"
 if [ -z "${vcpkg_root}" ]; then
     if [ -n "${RUNNER_TEMP:-}" ]; then
@@ -46,8 +47,20 @@ if [ ${#missing_tools[@]} -ne 0 ]; then
 fi
 
 if [ ! -d "${vcpkg_root}" ]; then
-    git clone --depth 1 https://github.com/microsoft/vcpkg "${vcpkg_root}"
-elif [ ! -x "${vcpkg_root}/vcpkg" ] && [ ! -f "${vcpkg_root}/bootstrap-vcpkg.sh" ]; then
+    git clone --filter=blob:none --no-checkout https://github.com/microsoft/vcpkg "${vcpkg_root}"
+fi
+if [ ! -d "${vcpkg_root}/.git" ]; then
+    echo "Existing vcpkg root is not a git checkout: ${vcpkg_root}" >&2
+    exit 1
+fi
+
+current_commit="$(git -C "${vcpkg_root}" rev-parse HEAD 2>/dev/null || true)"
+if [ "${current_commit}" != "${vcpkg_commit}" ]; then
+    git -C "${vcpkg_root}" fetch --depth 1 origin "${vcpkg_commit}"
+    git -C "${vcpkg_root}" checkout --detach "${vcpkg_commit}"
+fi
+
+if [ ! -x "${vcpkg_root}/vcpkg" ] && [ ! -f "${vcpkg_root}/bootstrap-vcpkg.sh" ]; then
     echo "Existing vcpkg root is not a vcpkg checkout: ${vcpkg_root}" >&2
     exit 1
 fi

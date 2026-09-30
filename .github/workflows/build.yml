@@ -64,6 +64,11 @@ on:
         required: false
         type: boolean
         default: false
+      use-precompiled-shaders:
+        description: "Use the verified shader artifact bundle instead of running shadercross in each build"
+        required: false
+        type: boolean
+        default: false
       android-localize:
         description: "Build Android assets with localization"
         required: false
@@ -98,6 +103,7 @@ env:
   VCPKG_BINARY_SOURCES: "default"
   EMMYLUA_CHECK_VERSION: "0.22.0"
   LLVM_VERSION: "22"
+  VCPKG_SHADERCROSS_COMMIT: "a8f78d257ade3c2e7999c1129a6d29971ae32006"
 
 jobs:
   shader-artifacts:
@@ -113,7 +119,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
 
+      - name: Cache pinned shadercross tool
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: shadercross-${{ runner.os }}-x64-linux-${{ env.VCPKG_SHADERCROSS_COMMIT }}-${{ hashFiles('build-scripts/install-shadercross-vcpkg.sh', 'msvc-full-features/vcpkg.json') }}
+
       - name: Install shadercross
+        env:
+          VCPKG_COMMIT: ${{ env.VCPKG_SHADERCROSS_COMMIT }}
         run: bash build-scripts/install-shadercross-vcpkg.sh
 
       - name: Generate shaders
@@ -145,6 +159,10 @@ jobs:
         with:
           name: generated-shaders
           path: data/shaders
+
+      - name: Verify generated shaders
+        shell: bash
+        run: bash build-scripts/verify-shader-artifacts.sh
 
       - name: Download translation artifacts
         if: inputs.download-translations
@@ -368,8 +386,17 @@ jobs:
           verbose: 2
           save: ${{ github.event_name != 'pull_request' }}
 
+      - name: Cache pinned shadercross tool (Linux)
+        if: runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none') && matrix.tiles == true && !inputs.use-precompiled-shaders
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: shadercross-${{ runner.os }}-x64-linux-${{ env.VCPKG_SHADERCROSS_COMMIT }}-${{ hashFiles('build-scripts/install-shadercross-vcpkg.sh', 'msvc-full-features/vcpkg.json') }}
+
       - name: Install shadercross (Linux)
-        if: runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none') && matrix.tiles == true
+        if: runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none') && matrix.tiles == true && !inputs.use-precompiled-shaders
+        env:
+          VCPKG_COMMIT: ${{ env.VCPKG_SHADERCROSS_COMMIT }}
         run: bash build-scripts/install-shadercross-vcpkg.sh
 
       # Build with CMake (Linux)
@@ -378,7 +405,7 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           configurePreset: ${{ matrix.tiles && 'dist-tiles' || 'dist-curses' }}
-          configurePresetAdditionalArgs: ${{ inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON"]' || '["-DCATA_FORMAT_TARGETS=OFF"]' }}
+          configurePresetAdditionalArgs: ${{ inputs.use-precompiled-shaders && (inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON", "-DBUILD_SHADERCROSS=OFF"]' || '["-DCATA_FORMAT_TARGETS=OFF", "-DBUILD_SHADERCROSS=OFF"]') || (inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON"]' || '["-DCATA_FORMAT_TARGETS=OFF"]') }}
           buildPreset: ${{ matrix.tiles && 'dist-tiles' || 'dist-curses' }}
 
       - name: Setup EmmyLua checker
@@ -506,6 +533,7 @@ jobs:
             "-DTESTS=$tests" `
             "-DRELEASE=$release" `
             -DJSON_FORMAT=OFF `
+            "-DBUILD_SHADERCROSS=${{ inputs.use-precompiled-shaders && 'OFF' || 'ON' }}" `
             -DCATA_FORMAT_TARGETS=OFF `
             -DCMAKE_INSTALL_MESSAGE=NEVER
 
@@ -585,7 +613,7 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           configurePreset: ${{ matrix.preset }}
-          configurePresetAdditionalArgs: ${{ inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON"]' || '["-DCATA_FORMAT_TARGETS=OFF"]' }}
+          configurePresetAdditionalArgs: ${{ inputs.use-precompiled-shaders && (inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON", "-DBUILD_SHADERCROSS=OFF"]' || '["-DCATA_FORMAT_TARGETS=OFF", "-DBUILD_SHADERCROSS=OFF"]') || (inputs.run-tests && '["-DCATA_FORMAT_TARGETS=OFF", "-DTESTS=ON"]' || '["-DCATA_FORMAT_TARGETS=OFF"]') }}
           buildPreset: ${{ matrix.preset }}
 
       - name: Create distribution package with soundpacks (macOS)
@@ -656,8 +684,17 @@ jobs:
           ninja: true
           setup-cpp: false
 
+      - name: Cache pinned shadercross tool (android host)
+        if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none' && !inputs.use-precompiled-shaders
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: shadercross-${{ runner.os }}-x64-linux-${{ env.VCPKG_SHADERCROSS_COMMIT }}-${{ hashFiles('build-scripts/install-shadercross-vcpkg.sh', 'msvc-full-features/vcpkg.json') }}
+
       - name: Install shadercross (android host)
-        if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none'
+        if: runner.os == 'Linux' && matrix.android != '' && matrix.android != 'none' && !inputs.use-precompiled-shaders
+        env:
+          VCPKG_COMMIT: ${{ env.VCPKG_SHADERCROSS_COMMIT }}
         run: bash build-scripts/install-shadercross-vcpkg.sh
 
       - name: Setup ccache (android)
@@ -736,9 +773,9 @@ jobs:
 
           build_android_artifact() {
             if [ "${{ matrix.android }}" = arm64 ]; then
-              gradle_retry -Pj=$(nproc) -Pabi_arm_32=false -Plocalize=${{ inputs.android-localize }} assemble${VARIANT}Release ${VERSION_ARG}
+              gradle_retry -Pj=$(nproc) -Pabi_arm_32=false -Plocalize=${{ inputs.android-localize }} -Puse_precompiled_shaders=${{ inputs.use-precompiled-shaders }} assemble${VARIANT}Release ${VERSION_ARG}
             elif [ "${{ matrix.android }}" = bundle ]; then
-              gradle_retry -Pj=$(nproc) -Plocalize=${{ inputs.android-localize }} bundle${VARIANT}Release ${VERSION_ARG}
+              gradle_retry -Pj=$(nproc) -Plocalize=${{ inputs.android-localize }} -Puse_precompiled_shaders=${{ inputs.use-precompiled-shaders }} bundle${VARIANT}Release ${VERSION_ARG}
             else
               echo "Unsupported Android artifact type: ${{ matrix.android }}" >&2
               return 1

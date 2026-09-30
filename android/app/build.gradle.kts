@@ -2,6 +2,7 @@ import com.android.build.gradle.BaseExtension
 import org.gradle.internal.os.OperatingSystem
 import java.io.ByteArrayOutputStream
 import java.net.URL
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Properties
@@ -60,6 +61,74 @@ fun resolveShadercross(configured: String): String {
         ?: throw GradleException("shadercross executable '$trimmed' was not found on PATH; set SHADERCROSS or pass -Pshadercross=/path/to/shadercross")
 }
 
+data class ShaderArtifactManifest(
+    val targets: List<String>,
+    val sources: Map<String, String>,
+    val artifacts: Map<String, String>,
+)
+
+fun sha256File(file: File): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    digest.update(file.readBytes())
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+}
+
+fun readShaderArtifactManifest(file: File): ShaderArtifactManifest {
+    if (!file.isFile) {
+        throw GradleException("Shader artifact manifest does not exist: ${file.absolutePath}")
+    }
+    val lines = file.readLines()
+    if (lines.size < 2 || lines[0] != "shader-artifacts-version=1") {
+        throw GradleException("Unsupported shader artifact manifest: ${file.absolutePath}")
+    }
+    val targets = lines[1].removePrefix("targets=").split(" ").filter { it.isNotEmpty() }
+    if (lines[1] != "targets=spv msl dxil") {
+        throw GradleException("Shader artifact manifest has unexpected targets: ${file.absolutePath}")
+    }
+
+    val sources = mutableMapOf<String, String>()
+    val artifacts = mutableMapOf<String, String>()
+    lines.drop(2).forEach { line ->
+        val prefix = when {
+            line.startsWith("source=") -> "source=" to sources
+            line.startsWith("artifact=") -> "artifact=" to artifacts
+            else -> throw GradleException("Malformed shader artifact manifest line: $line")
+        }
+        val values = line.removePrefix(prefix.first).split(" ", limit = 2)
+        if (values.size != 2 || values[0].isEmpty() || values[1].isEmpty() || prefix.second.put(values[0], values[1]) != null) {
+            throw GradleException("Malformed shader artifact manifest line: $line")
+        }
+    }
+    return ShaderArtifactManifest(targets, sources, artifacts)
+}
+
+fun verifyShaderArtifacts(shaderInputs: List<File>, outputDir: File, manifestFile: File) {
+    val manifest = readShaderArtifactManifest(manifestFile)
+    val expectedSources = shaderInputs.map { it.name }.toSet()
+    if (manifest.sources.keys != expectedSources) {
+        throw GradleException("Shader artifact manifest does not match current HLSL sources")
+    }
+    shaderInputs.forEach { shader ->
+        if (manifest.sources[shader.name] != sha256File(shader)) {
+            throw GradleException("Shader artifact is stale for source: ${shader.name}")
+        }
+    }
+
+    val expectedArtifacts = shaderInputs.flatMap { shader ->
+        manifest.targets.map { target -> "${shader.nameWithoutExtension}.$target" }
+    }.toSet()
+    val actualArtifacts = outputDir.listFiles()?.filter { it.extension in manifest.targets }?.map { it.name }?.toSet() ?: emptySet()
+    if (manifest.artifacts.keys != expectedArtifacts || actualArtifacts != expectedArtifacts) {
+        throw GradleException("Shader artifact set is incomplete or contains stale files")
+    }
+    expectedArtifacts.forEach { artifactName ->
+        val artifact = File(outputDir, artifactName)
+        if (!artifact.isFile || artifact.length() == 0L || manifest.artifacts[artifactName] != sha256File(artifact)) {
+            throw GradleException("Shader artifact is missing, empty, or stale: ${artifact.absolutePath}")
+        }
+    }
+}
+
 val njobs = gradleProperty("j")
 val localize = gradleProperty("localize").toBoolean()
 val abiArm32 = gradleProperty("abi_arm_32").toBoolean()
@@ -68,6 +137,7 @@ val abiX8632 = gradleProperty("abi_x86_32").toBoolean()
 val abiX8664 = gradleProperty("abi_x86_64").toBoolean()
 val deps = gradleProperty("deps")
 val shadercross = System.getenv("SHADERCROSS") ?: gradleProperty("shadercross").ifEmpty { "shadercross" }
+val usePrecompiledShaders = gradleProperty("use_precompiled_shaders").toBoolean()
 val ccache = System.getenv("CCACHE") ?: gradleProperty("ccache").ifEmpty { pathExecutable("ccache")?.absolutePath.orEmpty() }
 val overrideVersion = gradleProperty("override_version")
 val versionHeaderPath = gradleProperty("version_header_path")
@@ -82,6 +152,7 @@ println("Using [              njobs]: $njobs")
 println("Using [           localize]: $localize")
 println("Using [               deps]: $deps")
 println("Using [        shadercross]: $shadercross")
+println("Using [use_precompiled_shaders]: $usePrecompiledShaders")
 println("Using [             ccache]: ${ccache.ifEmpty { "<disabled>" }}")
 println("Using [   override_version]: $overrideVersion")
 println("Using [version_header_path]: $versionHeaderPath")
@@ -154,9 +225,14 @@ val compileLocalization by tasks.registering(Exec::class) {
 
 val shaderSourceDir = rootProject.file("../src/shaders")
 val shaderOutputDir = rootProject.file("../data/shaders")
+val shaderManifestFile = File(shaderOutputDir, "shader-artifacts.manifest")
 val compileAndroidShaders by tasks.registering {
     val shaderInputs = fileTree(shaderSourceDir) { include("*.hlsl") }
     inputs.files(shaderInputs).withPropertyName("hlslShaders")
+    inputs.property("usePrecompiledShaders", usePrecompiledShaders)
+    if (usePrecompiledShaders) {
+        inputs.file(shaderManifestFile).withPropertyName("shaderArtifactManifest")
+    }
     outputs.dir(shaderOutputDir).withPropertyName("spirvShaders")
 
     doLast {
@@ -165,29 +241,35 @@ val compileAndroidShaders by tasks.registering {
             throw GradleException("No HLSL shaders found in ${shaderSourceDir.absolutePath}")
         }
 
-        val shadercrossExe = resolveShadercross(shadercross)
         shaderOutputDir.mkdirs()
-        shaderOutputDir.listFiles { _, name -> name.endsWith(".spv") }?.forEach(File::delete)
-        shaders.forEach { shader ->
-            val shaderName = shader.nameWithoutExtension
-            val stage = when {
-                shaderName.endsWith("_vertex") -> "vertex"
-                shaderName.endsWith("_fragment") -> "fragment"
-                else -> "compute"
-            }
-            exec {
-                commandLine(
-                    shadercrossExe,
-                    shader.absolutePath,
-                    "-s",
-                    "hlsl",
-                    "-d",
-                    "spirv",
-                    "-t",
-                    stage,
-                    "-o",
-                    File(shaderOutputDir, "$shaderName.spv").absolutePath,
-                )
+        if (usePrecompiledShaders) {
+            verifyShaderArtifacts(shaders, shaderOutputDir, shaderManifestFile)
+            println("Using verified precompiled shader artifacts from ${shaderOutputDir.absolutePath}")
+        } else {
+            val shadercrossExe = resolveShadercross(shadercross)
+            shaderManifestFile.delete()
+            shaderOutputDir.listFiles { _, name -> name.endsWith(".spv") }?.forEach(File::delete)
+            shaders.forEach { shader ->
+                val shaderName = shader.nameWithoutExtension
+                val stage = when {
+                    shaderName.endsWith("_vertex") -> "vertex"
+                    shaderName.endsWith("_fragment") -> "fragment"
+                    else -> "compute"
+                }
+                exec {
+                    commandLine(
+                        shadercrossExe,
+                        shader.absolutePath,
+                        "-s",
+                        "hlsl",
+                        "-d",
+                        "spirv",
+                        "-t",
+                        stage,
+                        "-o",
+                        File(shaderOutputDir, "$shaderName.spv").absolutePath,
+                    )
+                }
             }
         }
     }

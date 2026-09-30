@@ -33,6 +33,7 @@ jobs:
     with:
       version-label: speed-candidate
       mode: ci
+      use-precompiled-shaders: true
       matrix-json: >-
         [{"name":"Windows shard comparison","platform":"windows","artifact":"speedtest-windows","os":"windows-2022","arch":"x64","tiles":true,"sound":true,"ext":"zip","content-type":"application/zip"},
          {"name":"Android shader reuse","platform":"android","artifact":"android-x64","os":"ubuntu-latest","android":"arm64","tiles":true,"sound":true,"ext":"apk","content-type":"application/apk"}]
