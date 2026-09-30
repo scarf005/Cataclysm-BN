@@ -124,6 +124,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
+      - name: Verify shader artifact and revision fixtures
+        run: |
+          bash build-scripts/shader-artifacts-test.sh
+          bash build-scripts/shadercross-revision-test.sh
       - name: Cold pinned shadercross setup
         run: |
           mkdir -p out/shader-benchmark
@@ -200,13 +204,18 @@ jobs:
         working-directory: android
         run: |
           mkdir -p ../out/android-shader-task
-          /usr/bin/time -f '%e' -o ../out/android-shader-task/consume-seconds.txt ./gradlew :app:compileAndroidShaders --rerun-tasks -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false
+          /usr/bin/time -f '%e' -o ../out/android-shader-task/consume-seconds.txt ./gradlew :app:compileAndroidShaders -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false
+      - name: Reuse unchanged verified outputs
+        working-directory: android
+        run: |
+          ./gradlew :app:compileAndroidShaders -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false > ../out/android-shader-task/up-to-date.log 2>&1
+          grep -F ':app:compileAndroidShaders UP-TO-DATE' ../out/android-shader-task/up-to-date.log
       - name: Reject corrupt downloaded shaders
         working-directory: android
         run: |
           artifact=$(find ../data/shaders -name '*.spv' | sort | head -n 1)
           printf corrupt >> "$artifact"
-          if ./gradlew :app:compileAndroidShaders --rerun-tasks -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false > ../out/android-shader-task/corrupt.log 2>&1; then
+          if ./gradlew :app:compileAndroidShaders -Puse_precompiled_shaders=true -Pshadercross=/missing/shadercross -Plocalize=false > ../out/android-shader-task/corrupt.log 2>&1; then
             echo 'Corrupt shaders unexpectedly accepted' >&2
             exit 1
           fi

@@ -226,14 +226,19 @@ val compileLocalization by tasks.registering(Exec::class) {
 val shaderSourceDir = rootProject.file("../src/shaders")
 val shaderOutputDir = rootProject.file("../data/shaders")
 val shaderManifestFile = File(shaderOutputDir, "shader-artifacts.manifest")
+val shaderVerificationFile = layout.buildDirectory.file("intermediates/shader-verification/manifest.sha256")
 val compileAndroidShaders by tasks.registering {
     val shaderInputs = fileTree(shaderSourceDir) { include("*.hlsl") }
     inputs.files(shaderInputs).withPropertyName("hlslShaders")
     inputs.property("usePrecompiledShaders", usePrecompiledShaders)
     if (usePrecompiledShaders) {
         inputs.file(shaderManifestFile).withPropertyName("shaderArtifactManifest")
+        inputs.files(fileTree(shaderOutputDir) { include("*.spv", "*.msl", "*.dxil") })
+            .withPropertyName("precompiledShaderArtifacts")
+        outputs.file(shaderVerificationFile).withPropertyName("verifiedShaderManifest")
+    } else {
+        outputs.dir(shaderOutputDir).withPropertyName("spirvShaders")
     }
-    outputs.dir(shaderOutputDir).withPropertyName("spirvShaders")
 
     doLast {
         val shaders = shaderInputs.files.sortedBy { it.name }
@@ -244,6 +249,10 @@ val compileAndroidShaders by tasks.registering {
         shaderOutputDir.mkdirs()
         if (usePrecompiledShaders) {
             verifyShaderArtifacts(shaders, shaderOutputDir, shaderManifestFile)
+            shaderVerificationFile.get().asFile.apply {
+                parentFile.mkdirs()
+                writeText("${sha256File(shaderManifestFile)}\n")
+            }
             println("Using verified precompiled shader artifacts from ${shaderOutputDir.absolutePath}")
         } else {
             val shadercrossExe = resolveShadercross(shadercross)
