@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       wait_run_id:
-        description: Completed run with a successful Windows shard comparison
+        description: Completed Windows shard comparison run with a successful native build
         required: true
         type: string
       allow_eviction:
@@ -52,10 +52,12 @@ jobs:
             }
             const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, { ...context.repo, run_id: Number(waitRunId), per_page: 100 });
             const benchmark = jobs.find(job => job.name.endsWith(' / Windows shard comparison'));
-            if (benchmark?.status !== 'completed' || benchmark.conclusion !== 'success') {
-              throw new Error(`Windows shard comparison in run ${waitRunId} did not succeed`);
+            const build = benchmark?.steps.find(step => step.name === 'Build CBN (windows msvc)');
+            const comparison = benchmark?.steps.find(step => step.name === 'Compare measured Windows test shards');
+            if (benchmark?.status !== 'completed' || build?.conclusion !== 'success' || comparison?.status !== 'completed' || !['success', 'failure'].includes(comparison.conclusion)) {
+              throw new Error(`Windows comparison in run ${waitRunId} must finish after a successful native build`);
             }
-            core.info(`Prerequisite Windows benchmark in run ${waitRunId} completed successfully`);
+            core.info(`Prerequisite Windows benchmark in run ${waitRunId} completed; negative benchmark outcomes are not speedup evidence`);
 
   windows-pressure:
     needs: guard

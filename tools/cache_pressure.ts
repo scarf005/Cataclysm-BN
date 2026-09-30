@@ -42,7 +42,14 @@ const RunSchema = v.object({
 })
 const JobsSchema = v.object({
   jobs: v.array(
-    v.object({ name: v.string(), status: v.string(), conclusion: v.nullable(v.string()) }),
+    v.object({
+      name: v.string(),
+      status: v.string(),
+      conclusion: v.nullable(v.string()),
+      steps: v.array(
+        v.object({ name: v.string(), status: v.string(), conclusion: v.nullable(v.string()) }),
+      ),
+    }),
   ),
 })
 
@@ -164,7 +171,7 @@ const repositoryPath = (): string => `/repos/${requiredEnv("GITHUB_REPOSITORY")}
 const readRun = async (runId: string): Promise<Run> =>
   v.parse(RunSchema, await githubJson(`${repositoryPath()}/actions/runs/${runId}`))
 
-export const ensureSuccessfulPrerequisite = async (waitRunId: string): Promise<void> => {
+export const ensureFinishedPrerequisite = async (waitRunId: string): Promise<void> => {
   const currentRunId = Deno.env.get("GITHUB_RUN_ID")
   if (currentRunId !== undefined && currentRunId === waitRunId) {
     throw new Error("wait_run_id must identify a different completed workflow run")
@@ -178,8 +185,18 @@ export const ensureSuccessfulPrerequisite = async (waitRunId: string): Promise<v
     await githubJson(`${repositoryPath()}/actions/runs/${waitRunId}/jobs?per_page=100`),
   )
   const benchmark = jobs.jobs.find((job) => job.name.endsWith(" / Windows shard comparison"))
-  if (benchmark?.status !== "completed" || benchmark.conclusion !== "success") {
-    throw new Error(`Prerequisite Windows shard comparison in run ${waitRunId} did not succeed`)
+  const build = benchmark?.steps.find((step) => step.name === "Build CBN (windows msvc)")
+  const comparison = benchmark?.steps.find((step) =>
+    step.name === "Compare measured Windows test shards"
+  )
+  if (
+    benchmark?.status !== "completed" || build?.conclusion !== "success" ||
+    comparison?.status !== "completed" ||
+    !["success", "failure"].includes(comparison.conclusion ?? "")
+  ) {
+    throw new Error(
+      `Prerequisite Windows comparison in run ${waitRunId} must finish after a successful native build`,
+    )
   }
 }
 
@@ -369,7 +386,7 @@ const runExperiment = async ({
   allowEviction: boolean
 }): Promise<void> => {
   assertEnvironment(allowEviction, runId)
-  await ensureSuccessfulPrerequisite(waitRunId)
+  await ensureFinishedPrerequisite(waitRunId)
   await ensureDirectory(evidenceDirectory)
 
   const workspace = requiredEnv("GITHUB_WORKSPACE")
@@ -561,9 +578,13 @@ if (import.meta.main) {
     .name("cache-pressure")
     .description("Run the fork-only real GitHub Actions cache quota experiment")
     .option("--run-id <run-id:string>", "Current workflow run ID", { required: true })
-    .option("--wait-run-id <wait-run-id:string>", "Completed successful prerequisite run ID", {
-      required: true,
-    })
+    .option(
+      "--wait-run-id <wait-run-id:string>",
+      "Completed Windows comparison prerequisite run ID",
+      {
+        required: true,
+      },
+    )
     .option("--evidence-dir <directory:string>", "Directory for raw inventories and results", {
       default: join(Deno.cwd(), "cache-pressure-evidence"),
     })
