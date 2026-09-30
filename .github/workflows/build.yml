@@ -861,6 +861,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 
+      - name: Test shard runner (desktop)
+        if: inputs.run-tests && (runner.os == 'Windows' || (runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')))
+        run: deno task test:shards
+
       - name: Install gdb for test timeout diagnostics
         if: inputs.run-tests && runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')
         shell: bash

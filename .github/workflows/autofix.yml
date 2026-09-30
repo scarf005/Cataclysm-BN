@@ -107,6 +107,7 @@ jobs:
         run: |
           # deno lint
           deno test --allow-read --allow-env=npm_package_config_libvips,TILESET_PYTHON --allow-ffi
+          deno task test:shards
 
       - name: check generated semantic PR config
         run: |
