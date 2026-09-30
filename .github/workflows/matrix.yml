@@ -6,7 +6,7 @@ on:
       suite:
         description: Benchmark suite
         type: choice
-        options: [baseline, candidate, cache-policy, shader-cache]
+        options: [baseline, candidate, android-candidate, cache-policy, shader-cache]
         default: baseline
 permissions:
   contents: read
@@ -42,6 +42,23 @@ jobs:
       bundle-registry-mods: false
       package-artifacts: false
       run-tests: true
+      android-localize: false
+      upload-artifacts: false
+      upload-to-release: false
+  android-candidate:
+    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'android-candidate'
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: speed-candidate
+      mode: ci
+      use-precompiled-shaders: true
+      matrix-json: >-
+        [{"name":"Android shader reuse","platform":"android","artifact":"android-x64","os":"ubuntu-latest","android":"arm64","tiles":true,"sound":true,"ext":"apk","content-type":"application/apk"}]
+      download-translations: false
+      bundle-tilesets: false
+      bundle-registry-mods: false
+      package-artifacts: false
+      run-tests: false
       android-localize: false
       upload-artifacts: false
       upload-to-release: false
