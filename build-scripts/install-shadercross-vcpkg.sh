@@ -55,7 +55,7 @@ if [ ! -d "${vcpkg_root}/.git" ]; then
 fi
 
 current_commit="$(git -C "${vcpkg_root}" rev-parse HEAD 2>/dev/null || true)"
-if [ "${current_commit}" != "${vcpkg_commit}" ]; then
+if [ "${current_commit}" != "${vcpkg_commit}" ] || [ ! -f "${vcpkg_root}/bootstrap-vcpkg.sh" ]; then
     git -C "${vcpkg_root}" fetch --depth 1 origin "${vcpkg_commit}"
     git -C "${vcpkg_root}" checkout --detach "${vcpkg_commit}"
 fi
