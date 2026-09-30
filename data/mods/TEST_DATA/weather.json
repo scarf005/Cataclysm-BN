@@ -36,9 +36,45 @@
     "requirements": { "required_weather_patterns": [ "test_weather_front" ] }
   },
   {
+    "type": "weather_type",
+    "id": "test_weather_alternate",
+    "copy-from": "test_weather_basic"
+  },
+  {
+    "type": "weather_pattern",
+    "id": "test_weather_constant",
+    "multiplier": 0.0,
+    "offset": 2.0,
+    "humidity_mod": 100.0,
+    "pressure_mod": 3.0,
+    "windpower_mod": -1000.0,
+    "temperature_mod": 5,
+    "active_threshold": 1.0,
+    "acidic": true
+  },
+  {
     "type": "base_weather",
     "id": "test_weather_base",
     "copy-from": "default",
     "weather_types": [ "test_weather_basic", "test_weather_pattern_thresholds" ]
+  },
+  {
+    "type": "base_weather",
+    "id": "test_weather_modifiers",
+    "copy-from": "default",
+    "extend": { "weather_patterns": [ "test_weather_constant" ] },
+    "weather_types": [ "test_weather_basic" ]
+  },
+  {
+    "type": "base_weather",
+    "id": "test_weather_alternate_region",
+    "copy-from": "default",
+    "weather_types": [ "test_weather_alternate" ]
+  },
+  {
+    "type": "base_weather",
+    "id": "test_weather_acid",
+    "copy-from": "default",
+    "extend": { "weather_patterns": [ "test_weather_constant" ] }
   }
 ]

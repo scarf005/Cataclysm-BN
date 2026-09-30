@@ -10,14 +10,53 @@
 #include "overmap/omdata.h"
 #include "overmap/overmap_special.h"
 #include "overmap/overmap_types.h"
+#include "overmap/overmap_ui.h"
+#include "regional_settings.h"
 #include "rng.h"
 #include "state_helpers.h"
 #include "type_id.h"
+#include "weather/weather_gen.h"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 #include <vector>
+
+TEST_CASE("overmap_weather_uses_queried_region_generator", "[overmap][weather]") {
+    clear_all_state();
+    const auto first_region_id = std::string("test_weather_region_first");
+    const auto second_region_id = std::string("test_weather_region_second");
+    const auto cleanup = on_out_of_scope([&]() {
+        region_settings_map.erase(first_region_id);
+        region_settings_map.erase(second_region_id);
+        ACTIVE_OVERMAP_BUFFER.clear();
+    });
+
+    auto first_region = regional_settings();
+    first_region.id = first_region_id;
+    first_region.weather = base_weathers::get(base_weather_id("test_weather_base"));
+    auto second_region = regional_settings();
+    second_region.id = second_region_id;
+    second_region.weather = base_weathers::get(base_weather_id("test_weather_alternate_region"));
+    region_settings_map.emplace(first_region_id, first_region);
+    region_settings_map.emplace(second_region_id, second_region);
+
+    auto& overmap_buffer = ACTIVE_OVERMAP_BUFFER;
+    overmap_buffer.clear();
+    overmap_buffer.current_region_type = first_region_id;
+    const auto first_location = tripoint_abs_omt(0, 0, OVERMAP_HEIGHT);
+    REQUIRE(overmap_buffer.get_om_global(first_location).om->get_settings().id == first_region_id);
+
+    overmap_buffer.current_region_type = second_region_id;
+    const auto second_location = tripoint_abs_omt(OMAPX, 0, OVERMAP_HEIGHT);
+    REQUIRE(
+        overmap_buffer.get_om_global(second_location).om->get_settings().id == second_region_id);
+
+    CHECK(overmap_ui::get_weather_at_point(first_location.xy())
+          == weather_type_id("test_weather_basic"));
+    CHECK(overmap_ui::get_weather_at_point(second_location.xy())
+          == weather_type_id("test_weather_alternate"));
+}
 
 TEST_CASE("set_and_get_overmap_scents", "[overmap]") {
     clear_all_state();

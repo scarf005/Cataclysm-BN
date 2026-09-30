@@ -186,6 +186,63 @@ TEST_CASE("region_overlay_changes_base_weather", "[weather][json]") {
             weather_type_id("test_weather_pattern_thresholds")});
 }
 
+TEST_CASE("regional_settings_accepts_legacy_weather_forms", "[weather][json]") {
+    const auto string_region_id = std::string("test_legacy_weather_string");
+    const auto inline_region_id = std::string("test_legacy_weather_inline");
+    const auto cleanup = on_out_of_scope([&]() {
+        region_settings_map.erase(string_region_id);
+        region_settings_map.erase(inline_region_id);
+    });
+
+    auto string_input = std::istringstream(
+        R"({"id":"test_legacy_weather_string","weather":"test_weather_base"})");
+    auto string_reader = JsonIn(string_input);
+    load_region_settings(string_reader.get_object());
+    REQUIRE(region_settings_map.contains(string_region_id));
+    CHECK(region_settings_map.at(string_region_id).weather.id
+          == base_weather_id("test_weather_base"));
+
+    auto inline_input = std::istringstream(R"({
+        "id":"test_legacy_weather_inline",
+        "weather": {
+            "base_humidity": 64,
+            "weather_types":["test_weather_basic"]
+        }
+    })");
+    auto inline_reader = JsonIn(inline_input);
+    load_region_settings(inline_reader.get_object());
+    REQUIRE(region_settings_map.contains(inline_region_id));
+    CHECK(region_settings_map.at(inline_region_id).weather.base_humidity == 64.0);
+    CHECK(region_settings_map.at(inline_region_id).weather.weather_types
+          == std::vector<weather_type_id>{weather_type_id("test_weather_basic")});
+}
+
+TEST_CASE("default_weather_does_not_enable_acidic_pattern", "[weather][json]") {
+    const auto& generator = base_weathers::get(base_weather_id("default"));
+    CHECK(std::ranges::find(generator.weather_patterns, weather_pattern_id("acidic"))
+          == generator.weather_patterns.end());
+}
+
+TEST_CASE("weather_pattern_modifiers_are_applied_and_clamped", "[weather][json]") {
+    const auto& generator = base_weathers::get(base_weather_id("test_weather_modifiers"));
+    const auto weather = generator.get_weather(tripoint_abs_ms::zero(), calendar::turn_zero, 42);
+    REQUIRE(weather.pattern_values.contains(weather_pattern_id("test_weather_constant")));
+    CHECK(weather.pattern_values.at(weather_pattern_id("test_weather_constant")) == 2.0);
+    CHECK(weather.humidity == 100.0);
+    CHECK(weather.windpower == 0.0);
+    CHECK(weather.acidic);
+
+    const auto& acid_generator = base_weathers::get(base_weather_id("test_weather_acid"));
+    auto rainy_weather = w_point{
+        .temperature = 20_c,
+        .humidity = 98.0,
+        .pressure = 995.0,
+        .windpower = 0.0,
+        .pattern_values = {{weather_pattern_id("test_weather_constant"), 2.0}},
+    };
+    CHECK(acid_generator.get_weather_conditions(rainy_weather) == weather_type_id("acid_rain"));
+}
+
 TEST_CASE("weather refreshes when the player crosses a submap", "[weather]") {
     clear_all_state();
     build_test_map(ter_id("t_floor"));

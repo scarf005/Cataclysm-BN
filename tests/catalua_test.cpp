@@ -143,6 +143,81 @@ test_data["weather_after"] = tostring(gapi.get_omt_weather_override(test_data["c
     CHECK_FALSE(get_weather().has_omt_weather_override(center));
 }
 
+TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][weather]") {
+    clear_all_state();
+    const auto restore_turn = restore_on_out_of_scope<time_point>(calendar::turn);
+    const auto cleanup_overrides = on_out_of_scope([]() {
+        get_weather().clear_all_omt_weather_overrides();
+        clear_states(state::weather | state::weather);
+    });
+
+    auto lua = make_lua_state();
+    auto test_data = lua.create_table();
+    lua.globals()["test_data"] = test_data;
+    const auto center = project_to<coords::omt>(get_avatar().abs_pos());
+    const auto neighbor = center + tripoint_rel_omt(1, 0, 0);
+    const auto outside = center + tripoint_rel_omt(2, 0, 0);
+    test_data["center"] = center;
+    test_data["neighbor"] = neighbor;
+    test_data["outside"] = outside;
+
+    auto set_result = lua.safe_script(
+        R"(
+        gapi.set_omt_weather_override(test_data["center"], 1, "lightning")
+        test_data["center_before"] = gapi.get_omt_weather_override(test_data["center"])
+        test_data["neighbor_before"] = gapi.get_omt_weather_override(test_data["neighbor"])
+        test_data["outside_before"] = gapi.get_omt_weather_override(test_data["outside"])
+        )",
+        sol::script_pass_on_error);
+    REQUIRE(set_result.valid());
+    CHECK(test_data.get<std::string>("center_before") == "lightning");
+    CHECK(test_data.get<std::string>("neighbor_before") == "lightning");
+    CHECK_FALSE(test_data["outside_before"].valid());
+
+    auto overwrite_result = lua.safe_script(
+        R"(gapi.set_omt_weather_override(test_data["center"], 0, "thunder"))",
+        sol::script_pass_on_error);
+    REQUIRE(overwrite_result.valid());
+    CHECK(get_weather().get_omt_weather_override(center)->str() == "thunder");
+    CHECK(get_weather().get_omt_weather_override(neighbor)->str() == "lightning");
+
+    auto clear_result = lua.safe_script(
+        R"(gapi.clear_omt_weather_override(test_data["center"], 0))", sol::script_pass_on_error);
+    REQUIRE(clear_result.valid());
+    CHECK_FALSE(get_weather().has_omt_weather_override(center));
+    CHECK(get_weather().has_omt_weather_override(neighbor));
+
+    auto invalid_radius = lua.safe_script(
+        R"(gapi.set_omt_weather_override(test_data["center"], -1, "rain"))",
+        sol::script_pass_on_error);
+    CHECK_FALSE(invalid_radius.valid());
+    auto invalid_weather = lua.safe_script(
+        R"(gapi.set_omt_weather_override(test_data["center"], 0, "not_a_weather"))",
+        sol::script_pass_on_error);
+    CHECK_FALSE(invalid_weather.valid());
+
+    auto no_expiry_result = lua.safe_script(
+        R"(gapi.set_omt_weather_override(test_data["outside"], 0, "rain"))",
+        sol::script_pass_on_error);
+    REQUIRE(no_expiry_result.valid());
+    calendar::turn += 1_hours;
+    CHECK(get_weather().has_omt_weather_override(outside));
+
+    const auto expires_at = calendar::turn + 30_minutes;
+    test_data["expires_at"] = expires_at;
+    auto expiry_result = lua.safe_script(
+        R"(gapi.set_omt_weather_override(test_data["center"], 0, "lightning", test_data["expires_at"]))",
+        sol::script_pass_on_error);
+    REQUIRE(expiry_result.valid());
+    CHECK(get_weather().has_omt_weather_override(center, calendar::turn + 29_minutes));
+    CHECK_FALSE(get_weather().has_omt_weather_override(center, expires_at));
+
+    clear_states(state::weather | state::weather);
+    CHECK_FALSE(get_weather().has_omt_weather_override(center));
+    CHECK_FALSE(get_weather().has_omt_weather_override(neighbor));
+    CHECK_FALSE(get_weather().has_omt_weather_override(outside));
+}
+
 TEST_CASE("lua_map_create_item_at_places_without_returning_owned_item", "[lua][map]") {
     clear_all_state();
     auto lua = make_lua_state();
