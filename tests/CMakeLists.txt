@@ -23,7 +23,7 @@ if (BUILD_TESTING)
             COMMAND sh -c "$<TARGET_FILE:cata_test-tiles> --rng-seed time"
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-        if (NOT "${CMAKE_EXPORT_COMPILE_COMMANDS}")
+        if (CATA_TEST_PCH)
             target_precompile_headers(cata_test-tiles PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/pch/tests-pch.hpp)
         endif ()
@@ -44,7 +44,7 @@ if (BUILD_TESTING)
             COMMAND sh -c "$<TARGET_FILE:cata_test> --rng-seed time"
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-        if (NOT "${CMAKE_EXPORT_COMPILE_COMMANDS}")
+        if (CATA_TEST_PCH)
             target_precompile_headers(cata_test PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/pch/tests-pch.hpp)
         endif ()

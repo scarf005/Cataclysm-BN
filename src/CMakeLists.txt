@@ -148,6 +148,10 @@ if (TILES)
     endif ()
 
     setup_common_target_properties(cataclysm-bn-tiles-common)
+    if (CATA_GAME_PCH)
+        target_precompile_headers(cataclysm-bn-tiles-common PRIVATE
+            ${CMAKE_SOURCE_DIR}/pch/main-pch.hpp)
+    endif ()
 
     # Tiles-specific setup
     target_compile_definitions(cataclysm-bn-tiles-common PUBLIC TILES)
@@ -224,6 +228,10 @@ if (CURSES)
     endif ()
 
     setup_common_target_properties(cataclysm-bn-common)
+    if (CATA_GAME_PCH)
+        target_precompile_headers(cataclysm-bn-common PRIVATE
+            ${CMAKE_SOURCE_DIR}/pch/main-pch.hpp)
+    endif ()
 
     # Curses-specific setup
     target_include_directories(cataclysm-bn-common PUBLIC ${CURSES_INCLUDE_DIR})
