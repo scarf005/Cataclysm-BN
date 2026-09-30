@@ -257,16 +257,19 @@ export const playtest = async (
   }
 }
 
+export const createPlaytestCommand = (launch = playtest) =>
+  new Command()
+    .name("just playtest")
+    .description(
+      "Download and launch a PR tiles build. Requires gh auth login; PR code is untrusted.",
+    )
+    .option("--os <os:string>", "Target OS: linux, windows, macos, or android (default: host).")
+    .arguments("<pr:string>")
+    .action(async ({ os }, pr) => await launch(pr, os))
+
 if (import.meta.main) {
   try {
-    await new Command()
-      .name("just playtest")
-      .description(
-        "Download and launch a PR tiles build. Requires gh auth login; PR code is untrusted.",
-      )
-      .arguments("<pr:string> [os:string]")
-      .action(async (_options, pr, os) => await playtest(pr, os))
-      .parse(Deno.args)
+    await createPlaytestCommand().parse(Deno.args)
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     Deno.exit(1)

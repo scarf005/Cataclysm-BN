@@ -10,7 +10,7 @@ thorough introduction.
 
 ## Playtesting pull requests
 
-Use [`just playtest <PR> [os]`](../reference/tooling.md#playtesting-pull-requests) to download and launch
+Use [`just playtest [--os OS] <PR URL>`](../reference/tooling.md#playtesting-pull-requests) to download and launch
 an existing PR build without compiling locally. The tooling guide covers prerequisites, supported
 platforms, artifact selection, and save locations.
 

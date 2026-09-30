@@ -2,6 +2,7 @@ import { assertEquals, assertRejects, assertThrows } from "@std/assert"
 import { join } from "@std/path"
 import {
   artifactName,
+  createPlaytestCommand,
   platformFor,
   playtest,
   resolvePull,
@@ -18,6 +19,18 @@ const artifact = {
   expired: false,
   workflow_run: { id: 20, head_sha: pull.headRefOid },
 }
+
+Deno.test("playtest CLI forwards --os and PR URL, defaulting OS to the host", async () => {
+  const url = "https://github.com/cataclysmbn/Cataclysm-BN/pull/123"
+  const calls: (string | undefined)[][] = []
+  const launch = (pr: string, os?: string): Promise<void> => {
+    calls.push([pr, os])
+    return Promise.resolve()
+  }
+  await createPlaytestCommand(launch).parse(["--os", "linux", url])
+  await createPlaytestCommand(launch).parse([url])
+  assertEquals(calls, [[url, "linux"], [url, undefined]])
+})
 
 Deno.test("playtest selects the newest unexpired artifact for the exact PR head", () => {
   const artifacts = [
