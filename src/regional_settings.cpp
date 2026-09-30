@@ -754,7 +754,11 @@ void load_region_settings( const JsonObject &jo )
             jo.throw_error( "\"base_weather\" required for default" );
         }
     }
-    if( base_weather ) {
+    if( jo.has_member( "base_weather" ) || jo.has_string( "weather" ) ) {
+        if( !base_weather || base_weather.str().empty() ) {
+            jo.throw_error( "weather profile id must be non-empty and non-null",
+                            jo.has_member( "base_weather" ) ? "base_weather" : "weather" );
+        }
         new_region.weather_id = base_weather;
         if( base_weather.is_valid() ) {
             new_region.weather = base_weathers::get( base_weather );
@@ -854,6 +858,9 @@ void apply_region_overlay( const JsonObject &jo, regional_settings &region )
 {
     auto base_weather = base_weather_id();
     if( jo.read( "base_weather", base_weather ) ) {
+        if( !base_weather || base_weather.str().empty() ) {
+            jo.throw_error( "weather profile id must be non-empty and non-null", "base_weather" );
+        }
         region.weather_overlay_json.clear();
         region.weather_id = base_weather;
         if( base_weather.is_valid() ) {
@@ -861,6 +868,9 @@ void apply_region_overlay( const JsonObject &jo, regional_settings &region )
         }
     } else if( jo.has_string( "weather" ) ) {
         jo.read( "weather", base_weather );
+        if( !base_weather || base_weather.str().empty() ) {
+            jo.throw_error( "weather profile id must be non-empty and non-null", "weather" );
+        }
         region.weather_overlay_json.clear();
         region.weather_id = base_weather;
         if( base_weather.is_valid() ) {
