@@ -23,6 +23,7 @@ permissions:
 
 env:
   LLVM_VERSION: "22"
+  VCPKG_SHADERCROSS_COMMIT: "a8f78d257ade3c2e7999c1129a6d29971ae32006"
 
 jobs:
   skip-duplicates:
@@ -58,11 +59,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev
 
+      - name: Run shader artifact fixtures
+        run: |
+          bash build-scripts/shader-artifacts-test.sh
+          bash build-scripts/shadercross-revision-test.sh
+
+      - name: Cache pinned shadercross tool
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: shadercross-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_SHADERCROSS_COMMIT }}-${{ hashFiles('build-scripts/install-shadercross-vcpkg.sh', 'msvc-full-features/vcpkg.json') }}
+
       - name: Install shadercross
+        env:
+          VCPKG_COMMIT: ${{ env.VCPKG_SHADERCROSS_COMMIT }}
         run: bash build-scripts/install-shadercross-vcpkg.sh
 
       - name: Generate shaders
         run: bash build-scripts/generate-shaders.sh
+
+      - name: Verify generated shaders
+        shell: bash
+        run: bash build-scripts/verify-shader-artifacts.sh
 
       - name: Upload generated shaders
         uses: actions/upload-artifact@v4
@@ -117,11 +135,16 @@ jobs:
           name: generated-shaders-ci
           path: data/shaders
 
+      - name: Verify generated shaders
+        if: ${{ env.SKIP == 'false' }}
+        shell: bash
+        run: bash build-scripts/verify-shader-artifacts.sh
+
       - name: install dependencies (ubuntu)
         if: ${{ env.SKIP == 'false' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y libncursesw5-dev mold gettext parallel libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb autoconf autoconf-archive automake libtool libltdl-dev
+          sudo apt-get install -y libncursesw5-dev mold gettext parallel libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb
           sudo locale-gen en_US.UTF-8 fr_FR.UTF-8 ru_RU.UTF-8
 
       - name: Setup LLVM build tools
@@ -195,7 +218,7 @@ jobs:
         uses: lukka/run-cmake@v10
         with:
           configurePreset: ${{ matrix.preset }}
-          configurePresetAdditionalArgs: "['-DUSE_PREFIX_DATA_DIR=OFF', '-DCATA_FORMAT_TARGETS=OFF']"
+          configurePresetAdditionalArgs: "['-DUSE_PREFIX_DATA_DIR=OFF', '-DCATA_FORMAT_TARGETS=OFF', '-DUSE_PRECOMPILED_SHADERS=ON']"
           buildPreset: ${{ matrix.preset }}
           buildPresetAdditionalArgs: "['-j', '2']"
 
@@ -260,12 +283,14 @@ jobs:
           if-no-files-found: ignore
 
   cache-warm-builds:
-    needs: skip-duplicates
+    needs: [skip-duplicates, shader-artifacts]
     if: ${{ github.event_name == 'push' && needs.skip-duplicates.outputs.should_skip_platform != 'true' }}
     uses: ./.github/workflows/build.yml
     with:
       version-label: experimental
       mode: ci
+      shader-artifact-name: generated-shaders-ci
+      use-precompiled-shaders: true
       matrix-json: |
         [
           { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip" },
@@ -284,13 +309,15 @@ jobs:
     secrets: inherit
 
   builds:
-    needs: skip-duplicates
+    needs: [skip-duplicates, shader-artifacts]
     if: ${{ github.event_name != 'push' && needs.skip-duplicates.outputs.should_skip_platform != 'true' }}
     uses: ./.github/workflows/build.yml
     with:
       version-label: experimental
       mode: ci
       artifact-label: pr-${{ github.event.pull_request.number || github.run_id }}
+      shader-artifact-name: generated-shaders-ci
+      use-precompiled-shaders: true
       matrix-json: |
         [
           { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip", "upload-artifact": true },

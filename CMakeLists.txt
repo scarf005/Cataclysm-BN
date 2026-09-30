@@ -77,6 +77,7 @@ set(LINKER "" CACHE STRING "Custom Linker to use")
 set(GETTEXT_MSGFMT_BINARY "" CACHE FILEPATH "msgfmt binary name or path.")
 option(BUILD_SDL3 "Force builds SDL3 and its modules from source, instead of using system packages" "OFF")
 option(BUILD_SHADERCROSS "Build SDL_shadercross from source when shadercross is not on PATH" "ON")
+option(USE_PRECOMPILED_SHADERS "Use verified precompiled shaders instead of running shadercross" "OFF")
 if(WIN32)
     set(SHADER_TARGETS "dxil;spirv;msl" CACHE STRING "Shaders to build (dxil/spirv/msl)")
 else()
@@ -434,11 +435,17 @@ if (CATA_SDL)
     endif ()
 
     # --- SDL_shadercross: HLSL shader compiler (build-time tool only, library not linked) ---
-    message(STATUS "Searching for shadercross (HLSL compiler) --")
+    if (USE_PRECOMPILED_SHADERS)
+        message(STATUS "Using precompiled shaders; shadercross lookup and build disabled")
+        set(SHADERCROSS_EXE "")
+    endif ()
 
-    find_program(SHADERCROSS_EXE
-        NAMES shadercross
-        HINTS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/sdl3-shadercross")
+    if (NOT USE_PRECOMPILED_SHADERS)
+        message(STATUS "Searching for shadercross (HLSL compiler) --")
+
+        find_program(SHADERCROSS_EXE
+            NAMES shadercross
+            HINTS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/sdl3-shadercross")
 
     if (APPLE AND SHADERCROSS_EXE)
         message(STATUS "shadercross found on macOS; using precompiled MSL shaders instead")
@@ -517,6 +524,7 @@ if (CATA_SDL)
 
         set(SHADERCROSS_EXE $<TARGET_FILE:shadercross>)
         set(SHADERCROSS_TARGET shadercross)
+    endif ()
     endif ()
 
     file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/data/shaders")

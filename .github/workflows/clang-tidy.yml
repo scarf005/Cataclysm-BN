@@ -32,6 +32,7 @@ jobs:
     env:
       CMAKE: 1
       LLVM_VERSION: "22"
+      VCPKG_SHADERCROSS_COMMIT: "a8f78d257ade3c2e7999c1129a6d29971ae32006"
       CLANG: clang++
       COMPILER: clang++
       TILES: 1
@@ -95,7 +96,15 @@ jobs:
           verbose: 2
           save: ${{ github.event_name != 'pull_request' }}
 
+      - name: Cache pinned shadercross tool
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-shadercross
+          key: shadercross-${{ runner.os }}-${{ runner.arch }}-${{ env.VCPKG_SHADERCROSS_COMMIT }}-${{ hashFiles('build-scripts/install-shadercross-vcpkg.sh', 'msvc-full-features/vcpkg.json') }}
+
       - name: Install shadercross
+        env:
+          VCPKG_COMMIT: ${{ env.VCPKG_SHADERCROSS_COMMIT }}
         run: bash build-scripts/install-shadercross-vcpkg.sh
 
       - name: add problem matcher
