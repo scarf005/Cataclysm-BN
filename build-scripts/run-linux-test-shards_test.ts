@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from "@std/assert"
 import { deadline, delay } from "@std/async"
-import { join } from "@std/path"
+import { fromFileUrl, join } from "@std/path"
 import {
   buildShardPlan,
   discoverTags,
@@ -9,40 +9,55 @@ import {
   runProcess,
 } from "./run-linux-test-shards.ts"
 
-type ProcessEvent = {
-  stream: "stdout" | "stderr"
-  text: string
-}
+type ProcessOptions = Parameters<typeof runProcess>[0]
+type ProcessEvent = { stream: "stdout" | "stderr"; text: string }
 
-Deno.test("runProcess streams output before the process exits", async () => {
-  const events: ProcessEvent[] = []
-  let resolveOutput: () => void = () => {}
-  const outputSeen = new Promise<void>((resolve) => {
-    resolveOutput = resolve
-  })
-  let completed = false
-  const runPromise = runProcess({
+const runEval = (source: string, options: Partial<ProcessOptions> = {}, args: string[] = []) =>
+  runProcess({
     command: Deno.execPath(),
-    args: [
-      "eval",
-      "console.log('before-exit'); await new Promise((resolve) => setTimeout(resolve, 250));",
-    ],
-    label: "stream-fixture",
+    args: ["eval", source, ...args],
+    label: "eval-fixture",
     streamOutput: false,
     timeoutSeconds: 2,
-    onOutput: (event) => {
-      events.push(event)
-      resolveOutput()
-    },
-  }).finally(() => {
-    completed = true
+    ...options,
   })
-  await deadline(outputSeen, 2000)
-  assert(events.some((event) => event.text.includes("before-exit")))
-  await delay(50)
-  assertEquals(completed, false)
-  assertEquals((await runPromise).code, 0)
-})
+
+const withTempDir = async (test: (dir: string) => Promise<void>): Promise<void> => {
+  const dir = await Deno.makeTempDir({ prefix: "cata-test-fixture." })
+  try {
+    await test(dir)
+  } finally {
+    await Deno.remove(dir, { recursive: true })
+  }
+}
+
+Deno.test("runProcess streams output before the process exits", () =>
+  withTempDir(async (dir) => {
+    const events: ProcessEvent[] = []
+    const outputSeen = Promise.withResolvers<void>()
+    const releasePath = join(dir, "release")
+    let completed = false
+    const runPromise = runEval(
+      "console.log('before-exit'); while (true) { try { await Deno.stat(Deno.args[0]); break; } catch { await new Promise(r => setTimeout(r, 10)); } }",
+      {
+        onOutput: (event) => {
+          events.push(event)
+          outputSeen.resolve()
+        },
+      },
+      [releasePath],
+    ).finally(() => {
+      completed = true
+    })
+    try {
+      await deadline(outputSeen.promise, 2000)
+      assert(events.some((event) => event.text.includes("before-exit")))
+      assertEquals(completed, false)
+    } finally {
+      await Deno.writeTextFile(releasePath, "release")
+      assertEquals((await runPromise).code, 0)
+    }
+  }))
 
 Deno.test("normalizeRngSeed resolves time and preserves numeric seeds", () => {
   assertEquals(normalizeRngSeed(["--rng-seed", "time"], 1_700_000_123_000), [
@@ -53,19 +68,8 @@ Deno.test("normalizeRngSeed resolves time and preserves numeric seeds", () => {
 })
 
 Deno.test("runProcess returns nonzero status and times out with cleanup", async () => {
-  const failed = await runProcess({
-    command: Deno.execPath(),
-    args: ["eval", "Deno.exit(7)"],
-    label: "failure-fixture",
-    streamOutput: false,
-    timeoutSeconds: 2,
-  })
-  assertEquals(failed.code, 7)
-  const timedOut = await runProcess({
-    command: Deno.execPath(),
-    args: ["eval", "await new Promise((resolve) => setTimeout(resolve, 60_000));"],
-    label: "timeout-fixture",
-    streamOutput: false,
+  assertEquals((await runEval("Deno.exit(7)")).code, 7)
+  const timedOut = await runEval("await new Promise((resolve) => setTimeout(resolve, 60_000));", {
     timeoutSeconds: 0.1,
     debuggerCommand: "cata-debugger-that-does-not-exist",
   })
@@ -74,87 +78,76 @@ Deno.test("runProcess returns nonzero status and times out with cleanup", async 
 })
 
 Deno.test("runProcess terminates descendants that keep pipes open after root exit", async () => {
-  if (Deno.build.os !== "linux") {
-    return
-  }
+  if (Deno.build.os !== "linux") return
   const started = Date.now()
-  const result = await runProcess({
-    command: Deno.execPath(),
-    args: [
-      "eval",
-      "new Deno.Command(Deno.execPath(), { args: ['eval', 'await new Promise((resolve) => setTimeout(resolve, 60000))'], stdout: 'inherit', stderr: 'inherit' }).spawn(); Deno.exit(0);",
-    ],
-    label: "descendant-fixture",
-    streamOutput: false,
-    timeoutSeconds: 2,
-  })
+  const result = await runEval(
+    "new Deno.Command(Deno.execPath(), { args: ['eval', 'await new Promise((resolve) => setTimeout(resolve, 60000))'], stdout: 'inherit', stderr: 'inherit' }).spawn(); Deno.exit(0);",
+  )
   assertEquals(result.code, 0)
   assert(Date.now() - started < 3000)
 })
 
-Deno.test("runProcess force-kills a stubborn root on timeout", async () => {
-  const started = Date.now()
-  const result = await runProcess({
-    command: Deno.execPath(),
-    args: [
-      "eval",
+Deno.test({
+  name: "runProcess force-kills a stubborn root on timeout",
+  ignore: Deno.build.os === "windows",
+  fn: async () => {
+    const started = Date.now()
+    const result = await runEval(
       "Deno.addSignalListener('SIGTERM', () => {}); await new Promise(() => {});",
-    ],
-    label: "stubborn-fixture",
-    streamOutput: false,
-    timeoutSeconds: 0.1,
-    debuggerCommand: "cata-debugger-that-does-not-exist",
-  })
-  assert(result.timedOut)
-  assert(result.code !== 0)
-  assert(Date.now() - started < 3000)
+      { timeoutSeconds: 0.1, debuggerCommand: "cata-debugger-that-does-not-exist" },
+    )
+    assert(result.timedOut)
+    assert(result.code !== 0)
+    assert(Date.now() - started < 3000)
+  },
 })
 
-Deno.test("runProcess cleans a failed spawn and its log", async () => {
-  const logDir = await Deno.makeTempDir({ prefix: "cata-test-spawn." })
-  const logPath = join(logDir, "spawn-failure.log")
-  try {
-    await assertRejects(() =>
-      runProcess({
-        command: `${Deno.execPath()}.missing`,
-        args: [],
-        label: "spawn-failure",
-        streamOutput: false,
-        logPath,
-      })
-    )
-    await Deno.remove(logPath)
-  } finally {
-    await Deno.remove(logDir, { recursive: true })
-  }
+Deno.test("runProcess force-kills stubborn descendants on timeout", async () => {
+  if (Deno.build.os !== "linux") return
+  const events: ProcessEvent[] = []
+  const started = Date.now()
+  const descendant =
+    "Deno.addSignalListener('SIGTERM', () => {}); console.log('descendant-ready'); await new Promise(() => {});"
+  const result = await runEval(
+    `new Deno.Command(Deno.execPath(), { args: ['eval', ${
+      JSON.stringify(descendant)
+    }], stdout: 'inherit', stderr: 'inherit' }).spawn(); await new Promise(() => {});`,
+    {
+      timeoutSeconds: 1,
+      debuggerCommand: "cata-debugger-that-does-not-exist",
+      onOutput: (event) => {
+        events.push(event)
+      },
+    },
+  )
+  assert(events.some((event) => event.text.includes("descendant-ready")))
+  assert(result.timedOut)
+  assert(Date.now() - started < 5000)
 })
+
+Deno.test("runProcess cleans a failed spawn and its log", () =>
+  withTempDir(async (dir) => {
+    const logPath = join(dir, "spawn-failure.log")
+    await assertRejects(() => runEval("", { command: `${Deno.execPath()}.missing`, logPath }))
+    await Deno.remove(logPath)
+  }))
 
 Deno.test("runProcess cleans up after an output callback failure", async () => {
   await assertRejects(() =>
-    runProcess({
-      command: Deno.execPath(),
-      args: [
-        "eval",
-        "console.error('callback-failure'); await new Promise((resolve) => setTimeout(resolve, 60000));",
-      ],
-      label: "callback-failure",
-      streamOutput: false,
-      timeoutSeconds: 2,
-      onOutput: () => {
-        throw new Error("callback failed")
+    runEval(
+      "console.error('callback-failure'); await new Promise((resolve) => setTimeout(resolve, 60000));",
+      {
+        onOutput: () => {
+          throw new Error("callback failed")
+        },
       },
-    })
+    )
   )
 })
 
 Deno.test("runProcess bounds a no-newline output event", async () => {
   const events: ProcessEvent[] = []
-  await runProcess({
-    command: Deno.execPath(),
-    args: ["eval", "await Deno.stdout.write(new TextEncoder().encode('x'.repeat(200000)))"],
-    label: "long-line-fixture",
-    streamOutput: false,
-    timeoutSeconds: 2,
+  await runEval("await Deno.stdout.write(new TextEncoder().encode('x'.repeat(200000)))", {
     onOutput: (event) => {
       events.push(event)
     },
@@ -164,20 +157,13 @@ Deno.test("runProcess bounds a no-newline output event", async () => {
 })
 
 Deno.test("runProcess bounds a stalled debugger and cleans its output", async () => {
-  if (Deno.build.os !== "linux") {
-    return
-  }
-  const logDir = await Deno.makeTempDir({ prefix: "cata-test-debugger." })
-  const debuggerPath = join(logDir, "stalled-debugger.sh")
-  const logPath = join(logDir, "stalled-debugger.log")
-  await Deno.writeTextFile(debuggerPath, "#!/bin/sh\nexec sleep 60\n")
-  await Deno.chmod(debuggerPath, 0o755)
-  try {
-    const result = await runProcess({
-      command: Deno.execPath(),
-      args: ["eval", "await new Promise((resolve) => setTimeout(resolve, 60000))"],
-      label: "stalled-debugger",
-      streamOutput: false,
+  if (Deno.build.os !== "linux") return
+  await withTempDir(async (dir) => {
+    const debuggerPath = join(dir, "stalled-debugger.sh")
+    const logPath = join(dir, "stalled-debugger.log")
+    await Deno.writeTextFile(debuggerPath, "#!/bin/sh\nexec sleep 60\n")
+    await Deno.chmod(debuggerPath, 0o755)
+    const result = await runEval("await new Promise((resolve) => setTimeout(resolve, 60000))", {
       timeoutSeconds: 0.1,
       logPath,
       initialLogText: "filter=startup-fixture seed=42 repro=deno-eval\n",
@@ -188,37 +174,24 @@ Deno.test("runProcess bounds a stalled debugger and cleans its output", async ()
     const log = await Deno.readTextFile(logPath)
     assertStringIncludes(log, "filter=startup-fixture seed=42 repro=deno-eval")
     assertStringIncludes(log, "stack capture timed out")
-  } finally {
-    await Deno.remove(logDir, { recursive: true })
-  }
+  })
 })
 
-Deno.test("runProcess reports a missing debugger without leaking the timeout", async () => {
-  const logDir = await Deno.makeTempDir({ prefix: "cata-test-diagnostics." })
-  const logPath = join(logDir, "missing-debugger.log")
-  try {
-    const result = await runProcess({
-      command: Deno.execPath(),
-      args: ["eval", "await new Promise((resolve) => setTimeout(resolve, 60_000));"],
-      label: "missing-debugger",
-      streamOutput: false,
+Deno.test("runProcess reports a missing debugger without leaking the timeout", () =>
+  withTempDir(async (dir) => {
+    const logPath = join(dir, "missing-debugger.log")
+    const result = await runEval("await new Promise((resolve) => setTimeout(resolve, 60_000));", {
       timeoutSeconds: 0.1,
       logPath,
       debuggerCommand: "cata-debugger-that-does-not-exist",
     })
     assert(result.timedOut)
     assertStringIncludes(await Deno.readTextFile(logPath), "stack capture unavailable")
-  } finally {
-    await Deno.remove(logDir, { recursive: true })
-  }
-})
+  }))
 
 Deno.test("discoverTags fails promptly when discovery exits nonzero", async () => {
-  if (Deno.build.os === "windows") {
-    return
-  }
-  const shardDir = await Deno.makeTempDir({ prefix: "cata-test-discovery." })
-  try {
+  if (Deno.build.os === "windows") return
+  await withTempDir(async (dir) => {
     await assertRejects(() =>
       discoverTags(
         {
@@ -233,13 +206,120 @@ Deno.test("discoverTags fails promptly when discovery exits nonzero", async () =
           testBin: "/bin/false",
           testOpts: [],
         },
-        shardDir,
-        shardDir,
+        dir,
+        dir,
       )
     )
-  } finally {
-    await Deno.remove(shardDir, { recursive: true })
-  }
+  })
+})
+
+Deno.test("runProcess inherits environment and applies overrides", async () => {
+  const events: ProcessEvent[] = []
+  await runEval(
+    "console.log(Deno.env.get('PATH')); console.log(Deno.env.get('CATA_TEST_FIXTURE'));",
+    {
+      env: { CATA_TEST_FIXTURE: "override" },
+      onOutput: (event) => {
+        events.push(event)
+      },
+    },
+  )
+  assertEquals(events.map((event) => event.text.trimEnd()), [Deno.env.get("PATH"), "override"])
+})
+
+Deno.test("invalid seed does not create shard directories", () =>
+  withTempDir(async (dir) => {
+    const result = await runProcess({
+      command: Deno.execPath(),
+      args: [
+        "run",
+        "--allow-read",
+        "--allow-write",
+        "--allow-run",
+        "--allow-env",
+        fromFileUrl(new URL("./run-linux-test-shards.ts", import.meta.url)),
+        "--mode",
+        "legacy",
+        "--jobs",
+        "1",
+        "--dry-run",
+        "--",
+        "--rng-seed",
+        "bogus",
+      ],
+      env: { RUNNER_TEMP: dir, CATA_TEST_SHARD_DIR: "" },
+      label: "invalid-seed",
+      streamOutput: false,
+      timeoutSeconds: 10,
+    })
+    assertEquals(result.code, 1)
+    assertEquals([...Deno.readDirSync(dir)], [])
+  }))
+
+Deno.test("runProcess cleans debugger descendants after debugger exit", async () => {
+  if (Deno.build.os !== "linux") return
+  await withTempDir(async (dir) => {
+    const debuggerPath = join(dir, "exited-debugger.sh")
+    const logPath = join(dir, "exited-debugger.log")
+    const pidPath = join(dir, "descendant.pid")
+    await Deno.writeTextFile(
+      debuggerPath,
+      `#!/bin/sh\nsleep 60 &\necho $! > '${pidPath}'\nexit 0\n`,
+    )
+    await Deno.chmod(debuggerPath, 0o755)
+    let pid: number | undefined
+    try {
+      const result = await runEval("await new Promise(r => setTimeout(r, 60000))", {
+        timeoutSeconds: 0.1,
+        debuggerCommand: debuggerPath,
+        logPath,
+      })
+      pid = Number(await Deno.readTextFile(pidPath))
+      assert(result.timedOut)
+      assertStringIncludes(await Deno.readTextFile(logPath), "[debugger output truncated]")
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const status = await new Deno.Command("ps", {
+          args: ["-o", "stat=", "-p", String(pid)],
+          stdout: "piped",
+          stderr: "null",
+        }).output()
+        if (!status.success || new TextDecoder().decode(status.stdout).trim().startsWith("Z")) {
+          return
+        }
+        await delay(20)
+      }
+      throw new Error("debugger descendant survived cleanup")
+    } finally {
+      if (pid !== undefined) {
+        try {
+          Deno.kill(pid, "SIGKILL")
+        } catch { /* Already terminated. */ }
+      }
+    }
+  })
+})
+
+Deno.test("runProcess bounds large debugger output", async () => {
+  if (Deno.build.os !== "linux") return
+  await withTempDir(async (dir) => {
+    const debuggerPath = join(dir, "large-debugger.sh")
+    const logPath = join(dir, "large-debugger.log")
+    const source = 'await Deno.stdout.write(new TextEncoder().encode("x".repeat(300000)));'
+    await Deno.writeTextFile(
+      debuggerPath,
+      `#!/bin/sh\nexec "${Deno.execPath()}" eval '${source}'\n`,
+    )
+    await Deno.chmod(debuggerPath, 0o755)
+    const result = await runEval("await new Promise(r => setTimeout(r, 60000))", {
+      timeoutSeconds: 0.1,
+      debuggerCommand: debuggerPath,
+      logPath,
+    })
+    assert(result.timedOut)
+    const log = await Deno.readTextFile(logPath)
+    assertStringIncludes(log, "[debugger output truncated]")
+    assert(log.length < 270000)
+  })
 })
 
 Deno.test("extractFileTags returns sorted unique file tags", () => {
