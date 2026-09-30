@@ -1,0 +1,34 @@
+name: Windows shard diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      replay-seed:
+        description: "Seed to replay (empty preserves time-seeded tests)"
+        type: string
+        default: "1790788843"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  windows:
+    if: github.repository == 'scarf005/Cataclysm-BN'
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: diagnostics
+      mode: ci
+      matrix-json: |
+        [
+          { "name": "Windows diagnostics", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip" }
+        ]
+      download-translations: false
+      bundle-tilesets: false
+      bundle-registry-mods: false
+      package-artifacts: false
+      run-tests: true
+      test-replay-seed: ${{ inputs.replay-seed }}
+      android-localize: false
+      upload-artifacts: false
+    secrets: inherit

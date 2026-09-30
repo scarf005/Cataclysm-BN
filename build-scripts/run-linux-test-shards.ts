@@ -22,6 +22,8 @@ type Options = {
   slowShards: number
   nonSlowShards: number | "auto"
   dryRun: boolean
+  diagnostics: boolean
+  replaySeed?: string
   testBin: string
   testOpts: string[]
 }
@@ -34,6 +36,29 @@ type Shard = {
 }
 
 type CommandResult = {
+  code: number
+  stdout: string
+  stderr: string
+}
+
+type ProcessOutput = "stdout" | "stderr"
+
+type ProcessEvent = {
+  stream: ProcessOutput
+  text: string
+}
+
+type ProcessOptions = {
+  command: string
+  args: string[]
+  env?: Record<string, string>
+  streamOutput: boolean
+  logPath?: string
+  initialLogText?: string
+  onOutput?: (event: ProcessEvent) => void | Promise<void>
+}
+
+type ProcessResult = {
   code: number
   stdout: string
   stderr: string
@@ -137,6 +162,151 @@ const commandOutput = async (
     stdout: decoder.decode(result.stdout),
     stderr: decoder.decode(result.stderr),
   }
+}
+
+type WritableFile = Pick<Deno.FsFile, "write">
+
+const textEncoder = new TextEncoder()
+
+const writeAll = async (file: WritableFile, data: Uint8Array): Promise<void> => {
+  let offset = 0
+  while (offset < data.byteLength) {
+    const written = await file.write(data.subarray(offset))
+    if (written === 0) {
+      throw new Error("short write")
+    }
+    offset += written
+  }
+}
+
+const writeDurableText = async (path: string, text: string): Promise<void> => {
+  const file = await Deno.open(path, { create: true, truncate: true, write: true })
+  try {
+    await writeAll(file, textEncoder.encode(text))
+    await file.sync()
+  } finally {
+    file.close()
+  }
+}
+
+export const runProcess = async (options: ProcessOptions): Promise<ProcessResult> => {
+  const child = new Deno.Command(options.command, {
+    args: options.args,
+    env: options.env ? { ...Deno.env.toObject(), ...options.env } : undefined,
+    stdout: "piped",
+    stderr: "piped",
+  }).spawn()
+  const logFile = options.logPath
+    ? await Deno.open(options.logPath, { create: true, truncate: true, write: true })
+    : undefined
+  let logWrite = Promise.resolve()
+  const appendLog = (text: string): Promise<void> => {
+    if (!logFile) {
+      return Promise.resolve()
+    }
+    const write = logWrite.then(async () => {
+      await writeAll(logFile, textEncoder.encode(text))
+      await logFile.sync()
+    })
+    logWrite = write.catch(() => {})
+    return write
+  }
+  const output: Record<ProcessOutput, string> = { stdout: "", stderr: "" }
+  const emit = async (event: ProcessEvent): Promise<void> => {
+    output[event.stream] += event.text
+    await appendLog(event.text)
+    if (options.streamOutput) {
+      await writeAll(
+        event.stream === "stdout" ? Deno.stdout : Deno.stderr,
+        textEncoder.encode(event.text),
+      )
+    }
+    await options.onOutput?.(event)
+  }
+  const consume = async (
+    stream: ReadableStream<Uint8Array>,
+    streamName: ProcessOutput,
+  ): Promise<void> => {
+    const reader = stream.getReader()
+    const decoder = new TextDecoder()
+    try {
+      while (true) {
+        const chunk = await reader.read()
+        if (chunk.done) {
+          const text = decoder.decode()
+          if (text) {
+            await emit({ stream: streamName, text })
+          }
+          break
+        }
+        const text = decoder.decode(chunk.value, { stream: true })
+        if (text) {
+          await emit({ stream: streamName, text })
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+  }
+  try {
+    if (options.initialLogText) {
+      await appendLog(options.initialLogText)
+    }
+    const streams = Promise.all([
+      consume(child.stdout, "stdout"),
+      consume(child.stderr, "stderr"),
+    ])
+    const status = await child.status
+    await streams
+    await logWrite
+    return { code: status.code, stdout: output.stdout, stderr: output.stderr }
+  } catch (error) {
+    try {
+      child.kill("SIGTERM")
+    } catch {
+      // The process may have exited while output was being consumed.
+    }
+    throw error
+  } finally {
+    await logWrite.catch(() => {})
+    logFile?.close()
+  }
+}
+
+const rngSeed = (testOpts: string[]): string => {
+  const index = testOpts.findIndex((arg) => arg === "--rng-seed" || arg.startsWith("--rng-seed="))
+  if (index < 0) {
+    return "unspecified"
+  }
+  return testOpts[index] === "--rng-seed"
+    ? testOpts[index + 1] ?? "missing"
+    : testOpts[index].slice("--rng-seed=".length)
+}
+
+export const replaySeed = (testOpts: string[], seed: string | undefined): string[] => {
+  if (seed === undefined) {
+    return [...testOpts]
+  }
+  if (!/^\d+$/.test(seed) || Number(seed) > 0xffffffff) {
+    throw new Error(`--replay-seed must be an unsigned integer: ${seed}`)
+  }
+  const result = [...testOpts]
+  const seedIndex = result.findIndex((arg) => arg === "--rng-seed" || arg.startsWith("--rng-seed="))
+  if (seedIndex < 0) {
+    throw new Error("--replay-seed requires --rng-seed time")
+  }
+  const value = result[seedIndex] === "--rng-seed"
+    ? result[seedIndex + 1]
+    : result[seedIndex].slice("--rng-seed=".length)
+  if (value !== "time") {
+    throw new Error("--replay-seed only overrides --rng-seed time")
+  }
+  if (result[seedIndex] === "--rng-seed") {
+    result[seedIndex + 1] = seed
+  } else {
+    result[seedIndex] = `--rng-seed=${seed}`
+  }
+  return result
 }
 
 const detectCpuCount = async (): Promise<number> => {
@@ -283,6 +453,7 @@ const runShard = async (
   options: Options & { jobs: number; nonSlowShards: number },
   testOpts: string[],
   shard: Shard,
+  logDir: string | undefined,
 ): Promise<number> => {
   const explicitCompute = Deno.env.get("CATA_TEST_COMPUTE_ACCELERATION")
   const compute = explicitCompute ??
@@ -292,25 +463,79 @@ const runShard = async (
   const userDirPrefix = Deno.env.get("CATA_TEST_USER_DIR_PREFIX") ?? "test_user_dir"
   const userDir = `${userDirPrefix}_${shard.name}`
   const filter = shard.filters.join(",")
+  const args = [...testOpts, `--user-dir=${userDir}`, filter]
   const start = Date.now()
   console.log(`Starting shard ${shard.name} with ${compute ?? "default"} compute`)
   const env: Record<string, string> = compute === undefined
     ? {}
     : { CATA_TEST_COMPUTE_ACCELERATION: compute }
-  const result = await commandOutput(options.testBin, [
-    ...testOpts,
-    `--user-dir=${userDir}`,
-    filter,
-  ], env)
-  if (result.stdout) {
-    console.log(result.stdout.trimEnd())
+  if (options.diagnostics) {
+    env.CATA_TEST_PROGRESS_PREFIX = shard.name
   }
-  if (result.stderr) {
-    console.error(result.stderr.trimEnd())
+  const result = options.diagnostics
+    ? await runProcess({
+      command: options.testBin,
+      args,
+      env,
+      streamOutput: true,
+      logPath: join(logDir ?? ".", `${shard.name}.log`),
+      initialLogText: `test-bin=${JSON.stringify(options.testBin)}\n` +
+        `test-options=${JSON.stringify(testOpts)}\n` +
+        `selectors=${JSON.stringify(shard.filters)}\n` +
+        `rng-seed=${JSON.stringify(rngSeed(testOpts))}\n` +
+        `command=${JSON.stringify([options.testBin, ...args])}\n`,
+    })
+    : await commandOutput(options.testBin, args, env)
+  if (!options.diagnostics) {
+    if (result.stdout) {
+      console.log(result.stdout.trimEnd())
+    }
+    if (result.stderr) {
+      console.error(result.stderr.trimEnd())
+    }
   }
   const elapsed = Math.round((Date.now() - start) / 1000)
   console.log(`Finished shard ${shard.name} in ${elapsed}s with status ${result.code}`)
   return result.code
+}
+
+const writeDiagnosticPlan = async (
+  path: string,
+  options: Options & { jobs: number; nonSlowShards: number },
+  testOpts: string[],
+  shards: Shard[],
+): Promise<void> => {
+  await writeDurableText(
+    path,
+    `${
+      JSON.stringify(
+        {
+          testBin: options.testBin,
+          mode: options.mode,
+          jobs: options.jobs,
+          nonSlowShards: options.nonSlowShards,
+          testOpts,
+          rngSeed: rngSeed(testOpts),
+          shards: shards.map((shard) => ({
+            name: shard.name,
+            selectors: shard.filters,
+            selector: shard.filters.join(","),
+            command: [
+              options.testBin,
+              ...testOpts,
+              `--user-dir=${
+                Deno.env.get("CATA_TEST_USER_DIR_PREFIX") ?? "test_user_dir"
+              }_${shard.name}`,
+              shard.filters.join(","),
+            ],
+            compute: shard.compute,
+          })),
+        },
+        null,
+        2,
+      )
+    }\n`,
+  )
 }
 
 const run = async (options: Options): Promise<number> => {
@@ -320,6 +545,14 @@ const run = async (options: Options): Promise<number> => {
   }
   const mode = parsed.mode === "legacy" ? "legacy" : "file-tags"
   const shardDir = await prepareShardDir()
+  const logDir = parsed.diagnostics
+    ? Deno.env.get("CATA_TEST_SHARD_LOG_DIR") ?? join(shardDir.path, "logs")
+    : undefined
+  const testOpts = replaySeed(parsed.testOpts, parsed.replaySeed)
+  if (logDir) {
+    await ensureDir(logDir)
+    await writeDiagnosticPlan(join(logDir, "shard-plan.json"), parsed, testOpts, [])
+  }
   try {
     if (mode === "legacy") {
       const shard: Shard = {
@@ -328,16 +561,25 @@ const run = async (options: Options): Promise<number> => {
         estimatedSeconds: 1,
         compute: "cpu",
       }
+      if (logDir) {
+        await writeDiagnosticPlan(join(logDir, "shard-plan.json"), parsed, testOpts, [shard])
+      }
       if (parsed.dryRun) {
         console.log(`${shard.name}: ${shard.filters.join(",")}`)
         return 0
       }
-      return await runShard(parsed, parsed.testOpts, shard)
+      return await runShard(parsed, testOpts, shard, logDir)
     }
 
-    const { allTags, slowTags, testOpts } = await discoverTags(parsed, shardDir.path)
+    const { allTags, slowTags, testOpts: discoveredTestOpts } = await discoverTags(
+      { ...parsed, testOpts },
+      shardDir.path,
+    )
     const shards = buildShardPlan(allTags, slowTags, parsed.nonSlowShards, parsed.slowShards)
     await writeShardFiles(shardDir.path, shards)
+    if (logDir) {
+      await writeDiagnosticPlan(join(logDir, "shard-plan.json"), parsed, discoveredTestOpts, shards)
+    }
     if (parsed.dryRun) {
       for (const shard of shards.toSorted((a, b) => a.name.localeCompare(b.name))) {
         console.log(`${basename(shard.name)}: ${shard.filters.join(",")}`)
@@ -347,7 +589,11 @@ const run = async (options: Options): Promise<number> => {
 
     let status = 0
     for await (
-      const code of pooledMap(parsed.jobs, shards, (shard) => runShard(parsed, testOpts, shard))
+      const code of pooledMap(
+        parsed.jobs,
+        shards,
+        (shard) => runShard(parsed, discoveredTestOpts, shard, logDir),
+      )
     ) {
       if (code !== 0 && status === 0) {
         status = code
@@ -390,6 +636,11 @@ if (import.meta.main) {
         default: "auto",
       })
       .option("--dry-run", "print shard filters without running tests")
+      .option("--diagnostics", "stream shard output and retain durable logs")
+      .option(
+        "--replay-seed <seed:string>",
+        "replace --rng-seed time for exact reproduction; omit to keep normal seed behavior",
+      )
       .arguments("[testBin:string] [...testOpts:string]")
       .parse(Deno.args)
     const jobs = options.jobs === "auto" ? "auto" : parsePositiveInt("--jobs", options.jobs)
@@ -407,6 +658,8 @@ if (import.meta.main) {
         slowShards: parsePositiveInt("--slow-shards", options.slowShards),
         nonSlowShards,
         dryRun: Boolean(options.dryRun),
+        diagnostics: Boolean(options.diagnostics),
+        replaySeed: options.replaySeed,
         testBin: args[0] ?? defaultTestBin,
         testOpts: testOpts.length > 0 ? testOpts : defaultTestOpts,
       }),

@@ -69,6 +69,11 @@ on:
         required: false
         type: boolean
         default: false
+      test-replay-seed:
+        description: "Optional numeric seed for reproducing desktop test failures"
+        required: false
+        type: string
+        default: ""
       use-precompiled-shaders:
         description: "Use the verified shader artifact bundle instead of running shadercross in each build"
         required: false
@@ -922,6 +927,8 @@ jobs:
 
       - name: Run sharded tests (desktop)
         if: inputs.run-tests && (runner.os == 'Windows' || (runner.os == 'Linux' && (matrix.android == '' || matrix.android == 'none')))
+        env:
+          CATA_TEST_REPLAY_SEED: ${{ inputs.test-replay-seed }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -948,11 +955,30 @@ jobs:
           if ($IsLinux -and "${{ matrix.tiles }}" -eq "true") {
             $testOpts += "--gpu-backend=software"
           }
-          deno run --allow-read --allow-write --allow-run --allow-env `
-            build-scripts/run-linux-test-shards.ts `
-            --mode file-tags `
-            --jobs 4 `
-            --non-slow-shards 8 `
-            $testBin `
-            -- `
-            @testOpts
+          $runnerArgs = @(
+            "build-scripts/run-linux-test-shards.ts",
+            "--mode", "file-tags",
+            "--jobs", "4",
+            "--non-slow-shards", "8"
+          )
+          if ($IsWindows) {
+            $logDir = Join-Path "${{ github.workspace }}" "cata-test-shard-logs"
+            New-Item -ItemType Directory -Force $logDir | Out-Null
+            $env:CATA_TEST_SHARD_LOG_DIR = $logDir
+            $runnerArgs += "--diagnostics"
+          }
+          if ($env:CATA_TEST_REPLAY_SEED) {
+            $runnerArgs += @("--replay-seed", $env:CATA_TEST_REPLAY_SEED)
+          }
+          $runnerArgs += $testBin
+          $runnerArgs += "--"
+          $runnerArgs += $testOpts
+          deno run --allow-read --allow-write --allow-run --allow-env @runnerArgs
+
+      - name: Upload Windows shard diagnostics
+        if: ${{ always() && inputs.run-tests && runner.os == 'Windows' }}
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: cata-test-shard-diagnostics-${{ matrix.artifact }}
+          path: cata-test-shard-logs
+          if-no-files-found: ignore

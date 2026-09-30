@@ -298,14 +298,43 @@ static auto extract_user_dir(std::vector<const char*>& arg_vec) -> std::string {
     return option_user_dir;
 }
 
+namespace {
+
+/// Return the optional shard prefix used by diagnostic progress records.
+auto test_progress_prefix() -> const char* // *NOPAD*
+{
+    const auto* const prefix = std::getenv("CATA_TEST_PROGRESS_PREFIX");
+    return prefix != nullptr && prefix[0] != '\0' ? prefix : nullptr;
+}
+
+auto emit_test_progress(
+    const char* event, const std::string& test_name, const std::string& section_name) -> void {
+    const auto* const prefix = test_progress_prefix();
+    if (prefix == nullptr) { return; }
+    std::printf("CATA_TEST_PROGRESS prefix=%s event=%s test=%s section=%s\n", prefix, event,
+                test_name.c_str(), section_name.c_str());
+    std::fflush(stdout);
+}
+
+} // namespace
+
 struct CataListener: Catch::TestEventListenerBase {
     using TestEventListenerBase::TestEventListenerBase;
 
-    void sectionStarting(Catch::SectionInfo const& sectionInfo) override {
+    auto testCaseStarting(Catch::TestCaseInfo const& testCaseInfo) -> void override {
+        TestEventListenerBase::testCaseStarting(testCaseInfo);
+        current_test_name = testCaseInfo.name;
+        emit_test_progress("test", current_test_name, "");
+    }
+
+    auto sectionStarting(Catch::SectionInfo const& sectionInfo) -> void override {
         TestEventListenerBase::sectionStarting(sectionInfo);
         // Initialize the cata RNG with the Catch seed for reproducible tests
         rng_set_engine_seed(m_config->rngSeed());
+        emit_test_progress("section", current_test_name, sectionInfo.name);
     }
+
+    std::string current_test_name;
 
     auto assertionEnded(Catch::AssertionStats const& assertionStats) -> bool override {
 #ifdef BACKTRACE
