@@ -133,8 +133,14 @@ const loadTimingProfile = async (path: string): Promise<TimingProfile> =>
 
 const writeTimingProfile = async (path: string, xmlPaths: string[]): Promise<void> => {
   const xmlFiles = await Promise.all(xmlPaths.map((xmlPath) => Deno.readTextFile(xmlPath)))
+  const reportDir = join(dirname(path), `${basename(path, ".json")}-xml`)
+  await ensureDir(reportDir)
+  await Promise.all(
+    xmlPaths.map((xmlPath, index) =>
+      Deno.writeTextFile(join(reportDir, basename(xmlPath)), xmlFiles[index])
+    ),
+  )
   const profile = timingProfileFromXml(xmlFiles)
-  await ensureDir(dirname(path))
   await Deno.writeTextFile(path, `${JSON.stringify(profile, null, 2)}\n`)
 }
 
@@ -575,6 +581,25 @@ Deno.test("timing assignment keeps every generated tag exactly once", () => {
     .filter((tag) => !specialTagPattern.test(tag))
   assertEquals(assignedTags.toSorted(), ["[#a_test]", "[#b_test]", "[#slow_test]"])
   assertEquals(new Set(assignedTags).size, assignedTags.length)
+})
+
+Deno.test("timing collection preserves raw XML failure evidence", async () => {
+  const tempDir = await Deno.makeTempDir({ prefix: "cata-timing-evidence-test." })
+  try {
+    const xml =
+      '<TestCase name="failed case" tags="[#fake_test]"><OverallResult success="false" durationInSeconds="2" /></TestCase>'
+    const input = join(tempDir, "shard.xml")
+    const output = join(tempDir, "profiles", "timings.json")
+    await Deno.writeTextFile(input, xml)
+    await writeTimingProfile(output, [input])
+    assertEquals(
+      await Deno.readTextFile(join(tempDir, "profiles", "timings-xml", "shard.xml")),
+      xml,
+    )
+    assertEquals(JSON.parse(await Deno.readTextFile(output)).tests, { "failed case": 2 })
+  } finally {
+    await Deno.remove(tempDir, { recursive: true })
+  }
 })
 
 Deno.test("timing profiles separate slow work and exclude fixed starting items", () => {

@@ -950,5 +950,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-shard-benchmark-${{ github.run_id }}
-          path: out/shard-benchmark/
+          path: |
+            out/shard-benchmark/*.json
+            out/shard-benchmark/*.log
+            out/shard-benchmark/*-xml/*.xml
           if-no-files-found: warn
