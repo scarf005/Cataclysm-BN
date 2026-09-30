@@ -7,6 +7,7 @@ import {
   extractFileTags,
   normalizeRngSeed,
   runProcess,
+  tagListingSucceeded,
 } from "./run-linux-test-shards.ts"
 
 type ProcessOptions = Parameters<typeof runProcess>[0]
@@ -350,6 +351,29 @@ Deno.test("discoverTags accepts Catch2 tag-count exit status", async () => {
     assertEquals(result.allTags, ["[#fixture_test]"])
     assertEquals(result.slowTags, ["[#fixture_test]"])
   })
+})
+
+Deno.test("tag listing distinguishes counts from process failures", () => {
+  for (
+    const [code, summary, expected] of [
+      [0, "", true],
+      [1, "1 tag\n", true],
+      [24, "24 tags\n\n", true],
+      [24, "280 tags\n", true],
+      [280, "280 tags\n", true],
+      [0, "512 tags\n", true],
+      [1, "", false],
+      [1, "24 tags\n", false],
+      [139, "24 tags\n", false],
+    ] as const
+  ) {
+    assertEquals(tagListingSucceeded({ code, timedOut: false, signal: null }, summary), expected)
+  }
+  assertEquals(
+    tagListingSucceeded({ code: 139, timedOut: false, signal: "SIGSEGV" }, "139 tags\n"),
+    false,
+  )
+  assertEquals(tagListingSucceeded({ code: 0, timedOut: true, signal: null }, "0 tags\n"), false)
 })
 
 Deno.test("extractFileTags returns sorted unique file tags", () => {

@@ -65,6 +65,7 @@ type ProcessOptions = {
 type ProcessResult = {
   code: number
   timedOut: boolean
+  signal: Deno.Signal | null
 }
 
 const defaultTestBin = "./out/build/linux-full/tests/cata_test-tiles"
@@ -155,11 +156,9 @@ const parsePositiveInt = (name: string, value: string): number => {
 const commandOutput = async (
   command: string,
   args: string[],
-  env: Record<string, string> = {},
 ): Promise<CommandResult> => {
   const result = await new Deno.Command(command, {
     args,
-    env: { ...Deno.env.toObject(), ...env },
     stdout: "piped",
     stderr: "piped",
   }).output()
@@ -174,11 +173,6 @@ const commandOutput = async (
 const MAX_PENDING_LINE_LENGTH = 64 * 1024
 const MAX_DEBUGGER_OUTPUT = 256 * 1024
 
-type TimeoutRace = {
-  promise: Promise<void>
-  cancel: () => void
-}
-
 type SpawnedProcess = {
   process: Deno.ChildProcess
   processGroup: boolean
@@ -189,31 +183,18 @@ type CapturedOutput = {
   truncated: boolean
 }
 
-const createTimeout = (milliseconds: number): TimeoutRace => {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const promise = new Promise<void>((resolve) => {
-    timer = setTimeout(resolve, milliseconds)
-  })
-  return {
-    promise,
-    cancel: () => {
-      if (timer !== undefined) {
-        clearTimeout(timer)
-        timer = undefined
-      }
-    },
-  }
-}
-
 const raceWithTimeout = async <T>(
   promise: Promise<T>,
   milliseconds: number,
 ): Promise<T | undefined> => {
-  const timeout = createTimeout(milliseconds)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), milliseconds)
+  })
   try {
-    return await Promise.race([promise, timeout.promise.then(() => undefined)])
+    return await Promise.race([promise, timeout])
   } finally {
-    timeout.cancel()
+    clearTimeout(timer)
   }
 }
 
@@ -237,32 +218,16 @@ const writeText = async (file: WritableFile, text: string): Promise<void> => {
 
 const safeFileName = (name: string): string => name.replaceAll(/[^A-Za-z0-9_.-]/g, "_")
 
-const commandOutputBounded = async (
-  command: string,
-  args: string[],
-  timeoutMilliseconds: number,
-): Promise<CommandResult | undefined> => {
-  const child = new Deno.Command(command, {
-    args,
-    stdout: "piped",
-    stderr: "piped",
+const terminateWindowsTree = async (pid: number): Promise<void> => {
+  const child = new Deno.Command("taskkill", {
+    args: ["/PID", String(pid), "/T", "/F"],
+    stdout: "null",
+    stderr: "null",
   }).spawn()
-  const outputPromise = child.output()
-  const output = await raceWithTimeout(outputPromise, timeoutMilliseconds)
-  if (output !== undefined) {
-    return {
-      code: output.code,
-      stdout: new TextDecoder().decode(output.stdout),
-      stderr: new TextDecoder().decode(output.stderr),
-    }
+  if (await raceWithTimeout(child.status, 2000) === undefined) {
+    signalProcess(child, false, "SIGKILL")
+    await raceWithTimeout(child.status, 1000)
   }
-  try {
-    child.kill("SIGKILL")
-  } catch {
-    // The helper may have exited while the timeout was observed.
-  }
-  await raceWithTimeout(outputPromise, 1000)
-  return undefined
 }
 
 const spawnProcess = (options: ProcessOptions): SpawnedProcess => {
@@ -271,29 +236,42 @@ const spawnProcess = (options: ProcessOptions): SpawnedProcess => {
   }
   const commandOptions = {
     args: options.args,
-    env: options.env ? { ...Deno.env.toObject(), ...options.env } : undefined,
+    env: options.env,
     stdout: "piped" as const,
     stderr: "piped" as const,
   }
-  if (Deno.build.os !== "linux") {
-    return {
-      process: new Deno.Command(options.command, commandOptions).spawn(),
-      processGroup: false,
+  if (Deno.build.os === "linux") {
+    try {
+      return {
+        process: new Deno.Command("setsid", {
+          ...commandOptions,
+          args: ["--", options.command, ...options.args],
+        }).spawn(),
+        processGroup: true,
+      }
+    } catch {
+      // Fall back to root-only termination when setsid is unavailable.
     }
   }
+  return {
+    process: new Deno.Command(options.command, commandOptions).spawn(),
+    processGroup: false,
+  }
+}
+
+const signalProcess = (
+  process: Deno.ChildProcess,
+  processGroup: boolean,
+  signal: Deno.Signal,
+): void => {
   try {
-    return {
-      process: new Deno.Command("setsid", {
-        ...commandOptions,
-        args: ["--", options.command, ...options.args],
-      }).spawn(),
-      processGroup: true,
+    if (processGroup) {
+      Deno.kill(-process.pid, signal)
+    } else {
+      process.kill(signal)
     }
   } catch {
-    return {
-      process: new Deno.Command(options.command, commandOptions).spawn(),
-      processGroup: false,
-    }
+    // The process or its group may already have exited.
   }
 }
 
@@ -303,36 +281,15 @@ const terminateProcess = async (
   force: boolean,
 ): Promise<void> => {
   if (Deno.build.os === "windows") {
-    await commandOutputBounded("taskkill", ["/PID", String(process.pid), "/T", "/F"], 2000)
-    try {
-      process.kill("SIGKILL")
-    } catch {
-      // The process may have exited while taskkill was running.
-    }
+    await terminateWindowsTree(process.pid)
+    signalProcess(process, false, "SIGKILL")
     return
   }
-
-  if (processGroup) {
-    await commandOutputBounded("kill", ["-TERM", `-${process.pid}`], 1000)
-  } else {
-    try {
-      process.kill("SIGTERM")
-    } catch {
-      // The process may have exited while termination was requested.
-    }
-  }
-  if (!force) {
-    return
-  }
-  const gracefulStatus = await raceWithTimeout(process.status, 1000)
-  if (gracefulStatus === undefined || processGroup) {
+  signalProcess(process, processGroup, "SIGTERM")
+  if (force && (await raceWithTimeout(process.status, 1000) === undefined || processGroup)) {
+    signalProcess(process, processGroup, "SIGKILL")
     if (processGroup) {
-      await commandOutputBounded("kill", ["-KILL", `-${process.pid}`], 1000)
-    }
-    try {
-      process.kill("SIGKILL")
-    } catch {
-      // The process may have exited while forced termination was requested.
+      signalProcess(process, false, "SIGKILL")
     }
   }
 }
@@ -412,9 +369,6 @@ const collectStack = async (
       (options.debuggerTimeoutSeconds ?? 30) * 1000,
     )
     if (status === undefined) {
-      await terminateProcess(debuggerProcess.process, debuggerProcess.processGroup, true)
-      await Promise.all([...activeReaders].map((reader) => reader.cancel()))
-      await raceWithTimeout(outputPromise, 1000)
       await report(`stack capture timed out after ${options.debuggerTimeoutSeconds ?? 30}s`)
       return
     }
@@ -427,6 +381,8 @@ const collectStack = async (
       : `stack capture unavailable (gdb exit ${status.code}; ptrace may be denied)\n${text}`
     await report(`${result}${suffix}`)
   } catch (error) {
+    await report(`stack capture unavailable: ${error}`)
+  } finally {
     if (debuggerProcess) {
       await terminateProcess(debuggerProcess.process, debuggerProcess.processGroup, true)
     }
@@ -434,7 +390,6 @@ const collectStack = async (
     if (outputPromise) {
       await raceWithTimeout(outputPromise, 1000)
     }
-    await report(`stack capture unavailable: ${error}`)
   }
 }
 
@@ -569,7 +524,11 @@ export const runProcess = async (options: ProcessOptions): Promise<ProcessResult
       throw streamsError
     }
     const finalStatus = status ?? await statusPromise
-    return { code: timedOut && finalStatus.code === 0 ? 124 : finalStatus.code, timedOut }
+    return {
+      code: timedOut && finalStatus.code === 0 ? 124 : finalStatus.code,
+      timedOut,
+      signal: finalStatus.signal,
+    }
   } finally {
     if (spawned && (status === undefined || activeReaders.size > 0)) {
       await terminateProcess(spawned.process, spawned.processGroup, true)
@@ -726,6 +685,13 @@ const writeShardFiles = async (shardDir: string, shards: Shard[]): Promise<void>
   )
 }
 
+export const tagListingSucceeded = (result: ProcessResult, stdout: string): boolean => {
+  // Catch2 returns the listed tag count; Unix exit statuses retain only its low byte.
+  const count = Number(stdout.match(/(?:^|\n)([0-9]+) tags?\s*$/)?.[1])
+  return !result.timedOut && result.signal === null &&
+    (result.code === 0 || result.code === count || result.code === count % 256)
+}
+
 export const discoverTags = async (
   options: Options & { jobs: number; nonSlowShards: number },
   shardDir: string,
@@ -764,7 +730,7 @@ export const discoverTags = async (
     if (stderr && !options.diagnostics) {
       console.error(stderr)
     }
-    if (result.timedOut || result.code !== 0) {
+    if (!tagListingSucceeded(result, stdout)) {
       throw new Error(`${label} failed with status ${result.code}`)
     }
     return { code: result.code, stdout, stderr }
@@ -849,12 +815,12 @@ const run = async (options: Options): Promise<number> => {
     throw new Error(`Unknown shard mode: ${parsed.mode}`)
   }
   const mode = parsed.mode === "legacy" ? "legacy" : "file-tags"
+  const testOpts = normalizeRngSeed(parsed.testOpts)
   const shardDir = await prepareShardDir()
   const logDir = Deno.env.get("CATA_TEST_SHARD_LOG_DIR") ?? join(shardDir.path, "logs")
-  await ensureDir(logDir)
-  const testOpts = normalizeRngSeed(parsed.testOpts)
   let completed = false
   try {
+    await ensureDir(logDir)
     if (mode === "legacy") {
       const shard: Shard = {
         name: "00-legacy",
