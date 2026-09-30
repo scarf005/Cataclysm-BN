@@ -14,6 +14,12 @@ on:
         default: false
         type: boolean
 
+      policy_only:
+        description: Validate native retention without repeating the natural eviction trial
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   contents: read
   actions: write
@@ -96,6 +102,7 @@ jobs:
             "--evidence-dir", "$env:GITHUB_WORKSPACE/cache-pressure-evidence"
           )
           if ("${{ inputs.allow_eviction }}" -eq "true") { $denoArgs += "--allow-eviction" }
+          if ("${{ inputs.policy_only }}" -eq "true") { $denoArgs += "--policy-only" }
           deno @denoArgs
 
       - name: Upload raw cache pressure evidence

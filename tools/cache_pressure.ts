@@ -379,11 +379,13 @@ const runExperiment = async ({
   runId,
   waitRunId,
   allowEviction,
+  policyOnly,
 }: {
   evidenceDirectory: string
   runId: string
   waitRunId: string
   allowEviction: boolean
+  policyOnly: boolean
 }): Promise<void> => {
   assertEnvironment(allowEviction, runId)
   await ensureFinishedPrerequisite(waitRunId)
@@ -394,7 +396,11 @@ const runExperiment = async ({
   const ccachePath = join(workspace, ".ccache")
   const goldenPath = join(workspace, ".cache-pressure-golden")
   const logPath = join(evidenceDirectory, "cache-pressure.log")
-  const results: Record<string, unknown> = { run_id: runId, wait_run_id: waitRunId }
+  const results: Record<string, unknown> = {
+    run_id: runId,
+    wait_run_id: waitRunId,
+    policy_only: policyOnly,
+  }
   const rareFlavors = ["rare-a", "rare-b", "rare-c"]
   const baselineRareKeys = rareFlavors.map((flavor) => baselineKey(runId, flavor))
   const policyRareKeys = rareFlavors.map((flavor) => policyRareKey(runId, flavor))
@@ -441,37 +447,39 @@ const runExperiment = async ({
       `source restored; bytes=${sourceDigest.bytes}; digest=${sourceDigest.digest}`,
     )
 
-    const baselineSaves: Array<{ key: string; cache_id: number }> = []
-    for (const key of [...baselineRareKeys, ...baselineHotKeys]) {
-      const cacheId = await savePayload(ccachePath, key, sourceDigest)
-      baselineSaves.push({ key, cache_id: cacheId })
-      await writeLog(logPath, `baseline saved; key=${key}; cache_id=${cacheId}`)
-      await writeInventory(evidenceDirectory, `inventory-after-${key}`, await listCaches())
-    }
-    results.baseline_saves = baselineSaves
-    await writeJson(join(evidenceDirectory, "baseline-result.json"), { saves: baselineSaves })
+    if (!policyOnly) {
+      const baselineSaves: Array<{ key: string; cache_id: number }> = []
+      for (const key of [...baselineRareKeys, ...baselineHotKeys]) {
+        const cacheId = await savePayload(ccachePath, key, sourceDigest)
+        baselineSaves.push({ key, cache_id: cacheId })
+        await writeLog(logPath, `baseline saved; key=${key}; cache_id=${cacheId}`)
+        await writeInventory(evidenceDirectory, `inventory-after-${key}`, await listCaches())
+      }
+      results.baseline_saves = baselineSaves
+      await writeJson(join(evidenceDirectory, "baseline-result.json"), { saves: baselineSaves })
 
-    const baselineRareSet = new Set(baselineRareKeys)
-    const settled = await inventoryUntil(
-      evidenceDirectory,
-      "inventory-baseline-eviction",
-      (entries) => !entries.some((entry) => baselineRareSet.has(entry.key)),
-    )
-    results.baseline_settled = settled
-    await writeLog(logPath, "baseline automatic eviction settled; probing rare keys")
+      const baselineRareSet = new Set(baselineRareKeys)
+      const settled = await inventoryUntil(
+        evidenceDirectory,
+        "inventory-baseline-eviction",
+        (entries) => !entries.some((entry) => baselineRareSet.has(entry.key)),
+      )
+      results.baseline_settled = settled
+      await writeLog(logPath, "baseline automatic eviction settled; probing rare keys")
 
-    const baselineMisses = []
-    for (const key of baselineRareKeys) {
-      const restored = await restoreAndDigest(key, ccachePath, sourceDigest)
-      baselineMisses.push({
-        key,
-        restored_key: restored.key ?? null,
-        digest: restored.digest ?? null,
-      })
-      if (restored.key !== undefined) throw new Error(`Expected baseline restore miss for ${key}`)
+      const baselineMisses = []
+      for (const key of baselineRareKeys) {
+        const restored = await restoreAndDigest(key, ccachePath, sourceDigest)
+        baselineMisses.push({
+          key,
+          restored_key: restored.key ?? null,
+          digest: restored.digest ?? null,
+        })
+        if (restored.key !== undefined) throw new Error(`Expected baseline restore miss for ${key}`)
+      }
+      results.baseline_restore_probes = baselineMisses
+      await writeJson(join(evidenceDirectory, "baseline-restore-probes.json"), baselineMisses)
     }
-    results.baseline_restore_probes = baselineMisses
-    await writeJson(join(evidenceDirectory, "baseline-restore-probes.json"), baselineMisses)
 
     const beforePolicyCleanup = await listCaches()
     await writeInventory(
@@ -589,12 +597,17 @@ if (import.meta.main) {
       default: join(Deno.cwd(), "cache-pressure-evidence"),
     })
     .option("--allow-eviction", "Explicitly authorize automatic eviction in the personal fork")
-    .action(async ({ runId, waitRunId, evidenceDir, allowEviction }) => {
+    .option(
+      "--policy-only",
+      "Validate native retention separately when natural eviction was unobserved",
+    )
+    .action(async ({ runId, waitRunId, evidenceDir, allowEviction, policyOnly }) => {
       await runExperiment({
         evidenceDirectory: evidenceDir,
         runId,
         waitRunId,
         allowEviction: allowEviction ?? false,
+        policyOnly: policyOnly ?? false,
       })
     })
   await command.parse(Deno.args)

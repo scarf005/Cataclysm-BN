@@ -12,6 +12,7 @@ on:
           android-candidate,
           cache-policy,
           cache-pressure,
+          cache-native-policy,
           shader-cache,
         ]
         default: baseline
@@ -28,11 +29,12 @@ permissions:
   actions: write
 jobs:
   cache-pressure:
-    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'cache-pressure'
+    if: github.repository == 'scarf005/Cataclysm-BN' && contains(fromJSON('["cache-pressure", "cache-native-policy"]'), inputs.suite)
     uses: ./.github/workflows/cache-pressure.yml
     with:
       wait_run_id: ${{ inputs.wait_run_id }}
       allow_eviction: ${{ inputs.allow_eviction }}
+      policy_only: ${{ inputs.suite == 'cache-native-policy' }}
   windows-baseline:
     if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'baseline'
     uses: ./.github/workflows/build.yml
