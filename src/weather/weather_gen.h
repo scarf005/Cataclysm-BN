@@ -61,6 +61,8 @@ public:
     weather_generator();
 
     void load(const JsonObject& jo, const std::string& src);
+    auto load_inline(const JsonObject& jo) -> void;
+    auto load_overlay(const JsonObject& jo, const std::string& src) -> void;
     void check() const;
     auto get_bad_weather() const -> const weather_type_id&;     // *NOPAD*
     auto get_default_weather() const -> const weather_type_id&; // *NOPAD*

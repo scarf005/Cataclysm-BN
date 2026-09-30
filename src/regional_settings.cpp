@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -744,11 +745,20 @@ void load_region_settings( const JsonObject &jo )
 
     auto base_weather = base_weather_id();
     if( !jo.read( "base_weather", base_weather ) ) {
-        if( strict ) {
+        if( jo.has_string( "weather" ) ) {
+            jo.read( "weather", base_weather );
+        } else if( jo.has_object( "weather" ) ) {
+            new_region.weather.id = base_weather_id( new_region.id );
+            new_region.weather.load_inline( jo.get_object( "weather" ) );
+        } else if( strict ) {
             jo.throw_error( "\"base_weather\" required for default" );
         }
-    } else {
-        new_region.weather = base_weathers::get( base_weather );
+    }
+    if( base_weather ) {
+        new_region.weather_id = base_weather;
+        if( base_weather.is_valid() ) {
+            new_region.weather = base_weathers::get( base_weather );
+        }
     }
 
     // Unclear if required. C++ uninitialized values now concern me.
@@ -844,7 +854,20 @@ void apply_region_overlay( const JsonObject &jo, regional_settings &region )
 {
     auto base_weather = base_weather_id();
     if( jo.read( "base_weather", base_weather ) ) {
-        region.weather = base_weathers::get( base_weather );
+        region.weather_overlay_json.clear();
+        region.weather_id = base_weather;
+        if( base_weather.is_valid() ) {
+            region.weather = base_weathers::get( base_weather );
+        }
+    } else if( jo.has_string( "weather" ) ) {
+        jo.read( "weather", base_weather );
+        region.weather_overlay_json.clear();
+        region.weather_id = base_weather;
+        if( base_weather.is_valid() ) {
+            region.weather = base_weathers::get( base_weather );
+        }
+    } else if( jo.has_object( "weather" ) ) {
+        region.weather_overlay_json.push_back( jo.get_object( "weather" ).str() );
     }
     jo.read( "default_oter", region.default_oter );
     jo.read( "river_scale", region.river_scale );
@@ -1258,6 +1281,25 @@ furn_id region_terrain_and_furniture_settings::resolve( const furn_id &fid ) con
 
 void regional_settings::finalize()
 {
+    const auto has_base_weather = !weather_id.str().empty();
+    if( has_base_weather ) {
+        if( weather_id.is_valid() ) {
+            weather = base_weathers::get( weather_id );
+        } else {
+            debugmsg( "Region %s references invalid base weather %s", id.c_str(), weather_id.c_str() );
+        }
+    }
+    for( const auto &overlay_json : weather_overlay_json ) {
+        auto input = std::istringstream( overlay_json );
+        auto reader = JsonIn( input );
+        weather.load_overlay( reader.get_object(), "legacy inline weather overlay" );
+    }
+    if( !weather_overlay_json.empty() && weather.weather_types.empty() ) {
+        throw std::runtime_error( string_format( "Region %s expected at least 1 weather type", id ) );
+    }
+    if( !has_base_weather ) {
+        weather_overlay_json.clear();
+    }
     if( default_groundcover_str != nullptr ) {
         for( const auto &pr : *default_groundcover_str ) {
             default_groundcover.add( pr.obj.id(), pr.weight );

@@ -357,6 +357,7 @@ TEST_CASE("weather_pattern_modifiers_are_applied_and_clamped", "[weather][json]"
         .humidity = 92.0,
         .pressure = 997.0,
         .windpower = 0.0,
+        .wind_desc = "",
         .pattern_values = {{weather_pattern_id("acidic"), 2.0}},
     };
     CHECK(acid_generator.get_weather_conditions(rainy_weather) == weather_type_id("acid_rain"));

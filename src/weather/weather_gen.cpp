@@ -91,14 +91,19 @@ static auto get_common_data(
     return result;
 }
 
+static auto get_weather_pattern_value(
+    const weather_pattern& pattern, const weather_gen_common& common) -> double {
+    const double noise = raw_noise_4d(
+        common.x * pattern.x_scale, common.y * pattern.y_scale, common.z * pattern.z_scale,
+        common.modSEED + pattern.seed_offset);
+    return pattern.offset + noise * pattern.multiplier;
+}
+
 static auto apply_weather_patterns(
     const weather_generator& wg, const weather_gen_common& common, w_point& result) -> void {
     for (const weather_pattern_id& pattern_id : wg.weather_patterns) {
         const weather_pattern& pattern = weather_patterns::get(pattern_id);
-        const double noise = raw_noise_4d(
-            common.x * pattern.x_scale, common.y * pattern.y_scale, common.z * pattern.z_scale,
-            common.modSEED + pattern.seed_offset);
-        const double value = pattern.offset + noise * pattern.multiplier;
+        const double value = get_weather_pattern_value(pattern, common);
         result.pattern_values[pattern.id] = value;
         result.humidity += pattern.humidity_mod * value;
         result.pressure += pattern.pressure_mod * value;
@@ -106,6 +111,19 @@ static auto apply_weather_patterns(
         result.temperature += units::multiply_any_unit(pattern.temperature_mod, value);
         if (pattern.acidic && value >= pattern.active_threshold) { result.acidic = true; }
     }
+}
+
+static auto maybe_temperature_reader(
+    const JsonObject& jo, const std::string& member_name, units::temperature& member,
+    bool was_loaded) -> bool {
+    try {
+        return temperature_reader()(jo, member_name, member, was_loaded);
+    } catch (const JsonError&) {
+        int legacy_value;
+        if (!jo.read(member_name, legacy_value)) { return false; }
+        member = units::from_celsius(legacy_value);
+    }
+    return true;
 }
 
 static auto season_temp(const weather_generator& wg, double year_fraction) -> units::temperature {
@@ -148,8 +166,14 @@ static auto weather_temperature_from_common_data(
 auto weather_generator::get_weather_temperature(
     const tripoint_abs_ms& location, const time_point& t, const calendar_config& calendar_config,
     unsigned seed) const -> units::temperature {
-    return weather_temperature_from_common_data(
-        *this, get_common_data(location.xy(), t, calendar_config, seed), t);
+    const auto common = get_common_data(location.xy(), t, calendar_config, seed);
+    auto temperature = weather_temperature_from_common_data(*this, common, t);
+    for (const weather_pattern_id& pattern_id : weather_patterns) {
+        const auto& pattern = weather_patterns::get(pattern_id);
+        temperature += units::
+            multiply_any_unit(pattern.temperature_mod, get_weather_pattern_value(pattern, common));
+    }
+    return temperature;
 }
 
 auto weather_generator::get_weather(
@@ -401,19 +425,6 @@ void weather_generator::test_weather(unsigned seed = 1000) const {
         "weather test file");
 }
 
-inline auto maybe_temperature_reader(
-    const JsonObject& jo, const std::string& member_name, units::temperature& member,
-    bool was_loaded) -> bool {
-    try {
-        return temperature_reader()(jo, member_name, member, was_loaded);
-    } catch (const JsonError&) {
-        int legacy_value;
-        if (!jo.read(member_name, legacy_value)) { return false; }
-        member = units::from_celsius(legacy_value);
-    }
-    return true;
-}
-
 auto weather_pattern::load(const JsonObject& jo, const std::string& /*src*/) -> void {
     mandatory(jo, was_loaded, "id", id);
     optional(jo, was_loaded, "x_scale", x_scale, 1.0);
@@ -425,7 +436,7 @@ auto weather_pattern::load(const JsonObject& jo, const std::string& /*src*/) -> 
     optional(jo, was_loaded, "humidity_mod", humidity_mod, 0.0);
     optional(jo, was_loaded, "pressure_mod", pressure_mod, 0.0);
     optional(jo, was_loaded, "windpower_mod", windpower_mod, 0.0);
-    assign(jo, "temperature_mod", temperature_mod);
+    maybe_temperature_reader(jo, "temperature_mod", temperature_mod, was_loaded);
     optional(jo, was_loaded, "active_threshold", active_threshold, 0.0);
     optional(jo, was_loaded, "acidic", acidic, false);
 }
@@ -436,7 +447,18 @@ void weather_pattern::check() const {
     }
 }
 
-auto weather_generator::load(const JsonObject& jo, const std::string& /*src*/) -> void {
+namespace {
+
+struct weather_generator_load_options {
+    bool require_weather_types = true;
+    bool preserve_existing = false;
+    bool legacy_temperature_defaults = false;
+};
+
+auto load_weather_generator_fields(
+    weather_generator& generator, const JsonObject& jo,
+    const weather_generator_load_options& options) -> void {
+    const auto was_loaded = generator.was_loaded || options.preserve_existing;
     static const std::array<std::pair<std::string, int>, NUM_SEASONS> legacy_temp_id_values = {{
         {"spring_temp_manual_mod", 0},
         {"summer_temp_manual_mod", 10},
@@ -449,50 +471,65 @@ auto weather_generator::load(const JsonObject& jo, const std::string& /*src*/) -
         {"spring_humidity_manual_mod", "summer_humidity_manual_mod", "autumn_humidity_manual_mod",
          "winter_humidity_manual_mod"};
 
-    mandatory(jo, was_loaded, "id", id);
-
     const bool has_legacy_temperature_settings =
         jo.has_member("base_temperature")
         || std::ranges::any_of(legacy_temp_id_values, [&jo](const auto& member) {
                return jo.has_member(member.first);
            });
-    // Handling legacy temperature settings
-    // Don't handle legacy settings in strict mode, let it error
-    if (!json_report_strict && has_legacy_temperature_settings) {
+    if (!json_report_strict
+        && (has_legacy_temperature_settings || options.legacy_temperature_defaults)) {
         const float base_temp = jo.get_float("base_temperature", 0.0);
         for (size_t i = 0; i < season_temp_ids.size(); i++) {
-            season_stats[i].average_temperature = units::from_celsius(
+            generator.season_stats[i].average_temperature = units::from_celsius(
                 base_temp + jo.get_int(legacy_temp_id_values[i].first, 0)
                 + legacy_temp_id_values[i].second);
         }
     }
-    // Reading temperature settings
     for (size_t i = 0; i < season_temp_ids.size(); i++) {
-        maybe_temperature_reader(jo, season_temp_ids[i], season_stats[i].average_temperature, false);
-        assign(jo, season_humidity_ids[i], season_stats[i].humidity_mod);
+        maybe_temperature_reader(
+            jo, season_temp_ids[i], generator.season_stats[i].average_temperature, was_loaded);
+        assign(jo, season_humidity_ids[i], generator.season_stats[i].humidity_mod);
     }
 
-    // Reading other weather settings.
-    optional(jo, was_loaded, "base_humidity", base_humidity, 50.0);
-    optional(jo, was_loaded, "base_pressure", base_pressure, 0.0);
-    optional(jo, was_loaded, "base_acid", base_acid, 0.0);
-    optional(jo, was_loaded, "base_wind", base_wind, 0.0);
-    optional(jo, was_loaded, "base_wind_distrib_peaks", base_wind_distrib_peaks, 0);
-    optional(jo, was_loaded, "base_wind_season_variation", base_wind_season_variation, 0);
+    optional(jo, was_loaded, "base_humidity", generator.base_humidity, 50.0);
+    optional(jo, was_loaded, "base_pressure", generator.base_pressure, 0.0);
+    optional(jo, was_loaded, "base_acid", generator.base_acid, 0.0);
+    optional(jo, was_loaded, "base_wind", generator.base_wind, 0.0);
+    optional(jo, was_loaded, "base_wind_distrib_peaks", generator.base_wind_distrib_peaks, 0);
+    optional(jo, was_loaded, "base_wind_season_variation", generator.base_wind_season_variation, 0);
 
-    if (!assign(jo, "temperature_daily_amplitude", temperature_daily_amplitude) && !was_loaded) {
-        temperature_daily_amplitude = 5_c;
+    if (!assign(jo, "temperature_daily_amplitude", generator.temperature_daily_amplitude)
+        && !was_loaded) {
+        generator.temperature_daily_amplitude = 5_c;
     }
-    if (!assign(jo, "temperature_noise_amplitude", temperature_noise_amplitude) && !was_loaded) {
-        temperature_noise_amplitude = 8_c;
+    if (!assign(jo, "temperature_noise_amplitude", generator.temperature_noise_amplitude)
+        && !was_loaded) {
+        generator.temperature_noise_amplitude = 8_c;
     }
 
-    optional(jo, was_loaded, "weather_types", weather_types, auto_flags_reader<weather_type_id>{});
-    if (weather_types.empty()) {
+    optional(jo, was_loaded, "weather_types", generator.weather_types,
+             auto_flags_reader<weather_type_id>{});
+    if (options.require_weather_types && generator.weather_types.empty()) {
         jo.throw_error("expected at least 1 weather type", "weather_types");
     }
-    optional(jo, was_loaded, "weather_patterns", weather_patterns,
+    optional(jo, was_loaded, "weather_patterns", generator.weather_patterns,
              auto_flags_reader<weather_pattern_id>{});
+}
+
+} // namespace
+
+auto weather_generator::load(const JsonObject& jo, const std::string& /*src*/) -> void {
+    mandatory(jo, was_loaded, "id", id);
+    load_weather_generator_fields(*this, jo, {});
+}
+
+auto weather_generator::load_inline(const JsonObject& jo) -> void {
+    load_weather_generator_fields(*this, jo, {.legacy_temperature_defaults = true});
+}
+
+auto weather_generator::load_overlay(const JsonObject& jo, const std::string& /*src*/) -> void {
+    load_weather_generator_fields(
+        *this, jo, {.require_weather_types = false, .preserve_existing = true});
 }
 
 void weather_generator::check() const {

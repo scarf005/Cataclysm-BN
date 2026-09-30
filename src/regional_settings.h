@@ -320,6 +320,8 @@ struct regional_settings {
 
     city_settings     city_spec;      // put what where in a city of what kind
     isolated_city_settings isolated_city;
+    base_weather_id weather_id;
+    std::vector<std::string> weather_overlay_json;
     groundcover_extra field_coverage;
     forest_mapgen_settings forest_composition;
     forest_trail_settings forest_trail;
