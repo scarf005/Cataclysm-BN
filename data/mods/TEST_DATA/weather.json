@@ -41,6 +41,19 @@
     "copy-from": "test_weather_basic"
   },
   {
+    "type": "weather_type",
+    "id": "test_weather_pattern_generated",
+    "copy-from": "test_weather_basic",
+    "requirements": { "required_weather_patterns": { "test_weather_constant": 1.0 } }
+  },
+  {
+    "type": "weather_pattern",
+    "id": "test_weather_string_temperature",
+    "multiplier": 0.0,
+    "offset": 1.0,
+    "temperature_mod": "5 C"
+  },
+  {
     "type": "weather_pattern",
     "id": "test_weather_constant",
     "multiplier": 0.0,
@@ -62,8 +75,10 @@
     "type": "base_weather",
     "id": "test_weather_modifiers",
     "copy-from": "default",
-    "extend": { "weather_patterns": [ "test_weather_constant" ] },
-    "weather_types": [ "test_weather_basic" ]
+    "extend": {
+      "weather_patterns": [ "test_weather_constant", "test_weather_string_temperature" ]
+    },
+    "weather_types": [ "test_weather_basic", "test_weather_pattern_generated" ]
   },
   {
     "type": "base_weather",
@@ -75,6 +90,6 @@
     "type": "base_weather",
     "id": "test_weather_acid",
     "copy-from": "default",
-    "extend": { "weather_patterns": [ "test_weather_constant" ] }
+    "extend": { "weather_patterns": [ "acidic" ] }
   }
 ]

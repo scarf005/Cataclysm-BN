@@ -26,18 +26,22 @@ TEST_CASE("overmap_weather_uses_queried_region_generator", "[overmap][weather]")
     clear_all_state();
     const auto first_region_id = std::string("test_weather_region_first");
     const auto second_region_id = std::string("test_weather_region_second");
+    const auto original_region_type = ACTIVE_OVERMAP_BUFFER.current_region_type;
     const auto cleanup = on_out_of_scope([&]() {
         region_settings_map.erase(first_region_id);
         region_settings_map.erase(second_region_id);
         ACTIVE_OVERMAP_BUFFER.clear();
+        ACTIVE_OVERMAP_BUFFER.current_region_type = original_region_type;
     });
 
-    auto first_region = regional_settings();
+    auto first_region = region_settings_map.at("default");
     first_region.id = first_region_id;
-    first_region.weather = base_weathers::get(base_weather_id("test_weather_base"));
-    auto second_region = regional_settings();
+    first_region.weather_id = base_weather_id("test_weather_base");
+    first_region.weather = base_weathers::get(first_region.weather_id);
+    auto second_region = region_settings_map.at("default");
     second_region.id = second_region_id;
-    second_region.weather = base_weathers::get(base_weather_id("test_weather_alternate_region"));
+    second_region.weather_id = base_weather_id("test_weather_alternate_region");
+    second_region.weather = base_weathers::get(second_region.weather_id);
     region_settings_map.emplace(first_region_id, first_region);
     region_settings_map.emplace(second_region_id, second_region);
 

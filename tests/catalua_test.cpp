@@ -120,6 +120,12 @@ TEST_CASE("lua_weather_override_can_expire", "[lua][weather]") {
     lua.globals()["test_data"] = test_data;
 
     const auto restore_turn = restore_on_out_of_scope<time_point>(calendar::turn);
+    const auto cleanup_overrides = on_out_of_scope([]() {
+        get_weather().clear_all_omt_weather_overrides();
+        auto weather_state = enum_bitset<test_state>();
+        weather_state.set(state::weather);
+        clear_states(weather_state);
+    });
 
     run_lua_test_script(lua, "weather_override_expiration_test.lua");
 
@@ -148,7 +154,9 @@ TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][we
     const auto restore_turn = restore_on_out_of_scope<time_point>(calendar::turn);
     const auto cleanup_overrides = on_out_of_scope([]() {
         get_weather().clear_all_omt_weather_overrides();
-        clear_states(state::weather | state::weather);
+        auto weather_state = enum_bitset<test_state>();
+        weather_state.set(state::weather);
+        clear_states(weather_state);
     });
 
     auto lua = make_lua_state();
@@ -203,6 +211,24 @@ TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][we
     calendar::turn += 1_hours;
     CHECK(get_weather().has_omt_weather_override(outside));
 
+    auto live_override_result = lua.safe_script(
+        R"(gapi.set_omt_weather_override(test_data["center"], 0, "lightning"))",
+        sol::script_pass_on_error);
+    REQUIRE(live_override_result.valid());
+    CHECK(current_weather(get_avatar().abs_pos()) == weather_type_id("lightning"));
+    get_weather().weather_override = weather_type_id("thunder");
+    CHECK(current_weather(get_avatar().abs_pos()) == weather_type_id("lightning"));
+    get_weather().clear_omt_weather_override(center, 0);
+    CHECK(current_weather(get_avatar().abs_pos()) == weather_type_id("thunder"));
+    get_weather().set_omt_weather_override({
+        .center = center,
+        .radius = 0,
+        .weather = weather_type_id("lightning"),
+    });
+    get_weather().weather_override = weather_type_id::NULL_ID();
+    get_weather().update_weather();
+    CHECK(get_weather().weather_id == weather_type_id("lightning"));
+
     const auto expires_at = calendar::turn + 30_minutes;
     test_data["expires_at"] = expires_at;
     auto expiry_result = lua.safe_script(
@@ -212,7 +238,21 @@ TEST_CASE("lua_weather_overrides_have_deterministic_scope_and_expiry", "[lua][we
     CHECK(get_weather().has_omt_weather_override(center, calendar::turn + 29_minutes));
     CHECK_FALSE(get_weather().has_omt_weather_override(center, expires_at));
 
-    clear_states(state::weather | state::weather);
+    calendar::turn = expires_at - 1_turns;
+    get_weather().nextweather = calendar::turn;
+    get_weather().update_weather();
+    CHECK(get_weather().weather_id == weather_type_id("lightning"));
+    CHECK(get_weather().nextweather == expires_at);
+
+    calendar::turn = expires_at;
+    get_weather().nextweather = calendar::turn;
+    get_weather().update_weather();
+    CHECK_FALSE(get_weather().weather_id == weather_type_id("lightning"));
+    CHECK_FALSE(get_weather().has_omt_weather_override(center));
+
+    auto weather_state = enum_bitset<test_state>();
+    weather_state.set(state::weather);
+    clear_states(weather_state);
     CHECK_FALSE(get_weather().has_omt_weather_override(center));
     CHECK_FALSE(get_weather().has_omt_weather_override(neighbor));
     CHECK_FALSE(get_weather().has_omt_weather_override(outside));

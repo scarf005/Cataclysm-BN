@@ -178,6 +178,8 @@ TEST_CASE("region_overlay_changes_base_weather", "[weather][json]") {
     auto input = std::istringstream(R"({"base_weather":"test_weather_base"})");
     auto reader = JsonIn(input);
     apply_region_overlay(reader.get_object(), region);
+    CHECK(region.weather_id == base_weather_id("test_weather_base"));
+    region.finalize();
     CHECK(region.weather.id == base_weather_id("test_weather_base"));
     CHECK(
         region.weather.weather_types
@@ -215,6 +217,113 @@ TEST_CASE("regional_settings_accepts_legacy_weather_forms", "[weather][json]") {
     CHECK(region_settings_map.at(inline_region_id).weather.base_humidity == 64.0);
     CHECK(region_settings_map.at(inline_region_id).weather.weather_types
           == std::vector<weather_type_id>{weather_type_id("test_weather_basic")});
+
+    auto overlay_string_region = regional_settings();
+    auto string_overlay_input = std::istringstream(R"({"weather":"test_weather_base"})");
+    auto string_overlay_reader = JsonIn(string_overlay_input);
+    apply_region_overlay(string_overlay_reader.get_object(), overlay_string_region);
+    CHECK(overlay_string_region.weather_id == base_weather_id("test_weather_base"));
+
+    auto overlay_inline_region = regional_settings();
+    auto base_overlay_input = std::istringstream(R"({"base_weather":"default"})");
+    auto base_overlay_reader = JsonIn(base_overlay_input);
+    apply_region_overlay(base_overlay_reader.get_object(), overlay_inline_region);
+    auto humidity_overlay_input = std::istringstream(R"({
+        "weather": { "base_humidity": 64 }
+    })");
+    auto humidity_overlay_reader = JsonIn(humidity_overlay_input);
+    apply_region_overlay(humidity_overlay_reader.get_object(), overlay_inline_region);
+    auto pressure_overlay_input = std::istringstream(R"({
+        "weather": { "base_pressure": 999 }
+    })");
+    auto pressure_overlay_reader = JsonIn(pressure_overlay_input);
+    apply_region_overlay(pressure_overlay_reader.get_object(), overlay_inline_region);
+    overlay_inline_region.finalize();
+    CHECK(overlay_inline_region.weather.base_humidity == 64.0);
+    CHECK(overlay_inline_region.weather.base_pressure == 999.0);
+    CHECK_FALSE(overlay_inline_region.weather.weather_types.empty());
+    overlay_inline_region.finalize();
+    CHECK(overlay_inline_region.weather.base_humidity == 64.0);
+    CHECK(overlay_inline_region.weather.base_pressure == 999.0);
+
+    auto replacement_region = regional_settings();
+    auto replacement_base_input = std::istringstream(R"({"base_weather":"default"})");
+    auto replacement_base_reader = JsonIn(replacement_base_input);
+    apply_region_overlay(replacement_base_reader.get_object(), replacement_region);
+    auto replacement_inline_input = std::istringstream(R"({
+        "weather": { "base_humidity": 64 }
+    })");
+    auto replacement_inline_reader = JsonIn(replacement_inline_input);
+    apply_region_overlay(replacement_inline_reader.get_object(), replacement_region);
+    auto replacement_profile_input = std::istringstream(R"({"base_weather":"test_weather_base"})");
+    auto replacement_profile_reader = JsonIn(replacement_profile_input);
+    apply_region_overlay(replacement_profile_reader.get_object(), replacement_region);
+    replacement_region.finalize();
+    CHECK(replacement_region.weather.base_humidity == 70.0);
+}
+
+TEST_CASE("legacy_inline_weather_keeps_loader_defaults", "[weather][json]") {
+    const auto region_id = std::string("test_legacy_weather_defaults");
+    const auto cleanup = on_out_of_scope([&]() { region_settings_map.erase(region_id); });
+    auto input = std::istringstream(R"({
+        "id":"test_legacy_weather_defaults",
+        "weather":{"weather_types":["test_weather_basic"]}
+    })");
+    auto reader = JsonIn(input);
+    load_region_settings(reader.get_object());
+    const auto& weather = region_settings_map.at(region_id).weather;
+    CHECK(weather.base_humidity == 50.0);
+    CHECK(weather.base_pressure == 0.0);
+    CHECK(weather.temperature_daily_amplitude == 5_c);
+    CHECK(weather.temperature_noise_amplitude == 8_c);
+}
+
+TEST_CASE("inline_weather_overlay_rejects_an_empty_final_weather_list", "[weather][json]") {
+    auto region = regional_settings();
+    auto base_input = std::istringstream(R"({"base_weather":"default"})");
+    auto base_reader = JsonIn(base_input);
+    apply_region_overlay(base_reader.get_object(), region);
+    auto overlay_input = std::istringstream(R"({"weather":{"weather_types":[]}})");
+    auto overlay_reader = JsonIn(overlay_input);
+    apply_region_overlay(overlay_reader.get_object(), region);
+    CHECK_THROWS(region.finalize());
+}
+
+TEST_CASE("regional_settings_defers_weather_profile_resolution", "[weather][json]") {
+    const auto region_id = std::string("test_deferred_weather_region");
+    const auto cleanup = on_out_of_scope([&]() { region_settings_map.erase(region_id); });
+    auto input = std::istringstream(
+        R"({"id":"test_deferred_weather_region","base_weather":"test_weather_base"})");
+    auto reader = JsonIn(input);
+    load_region_settings(reader.get_object());
+    REQUIRE(region_settings_map.contains(region_id));
+    auto& region = region_settings_map.at(region_id);
+    CHECK(region.weather_id == base_weather_id("test_weather_base"));
+    region.weather = weather_generator();
+    region.finalize();
+    CHECK(region.weather.id == base_weather_id("test_weather_base"));
+
+    region.weather_id = base_weather_id("test_weather_acid");
+    region.finalize();
+    CHECK(region.weather.id == base_weather_id("test_weather_acid"));
+}
+
+TEST_CASE("forward_weather_profile_is_resolved_after_redefinition", "[weather][json]") {
+    REQUIRE(region_settings_map.contains("test_forward_weather_region"));
+    const auto& region = region_settings_map.at("test_forward_weather_region");
+    CHECK(region.weather_id == base_weather_id("test_forward_weather"));
+    CHECK(region.weather.id == base_weather_id("test_forward_weather"));
+    CHECK(region.weather.weather_types
+          == std::vector<weather_type_id>{weather_type_id("test_weather_alternate")});
+}
+
+TEST_CASE("deferred_inline_weather_overlays_keep_order", "[weather][json]") {
+    REQUIRE(region_settings_map.contains("test_inline_forward_region"));
+    const auto& region = region_settings_map.at("test_inline_forward_region");
+    CHECK(region.weather.id == base_weather_id("test_inline_forward_weather"));
+    CHECK(region.weather.base_humidity == 64.0);
+    CHECK(region.weather.base_pressure == 999.0);
+    CHECK_FALSE(region.weather.weather_types.empty());
 }
 
 TEST_CASE("default_weather_does_not_enable_acidic_pattern", "[weather][json]") {
@@ -225,20 +334,30 @@ TEST_CASE("default_weather_does_not_enable_acidic_pattern", "[weather][json]") {
 
 TEST_CASE("weather_pattern_modifiers_are_applied_and_clamped", "[weather][json]") {
     const auto& generator = base_weathers::get(base_weather_id("test_weather_modifiers"));
-    const auto weather = generator.get_weather(tripoint_abs_ms::zero(), calendar::turn_zero, 42);
+    const auto location = tripoint_abs_ms::zero();
+    const auto time = calendar::turn_zero;
+    const auto weather = generator.get_weather(location, time, 42);
+    const auto baseline =
+        base_weathers::get(base_weather_id("default")).get_weather(location, time, 42);
     REQUIRE(weather.pattern_values.contains(weather_pattern_id("test_weather_constant")));
     CHECK(weather.pattern_values.at(weather_pattern_id("test_weather_constant")) == 2.0);
+    CHECK(weather.pattern_values.at(weather_pattern_id("test_weather_string_temperature")) == 1.0);
+    CHECK(weather.temperature == baseline.temperature + 15_c);
+    CHECK(generator.get_weather_temperature(location, time, calendar::config, 42)
+          == weather.temperature);
     CHECK(weather.humidity == 100.0);
     CHECK(weather.windpower == 0.0);
     CHECK(weather.acidic);
+    CHECK(generator.get_weather_conditions(weather)
+          == weather_type_id("test_weather_pattern_generated"));
 
     const auto& acid_generator = base_weathers::get(base_weather_id("test_weather_acid"));
     auto rainy_weather = w_point{
         .temperature = 20_c,
-        .humidity = 98.0,
-        .pressure = 995.0,
+        .humidity = 92.0,
+        .pressure = 997.0,
         .windpower = 0.0,
-        .pattern_values = {{weather_pattern_id("test_weather_constant"), 2.0}},
+        .pattern_values = {{weather_pattern_id("acidic"), 2.0}},
     };
     CHECK(acid_generator.get_weather_conditions(rainy_weather) == weather_type_id("acid_rain"));
 }

@@ -1,0 +1,47 @@
+[
+  {
+    "type": "region_settings",
+    "id": "test_forward_weather_region",
+    "default_oter": "field",
+    "base_weather": "test_forward_weather"
+  },
+  {
+    "type": "base_weather",
+    "id": "test_forward_weather",
+    "copy-from": "test_forward_parent"
+  },
+  {
+    "type": "base_weather",
+    "id": "test_forward_parent",
+    "copy-from": "default",
+    "weather_types": [ "test_weather_basic" ]
+  },
+  {
+    "type": "base_weather",
+    "id": "test_forward_parent",
+    "copy-from": "default",
+    "weather_types": [ "test_weather_alternate" ]
+  },
+  {
+    "type": "region_settings",
+    "id": "test_inline_forward_region",
+    "default_oter": "field",
+    "base_weather": "test_inline_forward_weather"
+  },
+  {
+    "type": "region_overlay",
+    "regions": [ "test_inline_forward_region" ],
+    "weather": { "base_humidity": 64 }
+  },
+  {
+    "type": "region_overlay",
+    "regions": [ "test_inline_forward_region" ],
+    "weather": { "base_pressure": 999 }
+  },
+  {
+    "type": "base_weather",
+    "id": "test_inline_forward_weather",
+    "copy-from": "default",
+    "weather_types": [ "test_weather_basic" ]
+  }
+]
