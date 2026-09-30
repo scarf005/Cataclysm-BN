@@ -155,12 +155,13 @@ inline void proc_weather_sum(
 auto current_weather(const tripoint_abs_ms& location, const time_point& t)
     -> const weather_type_id& {
     const weather_manager& weather = get_weather();
-    const auto wgen = weather.get_cur_weather_gen();
-    if (const weather_type_id* omt_override =
-            weather.get_omt_weather_override(project_to<coords::omt>(location), t)) {
+    const auto omt_location = project_to<coords::omt>(location);
+    if (const weather_type_id* omt_override = weather.get_omt_weather_override(omt_location, t)) {
         return *omt_override;
     }
     if (weather.weather_override) { return weather.weather_override; }
+    const auto& wgen =
+        get_overmapbuffer(get_avatar().get_dimension()).get_settings(omt_location).weather;
     return wgen.get_weather_conditions(location, t, g->get_seed());
 }
 
