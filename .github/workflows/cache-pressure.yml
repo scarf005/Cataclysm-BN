@@ -1,8 +1,8 @@
-# Fork-only real cache quota/retention experiment. Never dispatch this workflow upstream.
+# Fork-only real cache quota/retention experiment, called by the benchmark matrix.
 name: Cache pressure experiment
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       wait_run_id:
         description: Completed Windows shard comparison run with a successful native build

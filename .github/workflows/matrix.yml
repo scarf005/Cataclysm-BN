@@ -6,12 +6,33 @@ on:
       suite:
         description: Benchmark suite
         type: choice
-        options: [baseline, candidate, android-candidate, cache-policy, shader-cache]
+        options: [
+          baseline,
+          candidate,
+          android-candidate,
+          cache-policy,
+          cache-pressure,
+          shader-cache,
+        ]
         default: baseline
+      wait_run_id:
+        description: Completed Windows comparison run required for cache pressure
+        type: string
+        default: ""
+      allow_eviction:
+        description: Authorize automatic eviction of existing fork caches
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: write
 jobs:
+  cache-pressure:
+    if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'cache-pressure'
+    uses: ./.github/workflows/cache-pressure.yml
+    with:
+      wait_run_id: ${{ inputs.wait_run_id }}
+      allow_eviction: ${{ inputs.allow_eviction }}
   windows-baseline:
     if: github.repository == 'scarf005/Cataclysm-BN' && inputs.suite == 'baseline'
     uses: ./.github/workflows/build.yml
