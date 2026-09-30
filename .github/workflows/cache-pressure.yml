@@ -10,7 +10,7 @@ on:
         type: string
       allow_eviction:
         description: Explicitly authorize automatic eviction in scarf005/Cataclysm-BN
-        required: true
+        required: false
         default: false
         type: boolean
 
