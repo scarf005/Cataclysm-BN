@@ -9,10 +9,11 @@
  */
 
 import { Command } from "@cliffy/command"
-import { assertEquals } from "@std/assert"
+import { assertEquals, assertThrows } from "@std/assert"
 import { pooledMap } from "@std/async"
 import { emptyDir, ensureDir } from "@std/fs"
-import { basename, join } from "@std/path"
+import { basename, dirname, join } from "@std/path"
+import * as v from "@valibot/valibot"
 
 type Mode = "auto" | "file-tags" | "tiles" | "legacy"
 
@@ -24,6 +25,21 @@ type Options = {
   dryRun: boolean
   testBin: string
   testOpts: string[]
+  timingsPath?: string
+  writeTimingsPath?: string
+  timingPath?: string
+}
+
+type TimingProfile = {
+  version: 1
+  tests: Record<string, number>
+  tags: Record<string, number>
+}
+
+type Catch2Timing = {
+  name: string
+  durationSeconds: number
+  tags: string[]
 }
 
 type Shard = {
@@ -37,6 +53,89 @@ type CommandResult = {
   code: number
   stdout: string
   stderr: string
+}
+
+const timingSecondsSchema = v.pipe(v.number(), v.finite(), v.minValue(0))
+const timingProfileSchema = v.object({
+  version: v.literal(1),
+  tests: v.record(v.string(), timingSecondsSchema),
+  tags: v.optional(v.record(v.string(), timingSecondsSchema)),
+})
+
+export const parseTimingProfile = (value: unknown): TimingProfile => {
+  const result = v.safeParse(timingProfileSchema, value)
+  if (!result.success) {
+    throw new Error("Timing profile must contain version 1 and non-negative numeric tests")
+  }
+  return { ...result.output, tags: result.output.tags ?? {} }
+}
+
+export const parseCatch2Timings = (xml: string): Catch2Timing[] => {
+  const decodeXml = (value: string): string =>
+    value.replace(
+      /&(?:amp|quot|apos|lt|gt);/g,
+      (entity) => ({
+        "&amp;": "&",
+        "&quot;": '"',
+        "&apos;": "'",
+        "&lt;": "<",
+        "&gt;": ">",
+      }[entity] ?? entity),
+    )
+  const attribute = (attributes: string, name: string): string | undefined => {
+    const match = attributes.match(new RegExp(`\\b${name}\\s*=\\s*(["'])(.*?)\\1`))
+    return match?.[2] === undefined ? undefined : decodeXml(match[2])
+  }
+  return [...xml.matchAll(/<TestCase\b([^>]*)>([\s\S]*?)<\/TestCase>/g)].flatMap((match) => {
+    const attributes = match[1] ?? ""
+    const body = match[2] ?? ""
+    const name = attribute(attributes, "name")
+    const overallResult = body.match(/<OverallResult\b([^>]*)>/)?.[1] ?? ""
+    const duration = attribute(overallResult, "durationInSeconds")
+    if (name === undefined || duration === undefined) {
+      return []
+    }
+    const durationSeconds = Number(duration)
+    if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
+      return []
+    }
+    return [{
+      name,
+      durationSeconds,
+      tags: [...(attribute(attributes, "tags") ?? "").matchAll(/\[[^\]]+\]/g)].map((tag) => tag[0]),
+    }]
+  })
+}
+
+export const timingProfileFromXml = (xmlFiles: string[]): TimingProfile => {
+  const tests: Record<string, number> = {}
+  const tags: Record<string, number> = {}
+  for (const xml of xmlFiles) {
+    for (const timing of parseCatch2Timings(xml)) {
+      tests[timing.name] = (tests[timing.name] ?? 0) + timing.durationSeconds
+      for (const tag of timing.tags.filter((tag) => /^\[#.*?_test\]$/.test(tag))) {
+        tags[tag] = (tags[tag] ?? 0) + timing.durationSeconds
+        tags[`slow:${tag}`] ??= 0
+        tags[`non-slow:${tag}`] ??= 0
+        if (timing.name !== "starting_items") {
+          const prefix = timing.tags.includes("[slow]") ? "slow" : "non-slow"
+          const key = `${prefix}:${tag}`
+          tags[key] = (tags[key] ?? 0) + timing.durationSeconds
+        }
+      }
+    }
+  }
+  return parseTimingProfile({ version: 1, tests, tags })
+}
+
+const loadTimingProfile = async (path: string): Promise<TimingProfile> =>
+  parseTimingProfile(JSON.parse(await Deno.readTextFile(path)))
+
+const writeTimingProfile = async (path: string, xmlPaths: string[]): Promise<void> => {
+  const xmlFiles = await Promise.all(xmlPaths.map((xmlPath) => Deno.readTextFile(xmlPath)))
+  const profile = timingProfileFromXml(xmlFiles)
+  await ensureDir(dirname(path))
+  await Deno.writeTextFile(path, `${JSON.stringify(profile, null, 2)}\n`)
 }
 
 const defaultTestBin = "./out/build/linux-full/tests/cata_test-tiles"
@@ -189,31 +288,62 @@ const distributeWorkItems = (items: Shard[], shardCount: number): Shard[] => {
   return bins.filter((bin) => bin.filters.length > 0)
 }
 
-const tagWorkItem = (tag: string, prefix: "slow" | "non-slow"): Shard => ({
+const tagWorkItem = (
+  tag: string,
+  prefix: "slow" | "non-slow",
+  timings?: TimingProfile,
+): Shard => ({
   name: tag,
   filters: [prefix === "slow" ? `[slow] ~starting_items ${tag}` : `~[slow] ~[.] ${tag}`],
-  estimatedSeconds: tagWeights.get(tag) ?? 10,
+  estimatedSeconds: timings?.tags[`${prefix}:${tag}`] ?? timings?.tags[tag] ??
+    tagWeights.get(tag) ?? 10,
   compute: "cpu",
 })
 
+type ShardPlanOptions = {
+  allTags: string[]
+  slowTags: string[]
+  nonSlowShards: number
+  timings?: TimingProfile
+}
+
+const measuredFixedShard = (shard: Shard, timings?: TimingProfile): Shard => {
+  if (timings === undefined) return shard
+  const weights = shard.filters.flatMap((filter) => filter.split(",")).flatMap((filter) => {
+    const tag = extractFileTags(filter)[0]
+    if (tag !== undefined) {
+      const duration = timings.tags[tag]
+      return duration === undefined ? [] : [duration]
+    }
+    return Object.entries(timings.tests)
+      .filter(([name]) =>
+        filter.endsWith("*") ? name.startsWith(filter.slice(0, -1)) : name === filter
+      )
+      .map(([, duration]) => duration)
+  })
+  return weights.length === 0
+    ? shard
+    : { ...shard, estimatedSeconds: weights.reduce((total, seconds) => total + seconds, 0) }
+}
+
 export const buildShardPlan = (
-  allTags: string[],
-  slowTags: string[],
-  nonSlowShards: number,
-  _slowShards: number,
+  { allTags, slowTags, nonSlowShards, timings }: ShardPlanOptions,
 ): Shard[] => {
-  const visibility = fixedShards.filter((shard) => shard.compute === "gpu_software")
-  const cpuFixed = fixedShards.filter((shard) => shard.compute === "cpu")
+  const measuredFixed = fixedShards.map((shard) => measuredFixedShard(shard, timings))
+  const visibility = measuredFixed.filter((shard) => shard.compute === "gpu_software")
+  const cpuFixed = measuredFixed.filter((shard) => shard.compute === "cpu")
   const nonSlowTags = allTags.filter((tag) => !specialTagPattern.test(tag))
-  const slowItems = slowTags.length > 0 ? slowTags.map((tag) => tagWorkItem(tag, "slow")) : [{
-    name: "slow",
-    filters: ["[slow] ~starting_items"],
-    estimatedSeconds: 30,
-    compute: "cpu" as const,
-  }]
+  const slowItems = slowTags.length > 0
+    ? slowTags.map((tag) => tagWorkItem(tag, "slow", timings))
+    : [{
+      name: "slow",
+      filters: ["[slow] ~starting_items"],
+      estimatedSeconds: 30,
+      compute: "cpu" as const,
+    }]
   const cpuItems = [
     ...cpuFixed,
-    ...nonSlowTags.map((tag) => tagWorkItem(tag, "non-slow")),
+    ...nonSlowTags.map((tag) => tagWorkItem(tag, "non-slow", timings)),
     ...slowItems,
   ]
   return [
@@ -284,6 +414,7 @@ const runShard = async (
   testOpts: string[],
   shard: Shard,
 ): Promise<number> => {
+  const timingPath = options.timingPath
   const explicitCompute = Deno.env.get("CATA_TEST_COMPUTE_ACCELERATION")
   const compute = explicitCompute ??
     (shard.compute === "gpu_software"
@@ -297,8 +428,14 @@ const runShard = async (
   const env: Record<string, string> = compute === undefined
     ? {}
     : { CATA_TEST_COMPUTE_ACCELERATION: compute }
+  if (timingPath !== undefined) {
+    await ensureDir(dirname(timingPath))
+  }
   const result = await commandOutput(options.testBin, [
     ...testOpts,
+    ...(timingPath === undefined
+      ? []
+      : ["--reporter", "xml", "--out", timingPath, "--durations", "yes"]),
     `--user-dir=${userDir}`,
     filter,
   ], env)
@@ -332,11 +469,26 @@ const run = async (options: Options): Promise<number> => {
         console.log(`${shard.name}: ${shard.filters.join(",")}`)
         return 0
       }
-      return await runShard(parsed, parsed.testOpts, shard)
+      const timingPath = parsed.writeTimingsPath === undefined
+        ? undefined
+        : join(shardDir.path, "timings", `${shard.name}.xml`)
+      const status = await runShard({ ...parsed, timingPath }, parsed.testOpts, shard)
+      if (parsed.writeTimingsPath !== undefined) {
+        await writeTimingProfile(parsed.writeTimingsPath, [timingPath!])
+      }
+      return status
     }
 
+    const timings = parsed.timingsPath === undefined
+      ? undefined
+      : await loadTimingProfile(parsed.timingsPath)
     const { allTags, slowTags, testOpts } = await discoverTags(parsed, shardDir.path)
-    const shards = buildShardPlan(allTags, slowTags, parsed.nonSlowShards, parsed.slowShards)
+    const shards = buildShardPlan({
+      allTags,
+      slowTags,
+      nonSlowShards: parsed.nonSlowShards,
+      timings,
+    })
     await writeShardFiles(shardDir.path, shards)
     if (parsed.dryRun) {
       for (const shard of shards.toSorted((a, b) => a.name.localeCompare(b.name))) {
@@ -345,13 +497,33 @@ const run = async (options: Options): Promise<number> => {
       return 0
     }
 
+    const timingPaths = parsed.writeTimingsPath === undefined
+      ? []
+      : shards.map((shard) => join(shardDir.path, "timings", `${shard.name}.xml`))
     let status = 0
     for await (
-      const code of pooledMap(parsed.jobs, shards, (shard) => runShard(parsed, testOpts, shard))
+      const code of pooledMap(
+        parsed.jobs,
+        shards,
+        (shard) =>
+          runShard(
+            {
+              ...parsed,
+              timingPath: parsed.writeTimingsPath === undefined
+                ? undefined
+                : join(shardDir.path, "timings", `${shard.name}.xml`),
+            },
+            testOpts,
+            shard,
+          ),
+      )
     ) {
       if (code !== 0 && status === 0) {
         status = code
       }
+    }
+    if (parsed.writeTimingsPath !== undefined) {
+      await writeTimingProfile(parsed.writeTimingsPath, timingPaths)
     }
     return status
   } finally {
@@ -363,8 +535,104 @@ Deno.test("extractFileTags returns sorted unique file tags", () => {
   assertEquals(extractFileTags("x [#b_test] [foo] [#a_test] [#b_test]"), ["[#a_test]", "[#b_test]"])
 })
 
+Deno.test("parseCatch2Timings uses the test-case OverallResult", () => {
+  const timings = parseCatch2Timings(`
+    <TestCase name="test &amp; one" tags="[#alpha_test] [slow]">
+      <Section name="nested">
+        <OverallResults durationInSeconds="99" />
+      </Section>
+      <OverallResult success="true" durationInSeconds="1.5" />
+    </TestCase>
+  `)
+  assertEquals(timings, [{
+    name: "test & one",
+    durationSeconds: 1.5,
+    tags: ["[#alpha_test]", "[slow]"],
+  }])
+})
+
+Deno.test("parseTimingProfile rejects malformed and negative timings", () => {
+  assertThrows(() => parseTimingProfile({ version: 1, tests: { "bad": -1 } }))
+  assertThrows(() => parseTimingProfile({ version: 2, tests: {} }))
+  assertThrows(() => parseTimingProfile({ version: 1, tests: { bad: Infinity } }))
+  assertEquals(parseTimingProfile({ version: 1, tests: {} }).tags, {})
+})
+
+Deno.test("timing assignment keeps every generated tag exactly once", () => {
+  const allTags = ["[#a_test]", "[#vision_test]", "[#b_test]"]
+  const slowTags = ["[#slow_test]"]
+  const shards = buildShardPlan({
+    allTags,
+    slowTags,
+    nonSlowShards: 3,
+    timings: {
+      version: 1,
+      tests: {},
+      tags: { "[#a_test]": 50 },
+    },
+  })
+  const assignedTags = shards.flatMap((shard) => extractFileTags(shard.filters.join(" ")))
+    .filter((tag) => !specialTagPattern.test(tag))
+  assertEquals(assignedTags.toSorted(), ["[#a_test]", "[#b_test]", "[#slow_test]"])
+  assertEquals(new Set(assignedTags).size, assignedTags.length)
+})
+
+Deno.test("timing profiles separate slow work and exclude fixed starting items", () => {
+  const profile = timingProfileFromXml([`
+    <TestCase name="slow case" tags="[#mixed_test][slow]">
+      <OverallResult durationInSeconds="7" />
+    </TestCase>
+    <TestCase name="fast case" tags="[#mixed_test]">
+      <OverallResult durationInSeconds="2" />
+    </TestCase>
+    <TestCase name="starting_items" tags="[#mixed_test][slow]">
+      <OverallResult durationInSeconds="50" />
+    </TestCase>
+  `])
+  assertEquals(profile.tags["slow:[#mixed_test]"], 7)
+  assertEquals(profile.tags["non-slow:[#mixed_test]"], 2)
+  assertEquals(
+    measuredFixedShard(fixedShards.find((shard) => shard.name === "22-starting-items")!, profile)
+      .estimatedSeconds,
+    50,
+  )
+})
+
+Deno.test("measured plans are deterministic and preserve every original filter and compute choice", () => {
+  const options = {
+    allTags: ["[#a_test]", "[#b_test]", "[#vision_test]"],
+    slowTags: ["[#a_test]"],
+    nonSlowShards: 3,
+  }
+  const baseline = buildShardPlan(options)
+  const measured = buildShardPlan({
+    ...options,
+    timings: {
+      version: 1,
+      tests: { starting_items: 1 },
+      tags: { "slow:[#a_test]": 70, "non-slow:[#a_test]": 2, "non-slow:[#b_test]": 10 },
+    },
+  })
+  const filters = (shards: Shard[]) =>
+    shards.flatMap((shard) => shard.filters.map((filter) => `${shard.compute}:${filter}`))
+      .toSorted()
+  assertEquals(filters(measured), filters(baseline))
+  assertEquals(
+    buildShardPlan({
+      ...options,
+      allTags: [...options.allTags].reverse(),
+      timings: { version: 1, tests: {}, tags: {} },
+    }),
+    baseline,
+  )
+})
+
 Deno.test("buildShardPlan keeps visibility out of CPU shards", () => {
-  const shards = buildShardPlan(["[#vision_test]", "[#map_test]"], [], 2, 1)
+  const shards = buildShardPlan({
+    allTags: ["[#vision_test]", "[#map_test]"],
+    slowTags: [],
+    nonSlowShards: 2,
+  })
   const cpuFilters = shards.filter((shard) => shard.name.endsWith("cpu")).flatMap((
     shard,
   ) => shard.filters)
@@ -373,7 +641,11 @@ Deno.test("buildShardPlan keeps visibility out of CPU shards", () => {
 })
 
 Deno.test("buildShardPlan keeps visibility on its GPU shard", () => {
-  const shards = buildShardPlan(["[#enchantment_test]", "[#tiny_test]"], [], 2, 1)
+  const shards = buildShardPlan({
+    allTags: ["[#enchantment_test]", "[#tiny_test]"],
+    slowTags: [],
+    nonSlowShards: 2,
+  })
   const visibility = shards.find((shard) => shard.name === "20-visibility")
   assertEquals(visibility?.compute, "gpu_software")
 })
@@ -389,6 +661,11 @@ if (import.meta.main) {
       .option("--non-slow-shards <nonSlowShards:string>", "generated CPU shards, or auto", {
         default: "auto",
       })
+      .option("--timings <timingsPath:string>", "load duration-aware shard timings from JSON")
+      .option(
+        "--write-timings <writeTimingsPath:string>",
+        "write per-test Catch2 XML timings as JSON",
+      )
       .option("--dry-run", "print shard filters without running tests")
       .arguments("[testBin:string] [...testOpts:string]")
       .parse(Deno.args)
@@ -409,6 +686,8 @@ if (import.meta.main) {
         dryRun: Boolean(options.dryRun),
         testBin: args[0] ?? defaultTestBin,
         testOpts: testOpts.length > 0 ? testOpts : defaultTestOpts,
+        timingsPath: options.timings,
+        writeTimingsPath: options.writeTimings,
       }),
     )
   } catch (error) {
