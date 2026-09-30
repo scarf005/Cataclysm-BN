@@ -14,6 +14,27 @@ Use [`just playtest [--os OS] <PR URL>`](../reference/tooling.md#playtesting-pul
 an existing PR build without compiling locally. The tooling guide covers prerequisites, supported
 platforms, artifact selection, and save locations.
 
+## Sharded test diagnostics
+
+`build-scripts/run-linux-test-shards.ts` runs filename-tag shards. Useful options are
+`--mode file-tags|legacy`, `--jobs`, `--non-slow-shards`, `--diagnostics`,
+`--shard-timeout-seconds`, and `--discovery-timeout-seconds`; append the test binary followed by
+`--` and its Catch2 options. `--diagnostics` writes one tagged log per discovery or test process.
+Local logs are retained and their directory is printed when a diagnostic run fails; set
+`CATA_TEST_SHARD_LOG_DIR` to choose a persistent directory explicitly.
+
+The runner also accepts `CATA_TEST_SHARD_TIMEOUT_SECONDS`, `CATA_TEST_DISCOVERY_TIMEOUT_SECONDS`,
+`CATA_TEST_SHARD_DIR`, `CATA_TEST_USER_DIR_PREFIX`, and
+`CATA_TEST_COMPUTE_ACCELERATION`. The runner sets `CATA_TEST_SHARD_DIAGNOSTICS` and
+`CATA_TEST_SHARD_NAME` for the test binary. Each shard log records its filter, resolved RNG seed,
+and a JSON reproduction command, including when the test process hangs during startup.
+
+On Linux, timeout diagnostics use `gdb` when available. Test binaries opt in to the Yama ptrace
+allowance only when `CATA_TEST_SHARD_DIAGNOSTICS=1`; containers or hardened kernels may still
+deny attachment, in which case the log records the fallback. Linux subprocesses are placed in a
+private session so descendants holding output pipes are terminated with the shard. Windows uses a
+bounded `taskkill /T /F` fallback and does not provide gdb stack capture.
+
 ## Guidelines
 
 When creating tests, ensure that all objects used (directly or indirectly) are fully reset before
