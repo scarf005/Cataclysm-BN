@@ -438,21 +438,20 @@ if (CATA_SDL)
     if (USE_PRECOMPILED_SHADERS)
         message(STATUS "Using precompiled shaders; shadercross lookup and build disabled")
         set(SHADERCROSS_EXE "")
-    endif ()
-
-    if (NOT USE_PRECOMPILED_SHADERS)
+    else ()
         message(STATUS "Searching for shadercross (HLSL compiler) --")
 
         find_program(SHADERCROSS_EXE
             NAMES shadercross
             HINTS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/sdl3-shadercross")
+    endif ()
 
     if (APPLE AND SHADERCROSS_EXE)
         message(STATUS "shadercross found on macOS; using precompiled MSL shaders instead")
         set(SHADERCROSS_EXE "")
     endif ()
 
-    if (NOT SHADERCROSS_EXE AND BUILD_SHADERCROSS AND NOT APPLE)
+    if (NOT USE_PRECOMPILED_SHADERS AND NOT SHADERCROSS_EXE AND BUILD_SHADERCROSS AND NOT APPLE)
         message(STATUS "Installing SDL_shadercross from Source")
         FetchContent_Declare(
                 SDL3_SHADERCROSS
@@ -524,7 +523,6 @@ if (CATA_SDL)
 
         set(SHADERCROSS_EXE $<TARGET_FILE:shadercross>)
         set(SHADERCROSS_TARGET shadercross)
-    endif ()
     endif ()
 
     file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/data/shaders")

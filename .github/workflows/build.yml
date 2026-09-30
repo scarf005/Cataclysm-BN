@@ -73,7 +73,7 @@ on:
         description: "Use the verified shader artifact bundle instead of running shadercross in each build"
         required: false
         type: boolean
-        default: false
+        default: true
       android-localize:
         description: "Build Android assets with localization"
         required: false
