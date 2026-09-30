@@ -289,6 +289,21 @@ TEST_CASE("inline_weather_overlay_rejects_an_empty_final_weather_list", "[weathe
     CHECK_THROWS(region.finalize());
 }
 
+TEST_CASE("weather_profile_references_reject_empty_and_null_ids", "[weather][json]") {
+    const auto member = std::string(GENERATE("base_weather", "weather"));
+    const auto profile = std::string(GENERATE("", "null"));
+    const auto payload = "\"" + member + "\":\"" + profile + "\"";
+    auto region_input = std::istringstream(
+        "{\"id\":\"test_invalid_weather_profile\"," + payload + "}");
+    auto region_reader = JsonIn(region_input);
+    CHECK_THROWS_AS(load_region_settings(region_reader.get_object()), JsonError);
+
+    auto region = regional_settings();
+    auto overlay_input = std::istringstream("{" + payload + "}");
+    auto overlay_reader = JsonIn(overlay_input);
+    CHECK_THROWS_AS(apply_region_overlay(overlay_reader.get_object(), region), JsonError);
+}
+
 TEST_CASE("regional_settings_defers_weather_profile_resolution", "[weather][json]") {
     const auto region_id = std::string("test_deferred_weather_region");
     const auto cleanup = on_out_of_scope([&]() { region_settings_map.erase(region_id); });
