@@ -1,0 +1,105 @@
+# Fork-only real cache quota/retention experiment. Never dispatch this workflow upstream.
+name: Cache pressure experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_run_id:
+        description: Completed run with a successful Windows shard comparison
+        required: true
+        type: string
+      allow_eviction:
+        description: Explicitly authorize automatic eviction in scarf005/Cataclysm-BN
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  guard:
+    if: github.repository == 'scarf005/Cataclysm-BN'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify fork, branch, authorization, and prerequisite run
+        uses: actions/github-script@v7
+        env:
+          WAIT_RUN_ID: ${{ inputs.wait_run_id }}
+          ALLOW_EVICTION: ${{ inputs.allow_eviction }}
+        with:
+          script: |
+            if (context.repo.owner !== 'scarf005' || context.repo.repo !== 'Cataclysm-BN') {
+              throw new Error('This workflow is restricted to scarf005/Cataclysm-BN')
+            }
+            if (context.ref !== 'refs/heads/ci/build-speed-experiments') {
+              throw new Error('This workflow is restricted to ci/build-speed-experiments')
+            }
+            if (process.env.ALLOW_EVICTION !== 'true') {
+              throw new Error('allow_eviction must be explicitly true')
+            }
+            const waitRunId = process.env.WAIT_RUN_ID;
+            if (!/^\d+$/.test(waitRunId) || waitRunId === context.runId.toString()) {
+              throw new Error('wait_run_id must be a different numeric run ID')
+            }
+            const run = await github.rest.actions.getWorkflowRun({
+              ...context.repo,
+              run_id: Number(waitRunId)
+            });
+            if (run.data.status !== 'completed' || run.data.head_branch !== 'ci/build-speed-experiments') {
+              throw new Error(`Prerequisite run ${waitRunId} must finish on the experiment branch`);
+            }
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, { ...context.repo, run_id: Number(waitRunId), per_page: 100 });
+            const benchmark = jobs.find(job => job.name.endsWith(' / Windows shard comparison'));
+            if (benchmark?.status !== 'completed' || benchmark.conclusion !== 'success') {
+              throw new Error(`Windows shard comparison in run ${waitRunId} did not succeed`);
+            }
+            core.info(`Prerequisite Windows benchmark in run ${waitRunId} completed successfully`);
+
+  windows-pressure:
+    needs: guard
+    runs-on: windows-2022
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ci/build-speed-experiments
+
+      - uses: denoland/setup-deno@v2
+        with: { cache: true }
+
+      - name: Expose masked cache service variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            for (const name of ['ACTIONS_RUNTIME_TOKEN', 'ACTIONS_RESULTS_URL']) {
+              const value = process.env[name];
+              if (!value) throw new Error(`Missing ${name} from the Actions runtime`);
+              core.setSecret(value);
+              core.exportVariable(name, value);
+            }
+            core.exportVariable('ACTIONS_CACHE_SERVICE_V2', 'true');
+
+      - name: Run real quota and retention experiment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $denoArgs = @(
+            "run", "--allow-read", "--allow-write", "--allow-env", "--allow-net", "--allow-run", "--allow-sys",
+            "tools/cache_pressure.ts",
+            "--run-id", "${{ github.run_id }}",
+            "--wait-run-id", "${{ inputs.wait_run_id }}",
+            "--evidence-dir", "$env:GITHUB_WORKSPACE/cache-pressure-evidence"
+          )
+          if ("${{ inputs.allow_eviction }}" -eq "true") { $denoArgs += "--allow-eviction" }
+          deno @denoArgs
+
+      - name: Upload raw cache pressure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-pressure-evidence-${{ github.run_id }}
+          path: cache-pressure-evidence/
+          if-no-files-found: error
