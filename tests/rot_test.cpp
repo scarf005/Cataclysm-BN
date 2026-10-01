@@ -556,6 +556,30 @@ TEST_CASE("Items don't rot away on map load if in a freezer") {
 }
 
 TEST_CASE("Vehicle storage temperature controls food rot") {
+    SECTION("nested food uses its owning freezer while the vehicle is detached from the map") {
+        auto fixture = make_storage(vpart_id("minifreezer"), true);
+        add_backpack_with_sashimi_to_vehicle_part(*fixture.veh, fixture.part_index);
+
+        auto detached_vehicle = get_map().detach_vehicle(fixture.veh);
+        REQUIRE(detached_vehicle != nullptr);
+        detached_vehicle->attach();
+        CHECK_FALSE(get_map().veh_at(fixture.pos));
+
+        auto stored_items = detached_vehicle->get_items(fixture.part_index);
+        REQUIRE(stored_items.size() == 1);
+        auto& container = stored_items.only_item();
+        auto* food = nested_sashimi_in(container);
+        CHECK(rot::temp::for_location(get_map(), *food) == temperature_flag::TEMP_FREEZER);
+
+        auto retained = false;
+        container.contents.remove_top_items_with([&retained](detached_ptr<item>&& it) {
+            retained = true;
+            return std::move(it);
+        });
+        CHECK(retained);
+        CHECK(container.contents.all_items_ptr().size() == 2);
+    }
+
     SECTION("powered freezers preserve food when removed after missed processing") {
         auto fixture = make_storage(vpart_id("minifreezer"), true);
         add_sashimi_to_vehicle_part(*fixture.veh, fixture.part_index);
