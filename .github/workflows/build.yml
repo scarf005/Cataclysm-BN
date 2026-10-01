@@ -523,6 +523,10 @@ jobs:
           fi
           "$exe" --version
 
+      - name: Validate shard subprocess fixtures on Windows
+        if: runner.os == 'Windows' && github.repository == 'scarf005/Cataclysm-BN'
+        run: deno test --allow-read --allow-write --allow-run --allow-env build-scripts/run-linux-test-shards_test.ts
+
       # Diagnosis-only: preserve the pinned source bytes while SourceForge is unavailable.
       - name: Fetch verified mpg123 source for Windows diagnosis
         if: runner.os == 'Windows' && github.repository == 'scarf005/Cataclysm-BN'
