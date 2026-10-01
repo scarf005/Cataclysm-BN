@@ -193,7 +193,7 @@ export const runProcess = async (options: ProcessOptions): Promise<ProcessResult
   let logFile: Deno.FsFile | undefined
   let child: Deno.ChildProcess | undefined
   let childStatus: Promise<Deno.CommandStatus> | undefined
-  let streams: Promise<void> | undefined
+  let consumers: Promise<void>[] = []
   let logWrite = Promise.resolve()
   const appendLog = (text: string): Promise<void> => {
     if (!logFile) {
@@ -257,12 +257,12 @@ export const runProcess = async (options: ProcessOptions): Promise<ProcessResult
       stdout: "piped",
       stderr: "piped",
     }).spawn()
-    streams = Promise.all([
+    consumers = [
       consume(spawnedChild.stdout, "stdout"),
       consume(spawnedChild.stderr, "stderr"),
-    ]).then(() => {})
+    ]
     childStatus = spawnedChild.status
-    const [status] = await Promise.all([childStatus, streams])
+    const [status] = await Promise.all([childStatus, Promise.all(consumers)])
     await logWrite
     return { code: status.code, stdout: output.stdout, stderr: output.stderr }
   } catch (error) {
@@ -272,11 +272,11 @@ export const runProcess = async (options: ProcessOptions): Promise<ProcessResult
       // The process may have exited while output was being consumed.
     }
     await childStatus?.catch(() => {})
-    await streams?.catch(() => {})
+    await Promise.allSettled(consumers)
     throw error
   } finally {
     await childStatus?.catch(() => {})
-    await streams?.catch(() => {})
+    await Promise.allSettled(consumers)
     await logWrite.catch(() => {})
     logFile?.close()
   }
