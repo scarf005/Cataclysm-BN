@@ -523,6 +523,21 @@ jobs:
           fi
           "$exe" --version
 
+      # Diagnosis-only: preserve the pinned source bytes while SourceForge is unavailable.
+      - name: Fetch verified mpg123 source for Windows diagnosis
+        if: runner.os == 'Windows' && github.repository == 'scarf005/Cataclysm-BN'
+        shell: pwsh
+        run: |
+          $downloads = Join-Path $env:RUNNER_TEMP "vcpkg-downloads"
+          New-Item -ItemType Directory -Force -Path $downloads | Out-Null
+          $archive = Join-Path $downloads "mpg123-1.33.4.tar.bz2"
+          Invoke-WebRequest -Uri "https://mpg123.org/download/mpg123-1.33.4.tar.bz2" -OutFile $archive
+          $expected = "9b7aa93b692132da7eb8dcfef12ce91bf66bf8475af50e9c57d7b80225f96c0e74264e518e558371af1f4cf6d2afda5b3dfc844949fd747db7ac7c44d0e9f6ad"
+          if ((Get-FileHash -Algorithm SHA512 $archive).Hash.ToLowerInvariant() -ne $expected) {
+            throw "mpg123 source differs from the pinned vcpkg SHA512"
+          }
+          "VCPKG_DOWNLOADS=$downloads" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Configure CBN (windows msvc)
         if: runner.os == 'Windows'
         env:
