@@ -11888,6 +11888,17 @@ item *item::parent_item() const
     return cont->parent();
 }
 
+auto item::vehicle_location() const -> const vehicle_item_location * // *NOPAD*
+{
+    for( const auto *current = this; current != nullptr; current = current->parent_item() ) {
+        const auto location = current->loc ? current->loc : current->saved_loc;
+        if( const auto *vehicle_loc = dynamic_cast<const vehicle_item_location *>( location ) ) {
+            return vehicle_loc;
+        }
+    }
+    return nullptr;
+}
+
 std::vector<detached_ptr<item>> item::remove_components()
 {
     return components.clear();

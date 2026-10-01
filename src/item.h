@@ -64,6 +64,7 @@ struct tripoint;
 template<typename T>
 class ret_val;
 class item_location;
+class vehicle_item_location;
 struct attack_statblock;
 
 using bodytype_id = std::string;
@@ -2424,6 +2425,10 @@ class item : public location_visitable<item>, public game_object<item>
 
         /** returns the parent item, or a null pointer if it has no parent */
         item *parent_item() const;
+
+        /// Returns the owning vehicle location, including through containing items.
+        auto vehicle_location() const -> const vehicle_item_location *; // *NOPAD*
+
         const std::vector<relic_recharge> &get_relic_recharge_scheme() const;
 
     private:
