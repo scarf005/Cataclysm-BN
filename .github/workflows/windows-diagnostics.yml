@@ -6,7 +6,7 @@ on:
       replay-seed:
         description: "Seed to replay (empty preserves time-seeded tests)"
         type: string
-        default: "1790788843"
+        default: ""
 
 permissions:
   actions: read
