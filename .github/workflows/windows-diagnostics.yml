@@ -28,6 +28,7 @@ jobs:
       bundle-registry-mods: false
       package-artifacts: false
       run-tests: true
+      test-diagnostics: true
       test-replay-seed: ${{ inputs.replay-seed }}
       android-localize: false
       upload-artifacts: false
