@@ -69,6 +69,11 @@ on:
         required: false
         type: boolean
         default: false
+      test-diagnostics:
+        description: "Enable Windows test progress and durable shard logs"
+        required: false
+        type: boolean
+        default: false
       test-replay-seed:
         description: "Optional numeric seed for reproducing desktop test failures"
         required: false
@@ -961,7 +966,7 @@ jobs:
             "--jobs", "4",
             "--non-slow-shards", "8"
           )
-          if ($IsWindows) {
+          if ($IsWindows -and ("${{ inputs.test-diagnostics }}" -eq "true")) {
             $logDir = Join-Path "${{ github.workspace }}" "cata-test-shard-logs"
             New-Item -ItemType Directory -Force $logDir | Out-Null
             $env:CATA_TEST_SHARD_LOG_DIR = $logDir
@@ -976,7 +981,7 @@ jobs:
           deno run --allow-read --allow-write --allow-run --allow-env @runnerArgs
 
       - name: Upload Windows shard diagnostics
-        if: ${{ always() && inputs.run-tests && runner.os == 'Windows' }}
+        if: ${{ always() && inputs.run-tests && inputs.test-diagnostics && runner.os == 'Windows' }}
         uses: actions/upload-artifact@v4.6.0
         with:
           name: cata-test-shard-diagnostics-${{ matrix.artifact }}
