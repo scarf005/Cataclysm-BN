@@ -190,23 +190,19 @@ const writeDurableText = async (path: string, text: string): Promise<void> => {
 }
 
 export const runProcess = async (options: ProcessOptions): Promise<ProcessResult> => {
-  const child = new Deno.Command(options.command, {
-    args: options.args,
-    env: options.env ? { ...Deno.env.toObject(), ...options.env } : undefined,
-    stdout: "piped",
-    stderr: "piped",
-  }).spawn()
-  const logFile = options.logPath
-    ? await Deno.open(options.logPath, { create: true, truncate: true, write: true })
-    : undefined
+  let logFile: Deno.FsFile | undefined
+  let child: Deno.ChildProcess | undefined
+  let childStatus: Promise<Deno.CommandStatus> | undefined
+  let consumers: Promise<void>[] = []
   let logWrite = Promise.resolve()
   const appendLog = (text: string): Promise<void> => {
     if (!logFile) {
       return Promise.resolve()
     }
+    const file = logFile
     const write = logWrite.then(async () => {
-      await writeAll(logFile, textEncoder.encode(text))
-      await logFile.sync()
+      await writeAll(file, textEncoder.encode(text))
+      await file.sync()
     })
     logWrite = write.catch(() => {})
     return write
@@ -249,25 +245,38 @@ export const runProcess = async (options: ProcessOptions): Promise<ProcessResult
     }
   }
   try {
+    if (options.logPath) {
+      logFile = await Deno.open(options.logPath, { create: true, truncate: true, write: true })
+    }
     if (options.initialLogText) {
       await appendLog(options.initialLogText)
     }
-    const streams = Promise.all([
-      consume(child.stdout, "stdout"),
-      consume(child.stderr, "stderr"),
-    ])
-    const status = await child.status
-    await streams
+    const spawnedChild = child = new Deno.Command(options.command, {
+      args: options.args,
+      env: options.env ? { ...Deno.env.toObject(), ...options.env } : undefined,
+      stdout: "piped",
+      stderr: "piped",
+    }).spawn()
+    consumers = [
+      consume(spawnedChild.stdout, "stdout"),
+      consume(spawnedChild.stderr, "stderr"),
+    ]
+    childStatus = spawnedChild.status
+    const [status] = await Promise.all([childStatus, Promise.all(consumers)])
     await logWrite
     return { code: status.code, stdout: output.stdout, stderr: output.stderr }
   } catch (error) {
     try {
-      child.kill("SIGTERM")
+      child?.kill("SIGTERM")
     } catch {
       // The process may have exited while output was being consumed.
     }
+    await childStatus?.catch(() => {})
+    await Promise.allSettled(consumers)
     throw error
   } finally {
+    await childStatus?.catch(() => {})
+    await Promise.allSettled(consumers)
     await logWrite.catch(() => {})
     logFile?.close()
   }
@@ -592,7 +601,18 @@ const run = async (options: Options): Promise<number> => {
       const code of pooledMap(
         parsed.jobs,
         shards,
-        (shard) => runShard(parsed, discoveredTestOpts, shard, logDir),
+        async (shard) => {
+          try {
+            return await runShard(parsed, discoveredTestOpts, shard, logDir)
+          } catch (error) {
+            console.error(
+              `Shard ${shard.name} failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            )
+            return 1
+          }
+        },
       )
     ) {
       if (code !== 0 && status === 0) {
