@@ -228,7 +228,7 @@ jobs:
         if: ${{ github.ref_name != 'main' && env.SKIP == 'false' }}
         timeout-minutes: 120
         run: |
-          # Run tests using parallel execution
+          deno cache --frozen build-scripts/run-linux-test-shards.ts
           Xvfb :99 -screen 0 1280x1024x24 &
           xvfb_pid=$!
           trap 'kill "$xvfb_pid" 2>/dev/null || true' EXIT
