@@ -23,36 +23,39 @@ if (( ${#json_files[@]} == 0 )); then
     exit 0
 fi
 
-build_dir="${CATA_JSON_FORMAT_BUILD_DIR:-out/build/json-format}"
-json_formatter="$build_dir/tools/format/json_formatter"
+json_formatter="${CATA_JSON_FORMATTER:-}"
+if [[ -z "$json_formatter" ]]; then
+    build_dir="${CATA_JSON_FORMAT_BUILD_DIR:-out/build/json-format}"
+    json_formatter="$build_dir/tools/format/json_formatter"
 
-jobs="${CMAKE_BUILD_PARALLEL_LEVEL:-}"
-if [[ -z "$jobs" ]]; then
-    jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+    jobs="${CMAKE_BUILD_PARALLEL_LEVEL:-}"
+    if [[ -z "$jobs" ]]; then
+        jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+    fi
+
+    cmake_args=(
+        -S .
+        -B "$build_dir"
+        -DCMAKE_BUILD_TYPE=Release
+        -DJSON_FORMAT=ON
+        -DCATA_FORMAT_TARGETS=OFF
+        -DTESTS=OFF
+        -DTILES=OFF
+        -DCURSES=OFF
+        -DSOUND=OFF
+        -DLANGUAGES=none
+        -DLUA_DOCS_ON_BUILD=OFF
+    )
+
+    if [[ -n "${CMAKE_GENERATOR:-}" ]]; then
+        cmake_args+=( -G "$CMAKE_GENERATOR" )
+    elif command -v ninja >/dev/null 2>&1; then
+        cmake_args+=( -G Ninja )
+    fi
+
+    cmake "${cmake_args[@]}"
+    cmake --build "$build_dir" --target json_formatter --parallel "$jobs"
 fi
-
-cmake_args=(
-    -S .
-    -B "$build_dir"
-    -DCMAKE_BUILD_TYPE=Release
-    -DJSON_FORMAT=ON
-    -DCATA_FORMAT_TARGETS=OFF
-    -DTESTS=OFF
-    -DTILES=OFF
-    -DCURSES=OFF
-    -DSOUND=OFF
-    -DLANGUAGES=none
-    -DLUA_DOCS_ON_BUILD=OFF
-)
-
-if [[ -n "${CMAKE_GENERATOR:-}" ]]; then
-    cmake_args+=( -G "$CMAKE_GENERATOR" )
-elif command -v ninja >/dev/null 2>&1; then
-    cmake_args+=( -G Ninja )
-fi
-
-cmake "${cmake_args[@]}"
-cmake --build "$build_dir" --target json_formatter --parallel "$jobs"
 
 json_status=0
 for file in "${json_files[@]}"; do
