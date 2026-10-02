@@ -21,7 +21,10 @@ permissions:
 
 env:
   DENO_DIR: /home/runner/.cache/deno
-  LLVM_VERSION: "22"
+  # Temporary CLI until deno fmt migration; update when BN formatter/parser sources change.
+  JSON_FORMATTER_RELEASE: native-cc9c172dda68
+  JSON_FORMATTER_SHA256: 0d24b7a5a5cf2456731ccbfedd4d7eec06e2ba9d7234d205e7fd7424795eed69
+  CLANG_FORMAT_SHA256: b00cff6bfd1f1686f073a4fdf1cb937dbd58bf7510c659477805c03afdea0816
 
 jobs:
   autofix:
@@ -36,20 +39,25 @@ jobs:
       - env: { DEBIAN_FRONTEND: noninteractive }
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends astyle gettext
+          sudo apt-get install -y --no-install-recommends astyle gettext curl unzip ca-certificates
 
-      - name: Setup C++ format tools
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: llvm-${{ env.LLVM_VERSION }}
-          clang-format: ${{ env.LLVM_VERSION }}
-          cmake: true
-          ninja: true
-          ccache: true
-          setup-cpp: false
-
-      - name: Show clang-format version
-        run: clang-format --version
+      - name: Install pinned formatters
+        run: |
+          tools="$RUNNER_TEMP/bn-formatters"
+          mkdir -p "$tools"
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/scarf005/bn-json-formatter/releases/download/$JSON_FORMATTER_RELEASE/json_formatter-linux-x86_64" \
+            --output "$tools/json_formatter"
+          curl --fail --location --retry 5 --retry-all-errors \
+            'https://files.pythonhosted.org/packages/e5/88/b82c066fa807da4ca2518fecf79071361f6324b77375e5e92c059c0697fd/clang_format-22.1.8-py2.py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl' \
+            --output "$tools/clang-format.whl"
+          printf '%s  %s\n' "$JSON_FORMATTER_SHA256" "$tools/json_formatter" \
+            "$CLANG_FORMAT_SHA256" "$tools/clang-format.whl" | sha256sum --check
+          unzip -oq "$tools/clang-format.whl" 'clang_format/data/bin/clang-format' -d "$tools"
+          chmod +x "$tools/json_formatter" "$tools/clang_format/data/bin/clang-format"
+          echo "$tools/clang_format/data/bin" >> "$GITHUB_PATH"
+          echo "CATA_JSON_FORMATTER=$tools/json_formatter" >> "$GITHUB_ENV"
+          "$tools/clang_format/data/bin/clang-format" --version
 
       - uses: denoland/setup-deno@v2
         with: { cache: true }
@@ -106,7 +114,8 @@ jobs:
       - name: lint and test typescript files
         run: |
           # deno lint
-          deno test --allow-read --allow-env=npm_package_config_libvips,TILESET_PYTHON --allow-ffi
+          deno test --allow-read --allow-write --allow-run --allow-env=npm_package_config_libvips,TILESET_PYTHON --allow-ffi
+          deno test --allow-read --allow-write --allow-run=bash --allow-env=PATH build-scripts/format-json_test.ts
 
       - name: check generated semantic PR config
         run: |
