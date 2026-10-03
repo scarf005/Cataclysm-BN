@@ -2273,7 +2273,6 @@
       [ "winter_jacket_army", 30 ],
       [ "vest", 15 ],
       [ "under_armor", 20 ],
-      [ "power_armor_basic", 5 ],
       [ "exosuit_military", 3 ],
       [ "elbow_pads", 20 ]
     ]
@@ -2281,14 +2280,7 @@
   {
     "type": "item_group",
     "id": "mil_armor_helmet",
-    "items": [
-      [ "helmet_army", 40 ],
-      [ "helmet_liner", 20 ],
-      [ "beret", 50 ],
-      [ "beret_wool", 40 ],
-      [ "mask_bal", 10 ],
-      [ "power_armor_helmet_basic", 4 ]
-    ]
+    "items": [ [ "helmet_army", 40 ], [ "helmet_liner", 20 ], [ "beret", 50 ], [ "beret_wool", 40 ], [ "mask_bal", 10 ] ]
   },
   {
     "type": "item_group",

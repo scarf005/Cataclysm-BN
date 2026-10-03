@@ -744,7 +744,13 @@ void load_region_settings( const JsonObject &jo )
 
     auto base_weather = base_weather_id();
     if( !jo.read( "base_weather", base_weather ) ) {
-        if( strict ) {
+        if( jo.has_object( "weather" ) ) {
+            show_warning_at_json_loc( jo.get_source_location(),
+                                      "Legacy inline region weather is deprecated; use base_weather instead. Falling back to the default base weather." );
+            // Consume the removed inline form so old mods fall back cleanly.
+            jo.get_object( "weather" );
+            new_region.weather = base_weathers::get( base_weather_id( "default" ) );
+        } else if( strict ) {
             jo.throw_error( "\"base_weather\" required for default" );
         }
     } else {
@@ -845,6 +851,11 @@ void apply_region_overlay( const JsonObject &jo, regional_settings &region )
     auto base_weather = base_weather_id();
     if( jo.read( "base_weather", base_weather ) ) {
         region.weather = base_weathers::get( base_weather );
+    } else if( jo.has_object( "weather" ) ) {
+        show_warning_at_json_loc( jo.get_source_location(),
+                                  "Legacy inline region overlay weather is deprecated; use base_weather instead. Keeping the current region weather." );
+        // Consume the removed inline form so old overlays retain their current weather.
+        jo.get_object( "weather" );
     }
     jo.read( "default_oter", region.default_oter );
     jo.read( "river_scale", region.river_scale );
