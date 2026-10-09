@@ -1,4 +1,5 @@
 #include "catalua_icallback_actor.h"
+#include "evaluation_decision.h"
 
 #include "bionics.h"
 #include "catalua_coord.h"
@@ -12,6 +13,19 @@
 #include "player.h"
 #include "recipe.h"
 #include "trap.h"
+
+namespace
+{
+/// A completed evaluation must not export a release-Sol truthy coercion as a typed
+/// boolean callback result. Ordinary native conversion/default behavior is unchanged.
+auto check_wearable_boolean_result( sol::protected_function_result &result ) -> void
+{
+    check_func_result( result );
+    if( game_client::evaluation::active() && !result.get<sol::object>().is<bool>() ) {
+        game_client::evaluation::fail_current( game_client::evaluation::failure::exception );
+    }
+}
+} // namespace
 
 // --- lua_iuse_actor ---
 
@@ -187,6 +201,8 @@ void lua_iwearable_actor::call_on_wear( Character &who, item &it ) const
         return;
     }
     try {
+        const auto invocation = game_client::evaluation::callback_scope(
+        { "iwearable:", item_id, ":on_wear" } );
         sol::state_view lua( on_wear_func.lua_state() );
         auto params = lua.create_table();
         params["user"] = &who;
@@ -194,6 +210,7 @@ void lua_iwearable_actor::call_on_wear( Character &who, item &it ) const
         sol::protected_function_result res = on_wear_func( params );
         check_func_result( res );
     } catch( std::runtime_error &e ) {
+        game_client::evaluation::throw_if_incomplete();
         debugmsg( "Failed to run iwearable on_wear for '%s': %s", item_id, e.what() );
     }
 }
@@ -204,6 +221,8 @@ void lua_iwearable_actor::call_on_takeoff( Character &who, item &it ) const
         return;
     }
     try {
+        const auto invocation = game_client::evaluation::callback_scope(
+        { "iwearable:", item_id, ":on_takeoff" } );
         sol::state_view lua( on_takeoff_func.lua_state() );
         auto params = lua.create_table();
         params["user"] = &who;
@@ -211,6 +230,7 @@ void lua_iwearable_actor::call_on_takeoff( Character &who, item &it ) const
         sol::protected_function_result res = on_takeoff_func( params );
         check_func_result( res );
     } catch( std::runtime_error &e ) {
+        game_client::evaluation::throw_if_incomplete();
         debugmsg( "Failed to run iwearable on_takeoff for '%s': %s", item_id, e.what() );
     }
 }
@@ -221,15 +241,18 @@ bool lua_iwearable_actor::call_can_wear( const Character &who, const item &it ) 
         return true;
     }
     try {
+        const auto invocation = game_client::evaluation::callback_scope(
+        { "iwearable:", item_id, ":can_wear" } );
         sol::state_view lua( can_wear_func.lua_state() );
         auto params = lua.create_table();
         params["user"] = &who;
         params["item"] = &it;
         sol::protected_function_result res = can_wear_func( params );
-        check_func_result( res );
+        check_wearable_boolean_result( res );
         bool ret = res;
         return ret;
     } catch( std::runtime_error &e ) {
+        game_client::evaluation::throw_if_incomplete();
         debugmsg( "Failed to run iwearable can_wear for '%s': %s", item_id, e.what() );
     }
     return true;
@@ -241,15 +264,18 @@ bool lua_iwearable_actor::call_can_takeoff( const Character &who, const item &it
         return true;
     }
     try {
+        const auto invocation = game_client::evaluation::callback_scope(
+        { "iwearable:", item_id, ":can_takeoff" } );
         sol::state_view lua( can_takeoff_func.lua_state() );
         auto params = lua.create_table();
         params["user"] = &who;
         params["item"] = &it;
         sol::protected_function_result res = can_takeoff_func( params );
-        check_func_result( res );
+        check_wearable_boolean_result( res );
         bool ret = res;
         return ret;
     } catch( std::runtime_error &e ) {
+        game_client::evaluation::throw_if_incomplete();
         debugmsg( "Failed to run iwearable can_takeoff for '%s': %s", item_id, e.what() );
     }
     return true;
