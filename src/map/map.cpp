@@ -6668,7 +6668,7 @@ auto map::draw_maptile(
     if (curr_trap.can_see(p, g->u)) {
         tercol = curr_trap.color;
         if (curr_trap.sym == '%') {
-            switch (rng(1, 5)) {
+            switch (map_perception::cosmetic_variant()) {
                 case 1:
                     sym = '*';
                     break;
@@ -6697,7 +6697,7 @@ auto map::draw_maptile(
             // Do nothing, a '&' indicates invisible fields.
         } else if (field_symbol == "*") {
             // A random symbol.
-            switch (rng(1, 5)) {
+            switch (map_perception::cosmetic_variant()) {
                 case 1:
                     sym = '*';
                     break;
@@ -9480,6 +9480,7 @@ auto map::check_seen_cache(const tripoint_bub_ms& p) const -> bool {
 }
 
 auto map::check_and_set_seen_cache(const tripoint_bub_ms& p) const -> bool {
+    if (map_perception::presenting()) { return false; }
     level_cache& ch = get_cache(p.z());
     const size_t offset = static_cast<size_t>(p.x() + p.y() * ch.cache_x);
     if (!ch.map_memory_seen_cache[offset]) {
