@@ -106,6 +106,7 @@ TEST_CASE("sounds_keep_absolute_positions_when_reality_bubble_resizes", "[sound]
     auto& here = get_map();
     auto& you = get_avatar();
     const auto original_position = you.abs_pos();
+    const auto original_map_size = here.getmapsize();
     // Cleanup resizes to the option value, so pin it to the bubble this test started with.
     const auto original_bubble =
         override_option("REALITY_BUBBLE_SIZE", std::to_string(g_reality_bubble_size));
@@ -113,6 +114,7 @@ TEST_CASE("sounds_keep_absolute_positions_when_reality_bubble_resizes", "[sound]
         sounds::reset_sounds();
         sounds::clear_floodfill_que(true);
         g->on_options_changed();
+        here.resize(original_map_size);
         you.setpos(original_position);
         clear_all_state();
     });
