@@ -108,6 +108,10 @@ jobs:
             ForEach-Object { "{0,10:N0} MB  {1}" -f ($_.Length / 1MB), $_.Name }
           $total = (Get-ChildItem "${{ github.workspace }}/out/build/windows-mcp/src/CMakeFiles/cataclysm-bn-engine.dir" -Recurse -Filter *.obj | Measure-Object Length -Sum).Sum
           "total objects: {0:N0} MB" -f ($total / 1MB)
+          Get-ChildItem "${{ github.workspace }}/out/build/windows-mcp/src/CMakeFiles/cataclysm-bn-engine.dir" -Recurse -Filter *.obj |
+            Where-Object { $_.Name -match '^(engine_client|client_|mcp_|replay|overmap_ui|crafting_gui|map_perception|input|ui\.|debug|main_menu)' } |
+            Sort-Object Length -Descending |
+            ForEach-Object { "{0,10:N1} MB  {1}" -f ($_.Length / 1MB), $_.Name }
       - name: Build the MCP tests
         if: inputs.tests || github.event_name == 'push'
         run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --config Release --target cata_test-mcp -- -k 0
