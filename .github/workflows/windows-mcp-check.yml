@@ -33,7 +33,11 @@ jobs:
 
   windows:
     needs: shader-artifacts
-    name: Windows MSVC with MCP
+    strategy:
+      fail-fast: false
+      matrix:
+        debug: [embedded, none]
+    name: Windows MSVC with MCP (debug info ${{ matrix.debug }})
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +72,12 @@ jobs:
         env:
           VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\.github\vcpkg_triplets
         run: |
+          if ("${{ matrix.debug }}" -eq "none") {
+            Set-Content -Path "$env:RUNNER_TEMP/no-debug-info.cmake" -Value 'set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "")'
+          } else {
+            Set-Content -Path "$env:RUNNER_TEMP/no-debug-info.cmake" -Value '# keep the toolchain default'
+          }
+          $include = "$env:RUNNER_TEMP/no-debug-info.cmake" -replace '\\', '/'
           $tests = ("${{ inputs.tests }}" -eq "true" -or "${{ github.event_name }}" -eq "push") ? "True" : "False"
           cmake -G Ninja `
             -S "${{ github.workspace }}" `
@@ -82,6 +92,7 @@ jobs:
             -DTILES=True `
             -DSOUND=True `
             -DMCP=ON `
+            "-DCMAKE_PROJECT_INCLUDE=$include" `
             "-DTESTS=$tests" `
             -DRELEASE=ON `
             -DJSON_FORMAT=OFF `
@@ -89,6 +100,14 @@ jobs:
             -DCMAKE_INSTALL_MESSAGE=NEVER
       - name: Build the engine
         run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --config Release --target cataclysm-bn-tiles -- -k 0
+      - name: Largest engine objects
+        if: always()
+        run: |
+          Get-ChildItem "${{ github.workspace }}/out/build/windows-mcp/src/CMakeFiles/cataclysm-bn-engine.dir" -Recurse -Filter *.obj |
+            Sort-Object Length -Descending | Select-Object -First 25 |
+            ForEach-Object { "{0,10:N0} MB  {1}" -f ($_.Length / 1MB), $_.Name }
+          $total = (Get-ChildItem "${{ github.workspace }}/out/build/windows-mcp/src/CMakeFiles/cataclysm-bn-engine.dir" -Recurse -Filter *.obj | Measure-Object Length -Sum).Sum
+          "total objects: {0:N0} MB" -f ($total / 1MB)
       - name: Build the MCP tests
         if: inputs.tests || github.event_name == 'push'
         run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --config Release --target cata_test-mcp -- -k 0
