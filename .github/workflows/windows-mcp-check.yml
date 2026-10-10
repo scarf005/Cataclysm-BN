@@ -1,0 +1,92 @@
+name: Windows MCP check
+
+# Builds the engine-client (MCP) code with MSVC; nothing else. Run by hand against a branch.
+on:
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: "Also build cata_test-mcp"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  shader-artifacts:
+    name: Generate shader artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build shadercross
+        uses: ./.github/actions/build-shadercross
+      - name: Generate shaders
+        run: bash build-scripts/generate-shaders.sh
+      - name: Upload generated shaders
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-shaders
+          path: data/shaders/
+          if-no-files-found: error
+
+  windows:
+    needs: shader-artifacts
+    name: Windows MSVC with MCP
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated shaders
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-shaders
+          path: data/shaders/
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Install stable CMake
+        uses: lukka/get-cmake@v3.31.6
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable("ACTIONS_CACHE_URL", process.env.ACTIONS_CACHE_URL || "")
+            core.exportVariable("ACTIONS_RESULTS_URL", process.env.ACTIONS_RESULTS_URL || "")
+            core.exportVariable("ACTIONS_RUNTIME_TOKEN", process.env.ACTIONS_RUNTIME_TOKEN || "")
+      - name: Configure vcpkg binary cache
+        run: '"VCPKG_BINARY_SOURCES=clear;x-gha,readwrite" >> $env:GITHUB_ENV'
+      - name: Install vcpkg
+        uses: lukka/run-vcpkg@main
+        id: runvcpkg
+        with:
+          vcpkgDirectory: "${{ github.workspace }}/../b/vcpkg"
+      - name: Integrate vcpkg
+        run: vcpkg integrate install
+      - name: Configure
+        env:
+          VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\.github\vcpkg_triplets
+        run: |
+          $tests = "${{ inputs.tests }}" -eq "true" ? "True" : "False"
+          cmake -G Ninja `
+            -S "${{ github.workspace }}" `
+            -B "${{ github.workspace }}/out/build/windows-mcp" `
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+            -DCMAKE_PROJECT_INCLUDE_BEFORE="${{ github.workspace }}/build-scripts/windows-tiles-sounds-x64-msvc.cmake" `
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/build-scripts/MSVC.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+            -DDYNAMIC_LINKING=False `
+            -DCURSES=False `
+            -DLOCALIZE=False `
+            -DTILES=True `
+            -DSOUND=True `
+            -DMCP=ON `
+            "-DTESTS=$tests" `
+            -DRELEASE=OFF `
+            -DJSON_FORMAT=OFF `
+            -DCATA_FORMAT_TARGETS=OFF `
+            -DCMAKE_INSTALL_MESSAGE=NEVER
+      - name: Build the engine
+        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cataclysm-bn-tiles
+      - name: Build the MCP tests
+        if: inputs.tests
+        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cata_test-mcp
