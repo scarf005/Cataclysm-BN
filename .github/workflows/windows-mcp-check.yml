@@ -1,7 +1,9 @@
 name: Windows MCP check
 
-# Builds the engine-client (MCP) code with MSVC; nothing else. Run by hand against a branch.
+# Builds the engine-client (MCP) code with MSVC; nothing else. Runs on pushes to ci/mo-windows-mcp, or by hand.
 on:
+  push:
+    branches: [ci/mo-windows-mcp]
   workflow_dispatch:
     inputs:
       tests:
@@ -66,7 +68,7 @@ jobs:
         env:
           VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}\.github\vcpkg_triplets
         run: |
-          $tests = "${{ inputs.tests }}" -eq "true" ? "True" : "False"
+          $tests = ("${{ inputs.tests }}" -eq "true" -or "${{ github.event_name }}" -eq "push") ? "True" : "False"
           cmake -G Ninja `
             -S "${{ github.workspace }}" `
             -B "${{ github.workspace }}/out/build/windows-mcp" `
@@ -88,5 +90,5 @@ jobs:
       - name: Build the engine
         run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cataclysm-bn-tiles
       - name: Build the MCP tests
-        if: inputs.tests
+        if: inputs.tests || github.event_name == 'push'
         run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cata_test-mcp
