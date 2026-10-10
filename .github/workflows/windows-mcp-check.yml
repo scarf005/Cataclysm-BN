@@ -88,7 +88,7 @@ jobs:
             -DCATA_FORMAT_TARGETS=OFF `
             -DCMAKE_INSTALL_MESSAGE=NEVER
       - name: Build the engine
-        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cataclysm-bn-tiles
+        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cataclysm-bn-tiles -- -k 0
       - name: Build the MCP tests
         if: inputs.tests || github.event_name == 'push'
-        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cata_test-mcp
+        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cata_test-mcp -- -k 0
