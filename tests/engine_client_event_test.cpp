@@ -459,3 +459,18 @@ TEST_CASE("an empty log is left out of the snapshot header", "[engine_client_eve
     REQUIRE(wire);
     CHECK_FALSE(nlohmann::json::parse(wire->header).contains("messages"));
 }
+
+TEST_CASE("a published event carries its own wire form", "[engine_client_event]") {
+    auto stream = stream_of(world_of({visible_cell(1)}, {}), "epoch:wire");
+    const auto event = publish(stream, world_of({visible_cell(1), visible_cell(2)}, {}));
+
+    CHECK_FALSE(event.wire().empty());
+    CHECK(event.wire() == serialize_events({.epoch = "epoch:wire", .events = {event}}));
+    // An event built outside a stream has none, so consumers serialize it themselves.
+    CHECK(public_event{event.value()}.wire().empty());
+
+    const auto message = stream.publish_message(
+        {.message = {.id = 1, .text = "Hi", .kind = "neutral"}});
+    REQUIRE(message);
+    CHECK(message->wire() == serialize_events({.epoch = "epoch:wire", .events = {*message}}));
+}
