@@ -72,7 +72,7 @@ jobs:
           cmake -G Ninja `
             -S "${{ github.workspace }}" `
             -B "${{ github.workspace }}/out/build/windows-mcp" `
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
+            -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_PROJECT_INCLUDE_BEFORE="${{ github.workspace }}/build-scripts/windows-tiles-sounds-x64-msvc.cmake" `
             -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/build-scripts/MSVC.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows-static `
@@ -83,12 +83,12 @@ jobs:
             -DSOUND=True `
             -DMCP=ON `
             "-DTESTS=$tests" `
-            -DRELEASE=OFF `
+            -DRELEASE=ON `
             -DJSON_FORMAT=OFF `
             -DCATA_FORMAT_TARGETS=OFF `
             -DCMAKE_INSTALL_MESSAGE=NEVER
       - name: Build the engine
-        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cataclysm-bn-tiles -- -k 0
+        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --config Release --target cataclysm-bn-tiles -- -k 0
       - name: Build the MCP tests
         if: inputs.tests || github.event_name == 'push'
-        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --target cata_test-mcp -- -k 0
+        run: cmake --build "${{ github.workspace }}/out/build/windows-mcp" --config Release --target cata_test-mcp -- -k 0
