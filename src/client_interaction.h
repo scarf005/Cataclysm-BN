@@ -346,8 +346,6 @@ struct interaction_snapshot {
     std::string message_tone;
     /// The state of the native category-selection mode; absent where the screen has none.
     std::optional<bool> category_mode;
-    /// Lines drawn above the menu in a fixed-width font, with color tags: the main menu's title art and version.
-    std::vector<std::string> banner;
     bool structured = false;
     bool actions_only = true;
     bool allow_cancel = false;
@@ -358,8 +356,6 @@ struct interaction_snapshot {
     std::optional<interaction_target> target;
     std::optional<interaction_overmap> overmap;
     std::optional<interaction_vehicle> vehicle;
-    /// The window of a screen the engine draws itself, such as a software mini-game.
-    std::optional<interaction_canvas> canvas;
     /// Nonzero where the engine redraws the screen on its own every this many milliseconds, with no input.
     int refresh_ms = 0;
     bool allow_set_count = false;
