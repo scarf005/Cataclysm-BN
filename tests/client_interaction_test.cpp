@@ -1053,7 +1053,7 @@ TEST_CASE(
             if (reads++ == 0) { return pick_count(choice, 2); }
             CHECK(choice["selected"] == true);
             CHECK(choice["selected_count"] == 2);
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
 
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
@@ -1081,7 +1081,7 @@ TEST_CASE(
                 return pick_count(rows.front(), 2);
             }
             CHECK(weight != before);
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
 
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
@@ -1105,7 +1105,7 @@ TEST_CASE(
                 return pick_count(rows.front(), 60);
             }
             tone = pickup_stat("weight").value("tone", "");
-            return invoke("pickup:cancel");
+            return resolve_action("QUIT");
         });
 
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
@@ -1125,7 +1125,7 @@ TEST_CASE(
             CHECK(choice["max"] == 10);
             if (reads++ == 0) { return pick_count(choice, 3); }
             CHECK(choice["selected_count"] == 3);
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
 
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
@@ -1164,7 +1164,7 @@ TEST_CASE(
         CHECK(markup(own).starts_with(item::spawn(own)->symbol() + " "));
         CHECK(top_screen()["dock"] == "right");
         checked = true;
-        return invoke("pickup:cancel");
+        return resolve_action("QUIT");
     });
     pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
     CHECK(checked);
@@ -1196,7 +1196,7 @@ TEST_CASE(
             }
             CHECK(rows.front()["selected_count"] == 2);
             CHECK(rows.front()["mark"]["glyph"] == "+");
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         finish_pickup_activity(get_avatar());
@@ -1224,7 +1224,7 @@ TEST_CASE(
             }
             CHECK(choice["selected"] == false);
             CHECK(choice["selected_count"] == 0);
-            return invoke("pickup:cancel");
+            return resolve_action("QUIT");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         CHECK_FALSE(get_avatar().activity);
@@ -1284,7 +1284,7 @@ TEST_CASE(
             }
             CHECK(visible["selected"] == true);
             CHECK(visible["selected_count"] == 1);
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         finish_pickup_activity(get_avatar());
@@ -1327,7 +1327,7 @@ TEST_CASE(
             const auto unknown = engine_client::resolve_invoke(
                 stack_state(), {.affordance_id = "pickup:removed", .args = {.row = old_id}});
             REQUIRE_FALSE(unknown);
-            return invoke("pickup:cancel");
+            return resolve_action("QUIT");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         CHECK_FALSE(get_avatar().activity);
@@ -1351,7 +1351,7 @@ TEST_CASE(
         const auto snapshot = game_client::current_interaction();
         if (const auto rows = pickup_rows(); !rows.empty()) {
             if (rows.front()["selected"] == false) { return pick_row(rows.front()); }
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         }
         REQUIRE(snapshot.context == "UILIST");
         CHECK(snapshot.message.find("heavy") != std::string::npos);
@@ -1417,7 +1417,7 @@ TEST_CASE(
                     rows,
                     [](const auto& row) { return row.value("nest_color", "") == "c_light_blue"; })
                 == 2);
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         finish_pickup_activity(get_avatar());
@@ -1444,7 +1444,7 @@ TEST_CASE(
             CHECK(
                 std::ranges::count_if(rows, [](const auto& row) { return row["selected"] == true; })
                 == 1);
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         finish_pickup_activity(get_avatar());
@@ -1473,7 +1473,7 @@ TEST_CASE(
             const auto rows = pickup_rows();
             REQUIRE(rows.size() == 1);
             if (rows.front()["selected"] == false) { return resolve_action("SELECT_ALL"); }
-            return invoke("pickup:confirm");
+            return resolve_action("CONFIRM");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         finish_pickup_activity(get_avatar());
@@ -1514,7 +1514,7 @@ TEST_CASE(
         game_client::memory::set_input_provider([&](const int /*timeout*/) {
             REQUIRE(pickup_rows().size() == 1);
             if (reads++ == 0) { return resolve_action("WEAR"); }
-            return invoke("pickup:cancel");
+            return resolve_action("QUIT");
         });
         pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
         CHECK_FALSE(get_avatar().activity);
@@ -1554,7 +1554,7 @@ TEST_CASE(
     auto reads = 0;
     game_client::memory::set_input_provider([&](const int /*timeout*/) {
         if (reads++ == 0) { return pick_count(pickup_rows().front(), 2); }
-        return invoke("pickup:confirm");
+        return resolve_action("CONFIRM");
     });
     pickup::pick_up(pickup_test_pos, 0, pickup::from_ground);
     finish_pickup_activity(get_avatar());
