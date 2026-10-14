@@ -709,7 +709,8 @@ static void draw_bionics_info( const catacurses::window &w_info, const unsigned 
     if( line < bionicslist.size() ) {
         const auto& [bio, cnt] = bionicslist[line];
         // NOLINTNEXTLINE(cata-use-named-point-constants)
-        const auto fmtStr = cnt > 1 ? "%s\n\nYou have %s instances of this bionic installed." : "%s";
+        const auto fmtStr = cnt > 1 ? "%s\n\n" + std::string(
+                                _( "You have %s instances of this bionic installed." ) ) : std::string( "%s" );
         fold_and_print(
             w_info, point( 1, 0 ), FULL_SCREEN_WIDTH - 2, c_light_gray, fmtStr, bio.info().description, cnt );
     }
@@ -1456,7 +1457,7 @@ auto bionic_rows( const sheet_model &model,
         const auto &[bio, count] = model.bionics[i];
         rows.push_back( { .id = ids[i],
                           .label = count > 1 ? string_format( "%s (%d)", bio.info().name, count ) : bio.info().name.translated(),
-                          .description = count > 1 ? string_format( "%s\n\nYou have %s instances of this bionic installed.", bio.info().description, count ) : bio.info().description.translated(),
+                          .description = count > 1 ? string_format( "%s\n\n%s", bio.info().description, string_format( _( "You have %s instances of this bionic installed." ), count ) ) : bio.info().description.translated(),
                           .color = string_from_color( get_bionic_text_color( bio, false ) ) } );
     }
     return rows;
