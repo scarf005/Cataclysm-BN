@@ -7400,7 +7400,7 @@ void game::moving_vehicle_dismount( const tripoint_bub_ms &dest_loc )
     }
 }
 
-void game::control_vehicle()
+auto game::control_vehicle( const std::optional<tripoint_bub_ms> &where ) -> void
 {
     static const itype_id fuel_type_animal( "animal" );
     int veh_part = -1;
@@ -7462,8 +7462,8 @@ void game::control_vehicle()
         if( num_valid_controls < 1 ) {
             add_msg( _( "No vehicle controls found." ) );
             return;
-        } else if( num_valid_controls > 1 ) {
-            vehicle_position = choose_adjacent( _( "Control vehicle where?" ) );
+        } else if( where || num_valid_controls > 1 ) {
+            vehicle_position = where ? where : choose_adjacent( _( "Control vehicle where?" ) );
             if( !vehicle_position ) {
                 return;
             }
@@ -11556,9 +11556,7 @@ game::vmenu_ret game::list_monsters( const std::vector<Creature *> &monster_list
             hide_ui = false;
             ui.mark_resize();
         } else if( action == "fire" ) {
-            if( cCurMon != nullptr && rl_dist( u.bub_pos(), cCurMon->bub_pos() ) <= max_gun_range ) {
-                u.last_target = shared_from( *cCurMon );
-                u.recoil = MAX_RECOIL;
+            if( cCurMon != nullptr && choose_fire_target( *cCurMon ) ) {
                 u.view_offset = stored_view_offset;
                 return game::vmenu_ret::FIRE;
             }
@@ -11593,6 +11591,16 @@ game::vmenu_ret game::list_monsters( const std::vector<Creature *> &monster_list
     u.view_offset = stored_view_offset;
 
     return game::vmenu_ret::QUIT;
+}
+
+auto game::choose_fire_target( const Creature &target ) -> bool
+{
+    if( rl_dist( u.bub_pos(), target.bub_pos() ) > u.primary_weapon().gun_range( &u ) ) {
+        return false;
+    }
+    u.last_target = shared_from( target );
+    u.recoil = MAX_RECOIL;
+    return true;
 }
 
 void game::drop()
