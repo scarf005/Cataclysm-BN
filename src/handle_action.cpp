@@ -68,6 +68,7 @@
 #include "mutation.h"
 #include "mutation_ui.h"
 #include "npc.h"
+#include "npctalk.h"
 #include "options.h"
 #include "output.h"
 #include "overmap/overmap_ui.h"
@@ -1987,7 +1988,7 @@ bool game::handle_action()
         destination_preview.clear();
         mouse_target = tile->at;
         if( tile->action_id == "talk" ) {
-            if( auto *const who = critter_at<npc>( tile->at ) ) {
+            if( auto *const who = critter_at<npc>( tile->at ); who && !refuse_faceless_speech( u ) ) {
                 who->talk_to_u();
             }
             return false;
