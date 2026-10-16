@@ -2833,7 +2833,7 @@ bool game::handle_action()
                 } else if( u.is_mounted() ) {
                     u.dismount();
                 } else {
-                    control_vehicle();
+                    control_vehicle( mouse_target );
                 }
                 break;
 
