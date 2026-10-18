@@ -140,6 +140,7 @@ auto to_json( const cell &value ) -> json
     if( !value.items.empty() ) { result["items"] = layer_array( value.items, "item" ); }
     if( value.vehicle ) { result["vehicle"] = layer_json( *value.vehicle, "vehicle_part" ); }
     if( value.light ) { result["light"] = *value.light; }
+    if( value.glow ) { result["glow"] = {{"color", value.glow->color}, {"strength", value.glow->strength}}; }
     if( value.below ) { result["below"] = *value.below; }
     if( value.memory ) {
         result["memory"] = {{"terrain", layer_json( value.memory->terrain, "terrain" )}};
