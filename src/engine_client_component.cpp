@@ -183,13 +183,17 @@ auto native_affordances( build &b ) -> void
 /// The role a registered action plays on every screen that has it: CONFIRM accepts, QUIT leaves, any key
 /// acknowledges where a screen names that key, the cursor, paging, tab and scroll actions and the mouse's
 /// moves and clicks only navigate, the keybindings menu is the help, and the actions that only resize or
-/// rearrange the native window change its layout. On the map the cursor keys are steps, which navigate nothing.
+/// rearrange the native window change its layout, and the keys that edit a text field's text are the client's own
+/// text box. On the map the cursor keys are steps, which navigate nothing.
 auto registered_role( const std::string &id, const bool map ) -> std::string
 {
     // What these change is drawn by the native window alone; the screen publishes the same either way.
     constexpr auto layout = std::array{
         "TOGGLE_WIDE_DISPLAY", "TOGGLE_FULL_HEIGHT_DISPLAY", "TOGGLE_ITEM_INFO", "TOGGLE_EXPANDED",
         "toggle_fullscreen"
+    };
+    constexpr auto editing = std::array{
+        "TEXT.BACKSPACE", "TEXT.DELETE", "TEXT.CLEAR", "TEXT.PASTE", "TEXT.INPUT_FROM_FILE"
     };
     constexpr auto navigation = std::array{
         "UP", "DOWN", "LEFT", "RIGHT", "LEFTUP", "LEFTDOWN", "RIGHTUP", "RIGHTDOWN", "PAGE_UP", "PAGE_DOWN",
@@ -198,7 +202,8 @@ auto registered_role( const std::string &id, const bool map ) -> std::string
         "TEXT.PAGE_UP", "TEXT.PAGE_DOWN", "LEFT_WIDE", "RIGHT_WIDE", "UP_WIDE", "DOWN_WIDE"
     };
     return id == "CONFIRM" ? "confirm" : id == "QUIT" ? "cancel" : id == "ANY_INPUT" ? "any_key" :
-           id == "HELP_KEYBINDINGS" ? "help" : std::ranges::contains( layout, id ) ? "layout" : !map &&
+           id == "HELP_KEYBINDINGS" ? "help" : std::ranges::contains( layout, id ) ? "layout" :
+           std::ranges::contains( editing, id ) ? "edit" : !map &&
            std::ranges::contains( navigation, id ) ? "navigate" : std::string{};
 }
 
