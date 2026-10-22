@@ -15,6 +15,7 @@
 #include "editor/mapgen_source.h"
 #include "editor/mapgen_stamp.h"
 #include "editor/mapgen_stroke.h"
+#include "editor/vehicle_session.h"
 #include "engine_client_component.h"
 #include "engine_client_world.h"
 #include "game.h"
@@ -45,6 +46,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace editor {
@@ -111,6 +113,7 @@ constexpr auto stamp_id = "editor:stamp";
 constexpr auto unstamp_id = "editor:unstamp";
 constexpr auto test_id = "editor:test";
 constexpr auto max_brush = 9;
+constexpr auto vehicle_id = "editor:vehicle";
 
 /// The members of a mapgen's object that map its symbols, as the loader reads them.
 constexpr auto legend_layers = std::array{
@@ -1106,6 +1109,7 @@ auto session_view(const session& state) -> ec::screen_view {
                  .min = 0,
                  .max = static_cast<std::int64_t>(browser_pages - 1),
                  .initial = static_cast<std::int64_t>(state.browser_page)}}}));
+    affordances.push_back(ec::invoke_affordance({.id = vehicle_id, .label = _("Vehicle editor")}));
     if (state.doc) {
         const auto& doc = *state.doc;
         auto stats = std::vector<ec::panel_stat>{
@@ -1417,12 +1421,20 @@ auto square_of(const std::string& id) -> std::optional<point> {
 
 /// The documents and view the editor keeps between visits.
 auto kept_session = std::optional<session>{};
+/// Whether the next visit is to the vehicle editor.
+auto vehicle_first = false;
 
 } // namespace
 
 auto reset_editor_session() -> void { kept_session.reset(); }
 
+auto open_vehicle_editor_first() -> void { vehicle_first = true; }
+
 auto run_editor_session() -> void {
+    if (std::exchange(vehicle_first, false)) {
+        run_vehicle_editor();
+        return;
+    }
     auto ctxt = input_context("EDITOR");
     ctxt.register_action("QUIT");
     ctxt.register_action("HELP_KEYBINDINGS");
@@ -1474,6 +1486,8 @@ auto run_editor_session() -> void {
             state.browser_page = 0;
         } else if (id == browser_page_id) {
             state.browser_page = static_cast<std::size_t>(invoked->args.count.value_or(0));
+        } else if (id == vehicle_id) {
+            run_vehicle_editor();
         } else if (id == new_set_id) {
             const auto text = invoked->args.text.value_or("");
             (row == "path"         ? state.made.path
