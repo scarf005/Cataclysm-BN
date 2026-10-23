@@ -142,6 +142,7 @@ auto to_json( const cell &value ) -> json
     if( !value.fields.empty() ) { result["fields"] = to_array( value.fields ); }
     if( value.reviving ) { result["reviving"] = true; }
     if( value.cargo ) { result["cargo"] = true; }
+    if( value.roofed ) { result["roofed"] = true; }
     if( !value.traps.empty() ) { result["traps"] = layer_array( value.traps, "trap" ); }
     if( !value.items.empty() ) { result["items"] = layer_array( value.items, "item" ); }
     if( value.vehicle ) { result["vehicle"] = layer_json( *value.vehicle, "vehicle_part" ); }
