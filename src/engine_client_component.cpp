@@ -476,7 +476,7 @@ auto screen_of( const boundary_state &state, const slot &entry, const bool top )
         std::erase_if( registered, [&]( const affordance & offered_action ) {
             return std::ranges::any_of( result.affordances, [&]( const affordance & own ) {
                 return own.covers == offered_action.id && performs( own );
-            } )&& !std::ranges::contains( result.denials, offered_action.id, &denial::id );
+            } ) && !std::ranges::contains( result.denials, offered_action.id, &denial::id );
         } );
         for( const auto &[id, reason] : result.denials ) {
             const auto found = std::ranges::find( registered, id, &affordance::id );
@@ -595,7 +595,7 @@ auto row_ids( const component &value ) -> std::optional<std::vector<std::string>
 auto list( list_options options ) -> component
 {
     auto body = list_body{ .rows = std::move( options.rows ), .offset = options.offset, .activate = options.activate,
-                           .filterable = options.filterable };
+                           .filterable = options.filterable, .filter = std::move( options.filter ) };
     body.total = std::max( options.total.value_or( 0 ), options.offset + body.rows.size() );
     auto seen = std::set<std::string> {};
     for( const auto &entry : body.rows ) {
