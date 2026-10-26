@@ -107,7 +107,8 @@
               "id": "editor:browser",
               "kind": "list",
               "affordances": [
-                "editor:browser_open"
+                "editor:browser_open",
+                "editor:browser_filter"
               ],
               "columns": [],
               "rows": [
@@ -1220,6 +1221,10 @@
                 {
                   "key": "terrain",
                   "label": "terrain"
+                },
+                {
+                  "key": "use",
+                  "label": "Use"
                 }
               ],
               "rows": [
@@ -1236,6 +1241,11 @@
                       "key": "terrain",
                       "label": "terrain",
                       "value": "\"t_wall\""
+                    },
+                    {
+                      "key": "use",
+                      "label": "Use",
+                      "value": "Unused"
                     }
                   ]
                 },
@@ -1701,7 +1711,8 @@
                 "id": "editor:catalog",
                 "kind": "list",
                 "affordances": [
-                  "editor:catalog_pick"
+                  "editor:catalog_pick",
+                  "editor:catalog_filter"
                 ],
                 "columns": [
                   {
@@ -2826,7 +2837,8 @@
               "id": "editor:browser",
               "kind": "list",
               "affordances": [
-                "editor:browser_open"
+                "editor:browser_open",
+                "editor:browser_filter"
               ],
               "columns": [],
               "rows": [
@@ -3646,8 +3658,32 @@
             "expect": "screen"
           },
           {
+            "id": "editor:cut",
+            "label": "Cut",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
             "id": "editor:rotate",
             "label": "Rotate",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_x",
+            "label": "Flip across",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_y",
+            "label": "Flip down",
             "keys": [],
             "enabled": false,
             "denial": "Not available now.",
@@ -4387,6 +4423,10 @@
                 {
                   "key": "terrain",
                   "label": "terrain"
+                },
+                {
+                  "key": "use",
+                  "label": "Use"
                 }
               ],
               "rows": [
@@ -4435,6 +4475,11 @@
                       "key": "terrain",
                       "label": "terrain",
                       "value": "\"t_dirt\""
+                    },
+                    {
+                      "key": "use",
+                      "label": "Use",
+                      "value": "Unused"
                     }
                   ]
                 }
@@ -4884,7 +4929,8 @@
                 "id": "editor:catalog",
                 "kind": "list",
                 "affordances": [
-                  "editor:catalog_pick"
+                  "editor:catalog_pick",
+                  "editor:catalog_filter"
                 ],
                 "columns": [
                   {
@@ -6009,7 +6055,8 @@
               "id": "editor:browser",
               "kind": "list",
               "affordances": [
-                "editor:browser_open"
+                "editor:browser_open",
+                "editor:browser_filter"
               ],
               "columns": [],
               "rows": [
@@ -6827,8 +6874,32 @@
             "expect": "screen"
           },
           {
+            "id": "editor:cut",
+            "label": "Cut",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
             "id": "editor:rotate",
             "label": "Rotate",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_x",
+            "label": "Flip across",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_y",
+            "label": "Flip down",
             "keys": [],
             "enabled": false,
             "denial": "Not available now.",
@@ -7946,7 +8017,8 @@
                 "id": "editor:catalog",
                 "kind": "list",
                 "affordances": [
-                  "editor:catalog_pick"
+                  "editor:catalog_pick",
+                  "editor:catalog_filter"
                 ],
                 "columns": [
                   {
@@ -9071,7 +9143,8 @@
               "id": "editor:browser",
               "kind": "list",
               "affordances": [
-                "editor:browser_open"
+                "editor:browser_open",
+                "editor:browser_filter"
               ],
               "columns": [],
               "rows": [
@@ -9915,8 +9988,32 @@
             "expect": "screen"
           },
           {
+            "id": "editor:cut",
+            "label": "Cut",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
             "id": "editor:rotate",
             "label": "Rotate",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_x",
+            "label": "Flip across",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_y",
+            "label": "Flip down",
             "keys": [],
             "enabled": false,
             "denial": "Not available now.",
@@ -15787,7 +15884,8 @@
                 "id": "editor:catalog",
                 "kind": "list",
                 "affordances": [
-                  "editor:catalog_pick"
+                  "editor:catalog_pick",
+                  "editor:catalog_filter"
                 ],
                 "columns": [
                   {
@@ -25888,7 +25986,8 @@
               "id": "editor:browser",
               "kind": "list",
               "affordances": [
-                "editor:browser_open"
+                "editor:browser_open",
+                "editor:browser_filter"
               ],
               "columns": [],
               "rows": [
@@ -26708,8 +26807,32 @@
             "expect": "screen"
           },
           {
+            "id": "editor:cut",
+            "label": "Cut",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
             "id": "editor:rotate",
             "label": "Rotate",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_x",
+            "label": "Flip across",
+            "keys": [],
+            "enabled": false,
+            "denial": "Not available now.",
+            "expect": "screen"
+          },
+          {
+            "id": "editor:flip_y",
+            "label": "Flip down",
             "keys": [],
             "enabled": false,
             "denial": "Not available now.",
