@@ -26,6 +26,9 @@ auto is_mod_file(const std::filesystem::path& path) -> bool;
 auto mod_folder_name(const std::filesystem::path& path) -> std::optional<std::string>;
 /// The mod whose folder in the player's mods holds the file at `path`; none outside every mod.
 auto mod_of(const std::filesystem::path& path) -> std::optional<mod_id>;
+/// Whether the file at `path` may make its folder of the player's mods a mod: refused, with what to
+/// tell the player, when that folder's name is no mod id or another mod's, or a mod lies below it.
+auto check_mod_folder(const std::filesystem::path& path) -> std::expected<void, std::string>;
 /// Makes the folder of the player's mods that holds the file at `path` a mod of that folder's
 /// name, unless a mod holds it already; the error is what to tell the player.
 auto make_mod_of(const std::filesystem::path& path) -> std::expected<void, std::string>;
