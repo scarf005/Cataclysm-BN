@@ -6,6 +6,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,6 +29,9 @@ auto mod_of(const std::filesystem::path& path) -> std::optional<mod_id>;
 /// Makes the folder of the player's mods that holds the file at `path` a mod of that folder's
 /// name, unless a mod holds it already; the error is what to tell the player.
 auto make_mod_of(const std::filesystem::path& path) -> std::expected<void, std::string>;
+/// `base`, else `base_2`, `base_3` and on: the first name not `taken`.
+auto free_name(const std::string& base, const std::function<bool(const std::string&)>& taken)
+    -> std::string;
 
 /// Writes `doc` and makes the folder of the player's mods it is in a mod; the error is what to
 /// tell the player.
