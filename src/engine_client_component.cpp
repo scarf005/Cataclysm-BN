@@ -597,7 +597,8 @@ auto row_ids( const component &value ) -> std::optional<std::vector<std::string>
 auto list( list_options options ) -> component
 {
     auto body = list_body{ .rows = std::move( options.rows ), .offset = options.offset, .activate = options.activate,
-                           .filterable = options.filterable, .filter = std::move( options.filter ) };
+                           .filterable = options.filterable, .filter = std::move( options.filter ),
+                           .empty = std::move( options.empty ) };
     body.total = std::max( options.total.value_or( 0 ), options.offset + body.rows.size() );
     auto seen = std::set<std::string> {};
     for( const auto &entry : body.rows ) {
@@ -650,7 +651,8 @@ auto tabs( tabs_options options ) -> component
 auto invoke_affordance( invoke_options options ) -> affordance
 {
     return {
-        .id = std::move( options.id ), .label = std::move( options.label ), .keys = std::move( options.keys ),
+        .id = std::move( options.id ), .label = std::move( options.label ),
+        .description = std::move( options.description ), .keys = std::move( options.keys ),
         .enabled = options.enabled, .denial = std::move( options.denial ), .role = std::move( options.role ),
         .args = std::move( options.args ), .runs = invoke_kind::screen, .covers = std::move( options.covers ),
         .group = std::move( options.group ),
