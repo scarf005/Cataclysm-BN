@@ -3002,7 +3002,8 @@ TEST_CASE(
                 // Opening picks the top part, so the form points at it until told otherwise.
                 return invoke("vehicle:field_set", {.row = "pointer", .text = "/name"});
             case 3:
-                return invoke("vehicle:field_set", {.row = "value", .text = "{ broken"});
+                // Text that starts as JSON does after a space is still meant as JSON.
+                return invoke("vehicle:field_set", {.row = "value", .text = " [1, broken"});
             case 4:
                 return invoke("vehicle:field_apply");
             case 5:
@@ -3178,6 +3179,83 @@ TEST_CASE(
     });
     editor::run_vehicle_editor();
     CHECK(step == 7);
+}
+
+TEST_CASE(
+    "the vehicle editor's New suggests no file an unsaved new design takes and refuses to make it "
+    "twice",
+    "[editor_vehicle]") {
+    const auto guard = screen_guard{};
+    const auto folder = std::filesystem::path(PATH_INFO::user_moddir()) / "vehicle_editor_twice";
+    std::filesystem::remove_all(folder);
+    const auto cleanup = on_out_of_scope([&] { std::filesystem::remove_all(folder); });
+    const auto initial = [](const ec::screen_view& screen, const std::string& id) {
+        const auto& text = affordance(screen, id).args.text;
+        REQUIRE(text.has_value());
+        return text->initial;
+    };
+    auto step = 0;
+    game_client::memory::set_input_provider([&](const int /*timeout*/) {
+        const auto screen = ec::top_screen(captured());
+        switch (step++) {
+            case 0:
+                return invoke("vehicle:new", {.text = "vehicle_editor_twice/my_vehicle"});
+            case 1:
+                // The unsaved design takes my_vehicle.json though the file is not there yet.
+                CHECK_FALSE(std::filesystem::exists(folder / "my_vehicle.json"));
+                CHECK(initial(screen, "vehicle:new") == "vehicle_editor_twice/my_vehicle_2");
+                return invoke("vehicle:new", {.text = "vehicle_editor_twice/my_vehicle"});
+            case 2:
+                CHECK(screen.kind == "uilist");
+                return answer("Save and leave");
+            case 3:
+                // Saving made the file, so a second design of that name would overwrite it.
+                CHECK(std::filesystem::exists(folder / "my_vehicle.json"));
+                CHECK(notice_of(screen).contains("already exists"));
+                return invoke("vehicle:show:vehicle");
+            case 4:
+                return invoke("vehicle:prop_set", {.row = "name", .text = "Twice"});
+            case 5:
+                return invoke("vehicle:save");
+            case 6:
+                CHECK_FALSE(notice_of(screen).contains("changed on disk"));
+                CHECK(stat(screen, "saved").value == "Yes");
+                return act("QUIT");
+            default:
+                FAIL("the vehicle editor outlived its exit");
+                return act("QUIT");
+        }
+    });
+    editor::run_vehicle_editor();
+    CHECK(step == 7);
+}
+
+TEST_CASE(
+    "the vehicle editor makes no mod of a folder whose name is another mod's id",
+    "[editor_vehicle]") {
+    const auto guard = screen_guard{};
+    const auto folder = std::filesystem::path(PATH_INFO::user_moddir()) / "bn";
+    std::filesystem::remove_all(folder);
+    const auto cleanup = on_out_of_scope([&] { std::filesystem::remove_all(folder); });
+    auto step = 0;
+    game_client::memory::set_input_provider([&](const int /*timeout*/) {
+        const auto screen = ec::top_screen(captured());
+        switch (step++) {
+            case 0:
+                return invoke("vehicle:new", {.text = "bn/kart"});
+            case 1:
+                // bn is the game's own mod: a mod of that id would stand in for it.
+                CHECK(notice_of(screen).contains("bn_2"));
+                CHECK_FALSE(std::filesystem::exists(folder / "kart.json"));
+                CHECK_FALSE(std::filesystem::exists(folder / "modinfo.json"));
+                return act("QUIT");
+            default:
+                FAIL("the vehicle editor outlived its exit");
+                return act("QUIT");
+        }
+    });
+    editor::run_vehicle_editor();
+    CHECK(step == 2);
 }
 
 #endif // CATA_MCP
