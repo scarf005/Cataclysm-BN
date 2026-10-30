@@ -5657,9 +5657,9 @@ auto drive_row(const ec::screen_view& screen, const std::string& key) -> const e
     return row(screen, "vehicle:check", "check:" + key);
 }
 auto drive_ok(const ec::screen_view& screen, const std::string& key) -> bool {
-    const auto& mark = drive_row(screen, key).mark;
-    REQUIRE(mark.has_value());
-    return mark->glyph == "✓";
+    const auto& columns = drive_row(screen, key).columns;
+    REQUIRE(columns.size() == 1);
+    return columns.front().value == "✓";
 }
 auto performance_has(const ec::screen_view& screen, const std::string& key) -> bool {
     return std::ranges::contains(
@@ -5825,7 +5825,7 @@ TEST_CASE(
             fixed(screen, "controls");
             for (const auto& entry : rows(screen, "vehicle:check")) {
                 INFO(entry.label);
-                CHECK(entry.mark->glyph == "✓");
+                CHECK(entry.columns.at(0).value == "✓");
             }
             CHECK(performance_has(screen, "speed"));
             return act("QUIT");
