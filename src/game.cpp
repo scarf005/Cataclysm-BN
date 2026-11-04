@@ -153,6 +153,7 @@
 #include "ranged.h"
 #include "recipe.h"
 #include "recipe_dictionary.h"
+#include "replay/replay.h"
 #include "ret_val.h"
 #include "rng.h"
 #include "rot.h"
@@ -2473,7 +2474,7 @@ void game::process_voluntary_act_interrupt()
     int64_t difference = std::chrono::duration_cast<std::chrono::milliseconds>
                          ( now - last_poll ).count();
 
-    if( difference > 100 ) {
+    if( replay::is_enabled() || difference > 100 ) {
         handle_key_blocking_activity();
         last_poll = now;
     }

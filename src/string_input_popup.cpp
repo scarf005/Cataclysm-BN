@@ -12,6 +12,7 @@
 #include "input.h"
 #include "output.h"
 #include "point.h"
+#include "replay/replay.h"
 #include "translations.h"
 #include "ui.h"
 #include "ui_manager.h"
@@ -584,11 +585,15 @@ const std::string &string_input_popup::query_string( const bool loop, const bool
                 std::string entered;
                 if( action == "TEXT.PASTE" ) {
                     if( edit.empty() ) {
-                        entered = game_client::presentation().clipboard_text();
+                        entered = replay::external_text( "clipboard", []() {
+                            return game_client::presentation().clipboard_text();
+                        } );
                     }
                 } else if( action == "TEXT.INPUT_FROM_FILE" ) {
                     if( edit.empty() ) {
-                        entered = get_input_string_from_file();
+                        entered = replay::external_text( "file", []() {
+                            return get_input_string_from_file();
+                        } );
                     }
                 } else {
                     entered = ev.text;
