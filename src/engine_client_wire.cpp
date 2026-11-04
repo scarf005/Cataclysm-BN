@@ -420,6 +420,7 @@ auto serialize_hello( const hello_reply &reply ) -> std::string
     }
     result["locale"] = identity.locale;
     result["engine_locale"] = identity.engine_locale;
+    result["role"] = identity.role;
     return result.dump();
 }
 auto serialize_description( const tile_description &value ) -> std::string
