@@ -12,7 +12,10 @@ on:
 
 env:
   VCPKG_BINARY_SOURCES: "default"
-  EXPECTED_NIGHTLY_ASSET_COUNT: 15
+  # 15 of main, then each Magnum Opus bundle, a no-soundpack one for Windows and both macOS, and the Windows PDB.
+  EXPECTED_NIGHTLY_ASSET_COUNT: 23
+  MAGNUM_OPUS_REPOSITORY: scarf005/Cataclysm-BN
+  CLIENT_REPOSITORY: cataclysmbn/bn-client-egui
 
 jobs:
   metadata:
@@ -23,6 +26,8 @@ jobs:
       previous_tag_name: ${{ steps.env_vars.outputs.previous_tag_name }}
       previous_tag_sha: ${{ steps.env_vars.outputs.previous_tag_sha }}
       source_sha: ${{ steps.env_vars.outputs.source_sha }}
+      magnum_opus_sha: ${{ steps.env_vars.outputs.magnum_opus_sha }}
+      client_sha: ${{ steps.env_vars.outputs.client_sha }}
       changelog_fetch_depth: ${{ steps.env_vars.outputs.changelog_fetch_depth }}
     steps:
       - uses: actions/checkout@v4
@@ -60,15 +65,29 @@ jobs:
           COMMITS=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG_NAME}...${SOURCE_SHA}" --jq .total_commits)
           CHANGELOG_FETCH_DEPTH=$((COMMITS + 1))
 
+          released_commit() { gh release view "$1" --json body --jq .body 2>/dev/null | sed -n "s|^$2 commit: .*/commit/\([0-9a-f]\{40\}\).*|\1|p"; }
+          MAGNUM_OPUS_SHA=$(released_commit "$TAG_NAME" Engine)
+          MAGNUM_OPUS_SHA=${MAGNUM_OPUS_SHA:-$(gh api "repos/$MAGNUM_OPUS_REPOSITORY/commits/feat/magnum-opus" --jq .sha)}
+          CLIENT_SHA=$(released_commit "$TAG_NAME" Client)
+          CLIENT_SHA=${CLIENT_SHA:-$(gh api "repos/$CLIENT_REPOSITORY/commits/main" --jq .sha)}
+          CHANGES=$COMMITS
+          if [ "$MAGNUM_OPUS_SHA" != "$(released_commit "$PREVIOUS_TAG_NAME" Engine)" ] || [ "$CLIENT_SHA" != "$(released_commit "$PREVIOUS_TAG_NAME" Client)" ]; then
+            CHANGES=$((COMMITS + 1))
+          fi
+
           echo "commits since $PREVIOUS_TAG_NAME: $COMMITS" >> "$GITHUB_STEP_SUMMARY"
           echo "source commit: $SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Magnum Opus engine commit: $MAGNUM_OPUS_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Magnum Opus client commit: $CLIENT_SHA" >> "$GITHUB_STEP_SUMMARY"
           echo "changelog fetch depth: $CHANGELOG_FETCH_DEPTH" >> "$GITHUB_STEP_SUMMARY"
 
-          echo "count=$COMMITS" >> "$GITHUB_OUTPUT"
+          echo "count=$CHANGES" >> "$GITHUB_OUTPUT"
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "previous_tag_name=$PREVIOUS_TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "previous_tag_sha=$PREVIOUS_TAG_SHA" >> "$GITHUB_OUTPUT"
           echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "magnum_opus_sha=$MAGNUM_OPUS_SHA" >> "$GITHUB_OUTPUT"
+          echo "client_sha=$CLIENT_SHA" >> "$GITHUB_OUTPUT"
           echo "changelog_fetch_depth=$CHANGELOG_FETCH_DEPTH" >> "$GITHUB_OUTPUT"
 
   release:
@@ -123,6 +142,12 @@ jobs:
           release_body="$RUNNER_TEMP/release-body.md"
           cat "${{ steps.build_changelog.outputs.path }}" > "$release_body"
           echo >> "$release_body"
+          echo "The \`cbn-*-magnum-opus-*\` files are Magnum Opus: the new client and engine in one download. To play, run \`cataclysm-bn.exe\` on Windows or \`cataclysm-bn\` on Linux, or open \`Cataclysm.app\` on macOS." >> "$release_body"
+          echo >> "$release_body"
+          echo "Engine commit: https://github.com/$MAGNUM_OPUS_REPOSITORY/commit/${{ needs.metadata.outputs.magnum_opus_sha }}" >> "$release_body"
+          echo >> "$release_body"
+          echo "Client commit: https://github.com/$CLIENT_REPOSITORY/commit/${{ needs.metadata.outputs.client_sha }}" >> "$release_body"
+          echo >> "$release_body"
           echo "These are the outputs for the build of commit [${{ needs.metadata.outputs.source_sha }}](https://github.com/${{ github.repository }}/commit/${{ needs.metadata.outputs.source_sha }})" >> "$release_body"
 
           gh release create "${{ needs.metadata.outputs.tag_name }}" \
@@ -165,3 +190,23 @@ jobs:
       upload-to-release: true
       release-tag: ${{ needs.metadata.outputs.tag_name }}
     secrets: inherit
+
+  magnum-opus-builds:
+    needs: [metadata, release, build-translations]
+    if: ${{ needs.release.outputs.upload_assets == 'true' }}
+    uses: scarf005/Cataclysm-BN/.github/workflows/build.yml@feat/magnum-opus
+    with:
+      version-label: magnum-opus-${{ needs.metadata.outputs.tag_name }}
+      artifact-label: magnum-opus
+      checkout-repository: scarf005/Cataclysm-BN
+      checkout-ref: ${{ needs.metadata.outputs.magnum_opus_sha }}
+      upload-to-release: true
+      release-tag: ${{ needs.metadata.outputs.tag_name }}
+      client-ref: ${{ needs.metadata.outputs.client_sha }}
+      matrix-json: |
+        [
+          { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip" },
+          { "name": "Linux Tiles", "platform": "linux", "artifact": "linux-tiles-x64", "os": "ubuntu-latest", "tiles": true, "sound": true, "ext": "tar.gz", "content-type": "application/gzip" },
+          { "name": "macOS Tiles", "platform": "macos", "artifact": "osx-tiles-x64", "os": "macos-15-intel", "preset": "osx-tiles-x64-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+          { "name": "macOS Tiles ARM", "platform": "macos", "artifact": "osx-tiles-arm", "os": "macos-15", "preset": "osx-tiles-arm-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" }
+        ]
