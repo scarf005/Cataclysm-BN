@@ -8721,6 +8721,8 @@ void map::build_map_cache(const int zlev, bool skip_lightmap) {
               static_cast<int64_t>(gpu_transparency_residency_invalid_levels.size()));
 
     const tripoint_bub_ms& p = g->u.bub_pos();
+    /// Levels within FOV_3D_Z_RANGE of the player, plus the requested level.
+    const auto in_z_range = [&p, zlev](const int z) { return z == zlev || fov_z_in_range(z, p.z()); };
     auto force_seen_rebuild_for_gpu_residency = false;
 #if defined(CATA_SDL)
     SDL_GPUDevice* const gpu_device = use_sdl_gpu_compute ? cata_gpu::get_device() : nullptr;
@@ -8742,7 +8744,15 @@ void map::build_map_cache(const int zlev, bool skip_lightmap) {
     if (!skip_lightmap) {
         ZoneScopedN("Phase4_lightmap_prepare");
         invalidate_lightmap_caches_if_light_state_changed();
-        auto needs_lightmap_dispatch = [this](const int z) { return get_cache(z).lightmap_dirty; };
+#if defined(CATA_SDL)
+        const auto limit_lightmap_z = !use_sdl_gpu_compute;
+#else
+        constexpr auto limit_lightmap_z = true;
+#endif
+        // CPU path: levels beyond FOV_3D_Z_RANGE keep lightmap_dirty and rebuild once in range.
+        auto needs_lightmap_dispatch = [this, &in_z_range, limit_lightmap_z](const int z) {
+            return get_cache(z).lightmap_dirty && (!limit_lightmap_z || in_z_range(z));
+        };
         std::ranges::copy_if(
             std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1),
             std::back_inserter(dirty_lightmap_levels), needs_lightmap_dispatch);
@@ -8817,7 +8827,10 @@ void map::build_map_cache(const int zlev, bool skip_lightmap) {
     {
         ZoneScopedN("Phase3_sound_absorption");
         // Absorption cache relies upon the floor, outside, and vehicle caches all being completed.
-        for (int z = -OVERMAP_DEPTH; z <= OVERMAP_HEIGHT; z++) { build_absorption_cache(z); }
+        // Levels beyond FOV_3D_Z_RANGE keep their dirty bits and rebuild once in range.
+        for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
+            if (in_z_range(z)) { build_absorption_cache(z); }
+        }
     }
 
     seen_cache_dirty |= build_vision_transparency_cache(get_player_character());
@@ -8879,6 +8892,9 @@ void map::build_map_cache(const int zlev, bool skip_lightmap) {
                     auto& c = get_cache(z);
                     std::ranges::fill(c.colored_light_cache, 0u);
                     c.colored_light_cache_active = false;
+                    // Colored light of a level skipped for FOV_3D_Z_RANGE is lost; rebuild it
+                    // once in range.
+                    if (!in_z_range(z)) { c.lightmap_dirty = true; }
                 }
 
                 if (dirty_lightmap_levels.size() > 1 && parallel_enabled && parallel_map_cache) {
