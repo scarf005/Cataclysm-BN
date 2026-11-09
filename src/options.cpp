@@ -20,6 +20,7 @@
 #include "debug.h"
 #include "enum_bitset.h"
 #include "filesystem.h"
+#include "fov_z_range.h"
 #include "fstream_utils.h"
 #include "game.h"
 #include "game_constants.h"
@@ -4239,6 +4240,7 @@ void options_manager::cache_to_globals()
     message_ttl = ::get_option<int>( "MESSAGE_TTL" );
     message_cooldown = ::get_option<int>( "MESSAGE_COOLDOWN" );
     angled_sunlight_shadows = ::get_option<bool>( "FOV_3D_OCCLUSION" );
+    fov_3d_z_range = ::get_option<int>( "FOV_3D_Z_RANGE" );
     const auto prevent_occlusion_option = ::get_option<std::string>( "PREVENT_OCCLUSION" );
     prevent_occlusion = prevent_occlusion_option == "off" ? 0 : prevent_occlusion_option == "on" ? 1 :
                         2;
