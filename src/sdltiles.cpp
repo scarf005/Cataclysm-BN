@@ -20,6 +20,7 @@
 #    include "get_version.h"
 #    include "hash_utils.h"
 #    include "input.h"
+#    include "input_pending.h"
 #    include "json.h"
 #    include "make_static.h"
 #    include "map/mapbuffer.h"
@@ -3964,7 +3965,9 @@ input_event input_manager::get_input_event()
     // however, the refresh call has not effect when nothing has been drawn, so
     // we can skip it if `needupdate` is false to improve performance during mouse
     // move events.
-    if( needupdate ) {
+    // `needupdate` stays set when the present is deferred, so the last frame is still shown.
+    if( needupdate && !( queued_input_redraw_scope::active() &&
+                         should_defer_redraw_for_queued_input() ) ) {
         ZoneScopedN( "sdl_input_wrefresh" );
         wrefresh( catacurses::stdscr );
     }

@@ -40,6 +40,7 @@
 #include "help.h"
 #include "iexamine.h"
 #include "input.h"
+#include "input_pending.h"
 #include "int_id.h"
 #include "item.h"
 #include "item_contents.h"
@@ -505,7 +506,9 @@ input_context game::get_player_input( std::string &action )
 
             {
                 ZoneScopedN( "get_player_input_redraw_invalidated" );
-                ui_manager::redraw_invalidated();
+                if( !should_defer_redraw_for_queued_input() ) {
+                    ui_manager::redraw_invalidated();
+                }
             }
             auto keep_waiting = false;
             {
@@ -515,6 +518,7 @@ input_context game::get_player_input( std::string &action )
                 } else {
                     ctxt.reset_timeout();
                 }
+                const auto redraw_scope = queued_input_redraw_scope{};
                 keep_waiting = handle_mouseview( ctxt, action );
             }
             if( !keep_waiting || uquit == QUIT_WATCH ||
