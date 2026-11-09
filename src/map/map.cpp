@@ -38,6 +38,7 @@
 #include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
+#include "fov_z_range.h"
 #include "fluid_grid.h"
 #include "fragment_cloud.h"
 #include "fungal_effects.h"
@@ -6378,6 +6379,12 @@ auto map::update_visibility_cache(const int zlev, const std::function<void()>& w
         level_cache& vc_cache = get_cache(z);
         auto& visibility_cache = vc_cache.visibility_cache;
         const auto dz = std::abs(z - player_pos.z());
+
+        // Levels beyond FOV_3D_Z_RANGE are not seen; skip the per-tile light evaluation.
+        if (z != zlev && !fov_z_in_range(z, player_pos.z())) {
+            std::ranges::fill(visibility_cache, lit_level::BLANK);
+            continue;
+        }
 
         // Fill visibility_cache.  apparent_light_at is read-only per tile.
         if (parallel_enabled && parallel_map_cache) {

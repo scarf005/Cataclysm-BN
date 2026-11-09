@@ -9,6 +9,7 @@
 #include "coordinates.h"
 #include "cuboid_rectangle.h"
 #include "field.h"
+#include "fov_z_range.h"
 #include "fragment_cloud.h" // IWYU pragma: keep
 #include "game.h"
 #include "game_constants.h"
@@ -51,6 +52,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -2494,8 +2496,14 @@ void map::build_seen_cache(const tripoint_bub_ms& origin, const int target_z) {
                 }
             };
 
-            constexpr int z_lo = -OVERMAP_DEPTH;
-            constexpr int z_hi = OVERMAP_HEIGHT;
+            // Only fill levels within FOV_3D_Z_RANGE of the origin (and the target level).
+            const auto in_fov_range = [&](const int z) {
+                return z == target_z || fov_z_in_range(z, new_origin.z());
+            };
+            const auto z_lo =
+                std::max(-OVERMAP_DEPTH, std::min(new_origin.z() - fov_3d_z_range, target_z));
+            const auto z_hi =
+                std::min(OVERMAP_HEIGHT, std::max(new_origin.z() + fov_3d_z_range, target_z));
 
             // Going down: crossing from z=k to z=k-1 is blocked by floor_cache[k].
             // Accumulate one level at a time so each step is a single OR-sweep.
@@ -2533,6 +2541,12 @@ void map::build_seen_cache(const tripoint_bub_ms& origin, const int target_z) {
                         return a | b;
                     });
                 process_z_level(z);
+            }
+
+            // cast_zlight may have written into levels outside the range; they stay unseen.
+            for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)
+                                    | std::views::filter(std::not_fn(in_fov_range))) {
+                std::ranges::fill(get_cache(z).seen_cache, light_transparency_solid);
             }
         }
     }
