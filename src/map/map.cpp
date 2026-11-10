@@ -8829,10 +8829,7 @@ void map::build_map_cache(const int zlev, bool skip_lightmap) {
     {
         ZoneScopedN("Phase3_sound_absorption");
         // Absorption cache relies upon the floor, outside, and vehicle caches all being completed.
-        // Levels beyond FOV_3D_Z_RANGE keep their dirty bits and rebuild once in range.
-        for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
-            if (in_z_range(z)) { build_absorption_cache(z); }
-        }
+        for (int z = -OVERMAP_DEPTH; z <= OVERMAP_HEIGHT; z++) { build_absorption_cache(z); }
     }
 
     seen_cache_dirty |= build_vision_transparency_cache(get_player_character());

@@ -124,11 +124,14 @@ TEST_CASE("fov_z_range_limits_vision_levels", "[vision][fov_z_range]") {
         }
     }
 
-    SECTION("levels outside the range keep dirty lightmap and absorption until in range") {
+    SECTION("levels outside the range keep a dirty lightmap until in range") {
         CHECK(at_z(limited, 3).lightmap_dirty);
-        CHECK(at_z(limited, 3).absorption_dirty);
         CHECK_FALSE(at_z(limited, 1).lightmap_dirty);
-        CHECK_FALSE(at_z(limited, 1).absorption_dirty);
+    }
+
+    SECTION("sound absorption is built on every level regardless of the range") {
+        CHECK_FALSE(at_z(limited, 3).absorption_dirty);
+        CHECK_FALSE(at_z(limited, OVERMAP_HEIGHT).absorption_dirty);
     }
 
     SECTION("levels inside the range are computed as with the full range") {
