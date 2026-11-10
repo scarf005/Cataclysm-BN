@@ -72,7 +72,7 @@ jobs:
         timeout-minutes: 120
         run: |
           Xvfb :99 -screen 0 1280x1024x24 &
-          export DISPLAY=:99 LP_NUM_THREADS=2 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_WALK_STEPS=500
+          export DISPLAY=:99 LP_NUM_THREADS=2 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_WALK_STEPS=1500
           sleep 1
           mkdir -p prof
           t=build/tests/cata_test-tiles
@@ -84,16 +84,6 @@ jobs:
           perf report -i prof/walk.data --stdio --children --percent-limit 1 -g caller,0.5,callee,function,percent --max-stack 40 > prof/tree.txt
           rm prof/walk.data
           { echo "### ${{ matrix.target }}"; cat prof/walk.txt; } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: long walk crash probe
-        continue-on-error: true
-        run: |
-          Xvfb :98 -screen 0 1280x1024x24 &
-          export DISPLAY=:98 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_WALK_STEPS=1500
-          sleep 1
-          set +e
-          timeout 900 build/tests/cata_test-tiles --gpu-backend=software --rng-seed 1 profile_walk > prof/long-walk.log 2>&1
-          echo "long walk (1500 steps) exit=$?" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         if: always()
