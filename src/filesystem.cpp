@@ -11,6 +11,7 @@
 #include <deque>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <iterator>
@@ -161,12 +162,12 @@ std::string read_entire_file( const std::string &path )
     if( !infile.is_open() ) {
         return "";
     }
-    std::string ret = std::string( std::istreambuf_iterator<char>( *infile ),
-                                   std::istreambuf_iterator<char>() );
+    auto buffer = std::ostringstream{};
+    buffer << infile->rdbuf();
     if( infile.fail() ) {
         return "";
     }
-    return ret;
+    return std::move( buffer ).str();
 }
 
 namespace

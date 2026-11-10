@@ -542,15 +542,8 @@ void DynamicDataLoader::load_data_from_path( const std::string &path, const std:
     // iterate over each file
     for( auto &files_i : files ) {
         const std::string &file = files_i;
-        // open the file as a stream
-        cata_ifstream infile = std::move( cata_ifstream().mode( cata_ios_mode::binary ).open( file ) );
-        // and stuff it into ram
-        std::istringstream iss(
-            std::string(
-                ( std::istreambuf_iterator<char>( *infile ) ),
-                std::istreambuf_iterator<char>()
-            )
-        );
+        // read the whole file into ram
+        auto iss = std::istringstream( read_entire_file( file ) );
         try {
             // parse it
             JsonIn jsin( iss, file );
