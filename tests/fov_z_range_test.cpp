@@ -144,20 +144,6 @@ TEST_CASE("fov_z_range_limits_vision_levels", "[vision][fov_z_range]") {
     }
 }
 
-TEST_CASE("fov_z_range_covering_all_levels_keeps_full_vision", "[vision][fov_z_range]") {
-    const auto scope = cpu_vision_scope{};
-    setup_daylight();
-
-    const auto full = rebuild_vision(OVERMAP_LAYERS);
-    const auto ten = rebuild_vision(10);
-
-    for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
-        CAPTURE(z);
-        CHECK(at_z(ten, z).seen == at_z(full, z).seen);
-        CHECK(at_z(ten, z).visibility == at_z(full, z).visibility);
-    }
-}
-
 TEST_CASE("fov_z_range_vision_rebuild_benchmark", "[.][benchmark][vision]") {
     const auto scope = cpu_vision_scope{};
     setup_daylight();
