@@ -204,6 +204,11 @@ JsonObject::JsonObject( JsonIn &j )
 auto JsonObject::find_member( const std::string &name ) const ->
 std::vector<json_member_position>::const_iterator
 {
+    // Most objects are small, where comparing for equality (sizes first) beats a binary search.
+    constexpr auto linear_search_limit = size_t{ 8 };
+    if( positions.size() <= linear_search_limit ) {
+        return std::ranges::find( positions, name, &json_member_position::name );
+    }
     const auto iter = std::ranges::lower_bound( positions, name, std::less<>(),
                       &json_member_position::name );
     if( iter != positions.end() && iter->name == name ) {
