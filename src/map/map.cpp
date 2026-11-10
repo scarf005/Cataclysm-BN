@@ -38,8 +38,8 @@
 #include "field_type.h"
 #include "flag.h"
 #include "flat_set.h"
-#include "fov_z_range.h"
 #include "fluid_grid.h"
+#include "fov_z_range.h"
 #include "fragment_cloud.h"
 #include "fungal_effects.h"
 #include "game.h"
@@ -8722,7 +8722,9 @@ void map::build_map_cache(const int zlev, bool skip_lightmap) {
 
     const tripoint_bub_ms& p = g->u.bub_pos();
     /// Levels within FOV_3D_Z_RANGE of the player, plus the requested level.
-    const auto in_z_range = [&p, zlev](const int z) { return z == zlev || fov_z_in_range(z, p.z()); };
+    const auto in_z_range = [&p, zlev](const int z) {
+        return z == zlev || fov_z_in_range(z, p.z());
+    };
     auto force_seen_rebuild_for_gpu_residency = false;
 #if defined(CATA_SDL)
     SDL_GPUDevice* const gpu_device = use_sdl_gpu_compute ? cata_gpu::get_device() : nullptr;
