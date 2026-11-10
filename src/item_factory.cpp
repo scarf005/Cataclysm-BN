@@ -1272,7 +1272,23 @@ void Item_factory::init()
               0 );
 }
 
-bool Item_factory::check_ammo_type( std::string &msg, const ammotype &ammo ) const
+namespace
+{
+
+/// Ammo types that at least one item template provides.
+auto ammo_types_with_items( const std::unordered_map<itype_id, itype> &templates ) ->
+std::unordered_set<ammotype>
+{
+    using namespace std::views;
+    return templates
+           | values
+    | filter( []( const itype & type ) { return static_cast<bool>( type.ammo ); } )
+    | transform( []( const itype & type ) { return type.ammo->type; } )
+    | std::ranges::to<std::unordered_set>();
+}
+
+auto check_ammo_type_against( std::string &msg, const ammotype &ammo,
+                              const std::unordered_set<ammotype> &defined_ammo ) -> bool
 {
     if( ammo.is_null() ) {
         return false;
@@ -1283,18 +1299,27 @@ bool Item_factory::check_ammo_type( std::string &msg, const ammotype &ammo ) con
         return false;
     }
 
-    if( std::none_of( m_templates.begin(),
-    m_templates.end(), [&ammo]( const decltype( m_templates )::value_type & e ) {
-    return e.second.ammo && e.second.ammo->type == ammo;
-} ) ) {
+    if( !defined_ammo.contains( ammo ) ) {
         msg += string_format( "there is no actual ammo of type %s defined\n", ammo.c_str() );
         return false;
     }
     return true;
 }
 
+} // namespace
+
+bool Item_factory::check_ammo_type( std::string &msg, const ammotype &ammo ) const
+{
+    return check_ammo_type_against( msg, ammo, ammo_types_with_items( m_templates ) );
+}
+
 void Item_factory::check_definitions() const
 {
+    // Checking ammo types scans every template, so collect the defined ones once.
+    const auto defined_ammo = ammo_types_with_items( m_templates );
+    const auto check_ammo_type = [&defined_ammo]( std::string & msg, const ammotype & ammo ) {
+        return check_ammo_type_against( msg, ammo, defined_ammo );
+    };
     for( const auto &elem : m_templates ) {
         std::string msg;
         const itype *type = &elem.second;
