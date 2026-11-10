@@ -169,6 +169,15 @@ TEST_CASE("fov_z_range_vision_rebuild_benchmark", "[.][benchmark][vision]") {
                     here.build_map_cache(player_z, true);
                 });
             };
+            BENCHMARK_ADVANCED("absorption rebuild " + suffix)(
+                Catch::Benchmark::Chronometer meter) {
+                meter.measure([&] {
+                    for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
+                        here.set_absorption_cache_dirty(z);
+                    }
+                    here.build_map_cache(player_z, true);
+                });
+            };
         }
     };
 
