@@ -32,6 +32,11 @@ lint-dialogue:
 hooks-setup:
     prek install
 
+# Build the game for this OS (configures on first run): just build [--mode tiles|curses] [--all].
+[positional-arguments]
+build *args:
+    deno run --allow-read --allow-run --allow-env scripts/build_game.ts "$@"
+
 # Download and launch a PR tiles build: just playtest [--os OS] <PR URL>.
 [positional-arguments]
 playtest *args:
