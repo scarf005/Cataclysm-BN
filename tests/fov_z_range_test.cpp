@@ -6,6 +6,7 @@
 #include "game_constants.h"
 #include "map/lightmap.h"
 #include "map/map.h"
+#include "preload_config.h"
 #include "state_helpers.h"
 #include "weather/weather.h"
 
@@ -48,12 +49,21 @@ auto rebuild_vision(const int range) -> std::vector<level_vision> {
                    .absorption_dirty = cache.absorption_cache_dirty.any(),
                };
            })
-           | ranges::to<std::vector>();
+         | ranges::to<std::vector>();
 }
 
 auto at_z(const std::vector<level_vision>& levels, const int z) -> const level_vision& {
     return levels[z + OVERMAP_DEPTH];
 }
+
+/// Forces the CPU compute path, the only one FOV_3D_Z_RANGE limits, and restores the range and
+/// the backend on exit.
+struct cpu_vision_scope {
+    restore_on_out_of_scope<int> range{fov_3d_z_range};
+    preload_config::compute_accel accel = preload_config::get_compute_accel();
+    cpu_vision_scope() { preload_config::set_compute_accel(preload_config::compute_accel::cpu); }
+    ~cpu_vision_scope() { preload_config::set_compute_accel(accel); }
+};
 
 auto setup_daylight() -> void {
     clear_all_state();
@@ -63,11 +73,39 @@ auto setup_daylight() -> void {
     g->reset_light_level();
 }
 
+/// Builds a tower around the player's column from z=0: walls with a gap that shifts per storey,
+/// floors with a shaft, and a flat roof at @p roof_z.
+auto build_tower(const int roof_z) -> void {
+    const auto t_brick_wall = ter_id("t_brick_wall");
+    const auto t_floor = ter_id("t_floor");
+    const auto t_flat_roof = ter_id("t_flat_roof");
+    const auto t_open_air = ter_id("t_open_air");
+    constexpr auto radius = 6;
+    auto& here = get_map();
+    for (auto z = 0; z <= roof_z; ++z) {
+        for (auto dx = -radius; dx <= radius; ++dx) {
+            for (auto dy = -radius; dy <= radius; ++dy) {
+                const auto wall =
+                    std::max(std::abs(dx), std::abs(dy)) == radius && !(dx == radius && dy == z);
+                const auto shaft = z > 0 && dx == 2 && dy == 2;
+                const auto ter =
+                    z == roof_z ? t_flat_roof
+                    : wall      ? t_brick_wall
+                    : shaft     ? t_open_air
+                                : t_floor;
+                here.ter_set(tripoint_bub_ms(60 + dx, 60 + dy, z), ter);
+            }
+        }
+    }
+}
+
 } // namespace
 
 TEST_CASE("fov_z_range_limits_vision_levels", "[vision][fov_z_range]") {
-    const auto restore_range = restore_on_out_of_scope<int>(fov_3d_z_range);
+    const auto scope = cpu_vision_scope{};
     setup_daylight();
+    // Walls and floors on both sides of the range edge make the 3D cast split there.
+    build_tower(3);
 
     const auto full = rebuild_vision(OVERMAP_LAYERS);
     const auto limited = rebuild_vision(1);
@@ -106,7 +144,7 @@ TEST_CASE("fov_z_range_limits_vision_levels", "[vision][fov_z_range]") {
 }
 
 TEST_CASE("fov_z_range_covering_all_levels_keeps_full_vision", "[vision][fov_z_range]") {
-    const auto restore_range = restore_on_out_of_scope<int>(fov_3d_z_range);
+    const auto scope = cpu_vision_scope{};
     setup_daylight();
 
     const auto full = rebuild_vision(OVERMAP_LAYERS);
