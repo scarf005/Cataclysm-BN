@@ -98,6 +98,7 @@
 #include <set>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 
 static const itype_id itype_avgas("avgas");
 static const itype_id itype_diesel("diesel");
@@ -3624,10 +3625,23 @@ void mapgen_function_json_base::check_common(const std::string& oter_name) const
     objects.check(oter_name, parameters);
 }
 
+namespace {
+
+/// Calls `fn` once for each distinct piece of `objects`, in order of first use.
+/// Palette pieces are shared by every map square that uses their key.
+template <typename Objects, typename Fn> auto for_each_unique_piece(const Objects& objects, Fn fn) {
+    auto seen = std::unordered_set<const jmapgen_piece*>{};
+    for (const auto& obj : objects) {
+        if (seen.insert(obj.second.get()).second) { fn(*obj.second); }
+    }
+}
+
+} // namespace
+
 void jmapgen_objects::finalize() {
     using namespace std::views;
     namespace ranges = std::ranges;
-    for (const auto& obj : objects) { obj.second->finalize(); }
+    for_each_unique_piece(objects, [](const jmapgen_piece& piece) { piece.finalize(); });
     // phase() is virtual, so evaluate it once per object instead of once per comparison.
     const auto phases =
         objects | transform([](const jmapgen_obj& obj) { return obj.second->phase(); })
@@ -3641,14 +3655,16 @@ void jmapgen_objects::finalize() {
 
 void jmapgen_objects::check(
     const std::string& oter_name, const mapgen_parameters& parameters) const {
-    for (const jmapgen_obj& obj : objects) { obj.second->check(oter_name, parameters); }
+    for_each_unique_piece(objects, [&](const jmapgen_piece& piece) {
+        piece.check(oter_name, parameters);
+    });
 }
 
 void jmapgen_objects::merge_parameters_into(
     mapgen_parameters& params, const std::string& outer_context) const {
-    for (const jmapgen_obj& obj : objects) {
-        obj.second->merge_parameters_into(params, outer_context);
-    }
+    for_each_unique_piece(objects, [&](const jmapgen_piece& piece) {
+        piece.merge_parameters_into(params, outer_context);
+    });
 }
 
 /////////////////////////////////////////////////////////////////////////////////
