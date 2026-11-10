@@ -45,6 +45,7 @@
 #include "item_factory.h"
 #include "json.h"
 #include "language.h"
+#include "loading_events.h"
 #include "loading_ui.h"
 #include "lru_cache.h"
 #include "lua_sidebar_widgets.h"
@@ -192,7 +193,7 @@ void DynamicDataLoader::load_deferred( deferred_json &data )
                     debugmsg( "(json-error)\n%s", err.what() );
                 }
             }
-            inp_mngr.pump_events();
+            loading::pump_events();
         }
         auto it = data.begin();
         std::advance( it, n );
@@ -209,7 +210,7 @@ void DynamicDataLoader::load_deferred( deferred_json &data )
                         debugmsg( "(json-error)\n%s", err.what() );
                     }
                 }
-                inp_mngr.pump_events();
+                loading::pump_events();
             }
             data.clear();
             return; // made no progress on this cycle so abort
@@ -580,7 +581,7 @@ void DynamicDataLoader::load_all_from_json( JsonIn &jsin, const std::string &src
         // not an object or an array?
         jsin.error( "expected object or array" );
     }
-    inp_mngr.pump_events();
+    loading::pump_events();
 }
 
 void DynamicDataLoader::unload_data()

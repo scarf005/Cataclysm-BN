@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include "loading_events.h"
 #include "utils/algo.h"
 #include "cata_utility.h"
 #include "debug.h"
@@ -606,7 +607,7 @@ void recipe_dictionary::finalize_internal( std::map<recipe_id, recipe> &obj )
 {
     for( auto &elem : obj ) {
         elem.second.finalize();
-        inp_mngr.pump_events();
+        loading::pump_events();
     }
     // remove any blacklisted or invalid recipes...
     delete_if( []( const recipe & elem ) {

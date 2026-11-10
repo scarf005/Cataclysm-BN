@@ -34,6 +34,7 @@
 #include "itype.h"
 #include "json.h"
 #include "line.h"
+#include "loading_events.h"
 #include "magic/magic_ter_furn_transform.h"
 #include "map/field_type.h"
 #include "map/map.h"
@@ -391,7 +392,7 @@ public:
     void setup() {
         for (std::pair<const std::string, mapgen_basic_container>& omw : mapgens_) {
             omw.second.setup();
-            inp_mngr.pump_events();
+            loading::pump_events();
         }
         // Dummy entry, overmap terrain null should never appear and is
         // therefore never generated.
@@ -503,13 +504,13 @@ void calculate_mapgen_weights() // TODO: rename as it runs jsonfunction setup to
         pr.second.precalc();
         for (weighted_object<int, std::shared_ptr<mapgen_function_json_nested>>& ptr : pr.second) {
             ptr.obj->setup();
-            inp_mngr.pump_events();
+            loading::pump_events();
         }
     }
     for (auto& pr : update_mapgen) {
         for (auto& ptr : pr.second) {
             ptr->setup();
-            inp_mngr.pump_events();
+            loading::pump_events();
         }
     }
     // Having set up all the mapgens we can now perform a second
@@ -518,13 +519,13 @@ void calculate_mapgen_weights() // TODO: rename as it runs jsonfunction setup to
     for (auto& pr : nested_mapgen) {
         for (weighted_object<int, std::shared_ptr<mapgen_function_json_nested>>& ptr : pr.second) {
             ptr.obj->finalize_parameters();
-            inp_mngr.pump_events();
+            loading::pump_events();
         }
     }
     for (auto& pr : update_mapgen) {
         for (auto& ptr : pr.second) {
             ptr->finalize_parameters();
-            inp_mngr.pump_events();
+            loading::pump_events();
         }
     }
 }

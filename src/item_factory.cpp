@@ -42,6 +42,7 @@
 #include "item_group.h"
 #include "iuse_actor.h"
 #include "json.h"
+#include "loading_events.h"
 #include "sounds.h"
 #include "type_id.h"
 
@@ -1785,7 +1786,7 @@ void Item_factory::check_definitions() const
     }
     for( const auto &elem : m_template_groups ) {
         elem.second->check_consistency( elem.first.str() );
-        inp_mngr.pump_events();
+        loading::pump_events();
     }
 }
 

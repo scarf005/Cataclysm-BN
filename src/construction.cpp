@@ -28,6 +28,7 @@
 #include "item_stack.h"
 #include "iuse.h"
 #include "json.h"
+#include "loading_events.h"
 #include "map/map.h"
 #include "map/mapdata.h"
 #include "map_iterator.h"
@@ -253,7 +254,7 @@ void finalize()
     for( const construction &c_it : all_constructions.get_all() ) {
         construction &c = const_cast<construction &>( c_it );
         c.finalize();
-        inp_mngr.pump_events();
+        loading::pump_events();
     }
 
     constructions_sorted.resize( all_constructions.get_all().size() );
