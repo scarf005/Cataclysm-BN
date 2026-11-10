@@ -1,0 +1,84 @@
+name: profile
+
+on:
+  push:
+    branches: [ci/profile-walk]
+  workflow_dispatch:
+
+env:
+  LLVM_VERSION: "22"
+
+jobs:
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libncursesw5-dev mold ripgrep gettext libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb \
+            autoconf autoconf-archive automake libtool libltdl-dev \
+            libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev \
+            libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
+            libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
+            libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev \
+            libfreetype-dev libharfbuzz-dev libtiff-dev libavif-dev libwebp-dev libjpeg-dev libjxl-dev \
+            libflac-dev libvorbis-dev libxmp-dev libmpg123-dev libwavpack-dev
+          sudo apt-get install -y linux-tools-common "linux-tools-$(uname -r)" || sudo apt-get install -y linux-tools-common linux-tools-azure
+          sudo sysctl -w kernel.perf_event_paranoid=-1 kernel.kptr_restrict=0
+
+      - uses: aminya/setup-cpp@v1
+        with:
+          compiler: llvm-${{ env.LLVM_VERSION }}
+          cmake: true
+          ninja: true
+          setup-cpp: false
+
+      - uses: denoland/setup-deno@v2
+
+      - uses: ./.github/actions/build-shadercross
+
+      - run: bash build-scripts/generate-shaders.sh
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: profile-tiles-${{ github.ref_name }}
+          max-size: 2G
+
+      - name: build
+        run: |
+          cmake --preset ci-tiles -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF \
+            -DCMAKE_C_FLAGS=-fno-omit-frame-pointer -DCMAKE_CXX_FLAGS=-fno-omit-frame-pointer
+          cmake --build --preset ci-tiles --target cata_test-tiles -j 4
+
+      - name: profile
+        timeout-minutes: 120
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          export DISPLAY=:99 LP_NUM_THREADS=2
+          sleep 1
+          mkdir -p prof
+          t=build/tests/cata_test-tiles
+          run() { # name, env..., then test args after --
+            name=$1; shift
+            env "$@" perf record -F 499 -g -o prof/$name.data -- $t --gpu-backend=software --rng-seed 1 --min-duration 0 "${TEST_ARGS[@]}" 2>&1 | tee prof/$name.log
+            perf report -i prof/$name.data --stdio --no-children --percent-limit 0.3 -g none > prof/$name.self.txt
+            perf report -i prof/$name.data --stdio --children --percent-limit 1 -g caller,0.5,callee,function,percent --max-stack 40 > prof/$name.tree.txt
+            rm prof/$name.data
+          }
+          TEST_ARGS=(profile_walk)
+          run walk-cpu-r21 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=400
+          run walk-cpu-r1 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=1 PROFILE_WALK_STEPS=400
+          run walk-gpusw-r21 PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=400
+          TEST_ARGS=(fov_z_range_vision_rebuild_benchmark --benchmark-samples 20)
+          run vision-bench CATA_TEST_COMPUTE_ACCELERATION=cpu
+          rg -n "PROFILE walk|mean|rebuild" prof/*.log | head -80 >> "$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: profile
+          path: prof/
