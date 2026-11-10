@@ -70,9 +70,9 @@ jobs:
             rm prof/$name.data
           }
           TEST_ARGS=(profile_walk)
-          run walk-cpu-r21 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=400
-          run walk-cpu-r1 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=1 PROFILE_WALK_STEPS=400
-          run walk-gpusw-r21 PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=400
+          run walk-cpu-r21 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=3000
+          run walk-cpu-r1 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=1 PROFILE_WALK_STEPS=3000
+          run walk-gpusw-r21 PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=600
           TEST_ARGS=(fov_z_range_vision_rebuild_benchmark --benchmark-samples 20)
           run vision-bench CATA_TEST_COMPUTE_ACCELERATION=cpu
           rg -n "PROFILE walk|mean|rebuild" prof/*.log | head -80 >> "$GITHUB_STEP_SUMMARY" || true
