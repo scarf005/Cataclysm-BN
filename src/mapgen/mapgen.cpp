@@ -587,9 +587,8 @@ auto load_mapgen_function(
         if (!jio.has_object("object")) {
             jio.throw_error(R"(mapgen with method "json" must define key "object")");
         }
-        JsonObject jo = jio.get_object("object");
-        const json_source_location jsrc = jo.get_source_location();
-        jo.allow_omitted_members();
+        // Only the location is needed here; the object is parsed during setup.
+        const json_source_location jsrc = jio.get_member_source_location("object");
         return std::make_shared<mapgen_function_json>(jsrc, mgweight, offset, total);
     } else if (mgtype == "lua") {
         if (!jio.has_string("luamethod")) {
@@ -614,9 +613,8 @@ static void load_nested_mapgen(const JsonObject& jio, const std::string& id_base
     if (mgtype == "json") {
         if (jio.has_object("object")) {
             int weight = jio.get_int("weight", 1000);
-            JsonObject jo = jio.get_object("object");
-            const json_source_location jsrc = jo.get_source_location();
-            jo.allow_omitted_members();
+            // Only the location is needed here; the object is parsed during setup.
+            const json_source_location jsrc = jio.get_member_source_location("object");
             nested_mapgen[id_base].add(std::make_shared<mapgen_function_json_nested>(jsrc), weight);
         } else {
             debugmsg("Nested mapgen: Invalid mapgen function (missing \"object\" object)",
@@ -632,9 +630,8 @@ static void load_update_mapgen(const JsonObject& jio, const std::string& id_base
     const std::string mgtype = jio.get_string("method");
     if (mgtype == "json") {
         if (jio.has_object("object")) {
-            JsonObject jo = jio.get_object("object");
-            const json_source_location jsrc = jo.get_source_location();
-            jo.allow_omitted_members();
+            // Only the location is needed here; the object is parsed during setup.
+            const json_source_location jsrc = jio.get_member_source_location("object");
             update_mapgen[id_base].push_back(std::make_unique<update_mapgen_function_json>(jsrc));
         } else {
             debugmsg("Update mapgen: Invalid mapgen function (missing \"object\" object)",
@@ -3486,6 +3483,10 @@ auto mapgen_function_json_base::setup_common(const JsonObject& jo) -> bool {
                 "format: rows: must have %d rows, not %d; check mapgensize if applicable",
                 total_size.y(), parray.size()));
         }
+        // Look up each key once per mapgen instead of once per square.
+        auto lookups = std::unordered_map<
+            std::string,
+            std::pair<decltype(keys_with_terrain.cend()), decltype(format_placings.cend())>>{};
         for (int c = m_offset.y(); c < expected_dim.y(); c++) {
             const std::string row = parray.get_string(c);
             std::vector<map_key> row_keys;
@@ -3502,9 +3503,12 @@ auto mapgen_function_json_base::setup_common(const JsonObject& jo) -> bool {
             }
             for (int i = m_offset.x(); i < expected_dim.x(); i++) {
                 const auto p = point_rel_ms(i, c) - m_offset;
-                const map_key key = row_keys[i];
-                const auto iter_ter = keys_with_terrain.find(key);
-                const auto fpi = format_placings.find(key);
+                const map_key& key = row_keys[i];
+                auto [lookup, inserted] = lookups.try_emplace(key.str);
+                if (inserted) {
+                    lookup->second = {keys_with_terrain.find(key), format_placings.find(key)};
+                }
+                const auto [iter_ter, fpi] = lookup->second;
 
                 const bool has_terrain = iter_ter != keys_with_terrain.end();
                 const bool has_placing = fpi != format_placings.end();
@@ -3621,10 +3625,18 @@ void mapgen_function_json_base::check_common(const std::string& oter_name) const
 }
 
 void jmapgen_objects::finalize() {
+    using namespace std::views;
+    namespace ranges = std::ranges;
     for (const auto& obj : objects) { obj.second->finalize(); }
-    std::stable_sort(objects.begin(), objects.end(), [](const jmapgen_obj& l, const jmapgen_obj& r) {
-        return l.second->phase() < r.second->phase();
-    });
+    // phase() is virtual, so evaluate it once per object instead of once per comparison.
+    const auto phases =
+        objects | transform([](const jmapgen_obj& obj) { return obj.second->phase(); })
+        | ranges::to<std::vector>();
+    if (ranges::is_sorted(phases)) { return; }
+    auto order = iota(size_t{0}, objects.size()) | ranges::to<std::vector>();
+    ranges::stable_sort(order, {}, [&phases](const size_t i) { return phases[i]; });
+    objects = order | transform([this](const size_t i) { return std::move(objects[i]); })
+            | ranges::to<std::vector>();
 }
 
 void jmapgen_objects::check(
