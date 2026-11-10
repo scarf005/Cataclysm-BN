@@ -52,7 +52,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -2204,11 +2203,19 @@ void map::build_seen_cache(const tripoint_bub_ms& origin, const int target_z) {
         array_of_grids_of<const char> floor_caches;
         array_of_grids_of<const char> vehicle_floor_caches;
         array_of_grids_of<const diagonal_blocks> blocked_caches;
+        // Only levels within FOV_3D_Z_RANGE of the origin (and the target level) are seen.
+        const auto z_lo =
+            std::max(-OVERMAP_DEPTH, std::min(new_origin.z() - fov_3d_z_range, target_z));
+        const auto z_hi =
+            std::min(OVERMAP_HEIGHT, std::max(new_origin.z() + fov_3d_z_range, target_z));
         for (int z = -OVERMAP_DEPTH; z <= OVERMAP_HEIGHT; z++) {
             auto& cur_cache = get_cache(z);
             const int idx = z + OVERMAP_DEPTH;
-            transparency_caches[idx] =
-                {cur_cache.transparency_cache.data(), cur_cache.cache_x, cur_cache.cache_y};
+            // An empty transparency grid makes cast_zlight skip the level's tiles.
+            if (z >= z_lo && z <= z_hi) {
+                transparency_caches[idx] =
+                    {cur_cache.transparency_cache.data(), cur_cache.cache_x, cur_cache.cache_y};
+            }
             seen_caches[idx] = {cur_cache.seen_cache.data(), cur_cache.cache_x, cur_cache.cache_y};
             floor_caches[idx] =
                 {cur_cache.floor_cache.data(), cur_cache.cache_x, cur_cache.cache_y};
@@ -2496,15 +2503,6 @@ void map::build_seen_cache(const tripoint_bub_ms& origin, const int target_z) {
                 }
             };
 
-            // Only fill levels within FOV_3D_Z_RANGE of the origin (and the target level).
-            const auto in_fov_range = [&](const int z) {
-                return z == target_z || fov_z_in_range(z, new_origin.z());
-            };
-            const auto z_lo =
-                std::max(-OVERMAP_DEPTH, std::min(new_origin.z() - fov_3d_z_range, target_z));
-            const auto z_hi =
-                std::min(OVERMAP_HEIGHT, std::max(new_origin.z() + fov_3d_z_range, target_z));
-
             // Going down: crossing from z=k to z=k-1 is blocked by floor_cache[k].
             // Accumulate one level at a time so each step is a single OR-sweep.
             std::fill(vert_blocked.begin(), vert_blocked.end(), 0);
@@ -2541,12 +2539,6 @@ void map::build_seen_cache(const tripoint_bub_ms& origin, const int target_z) {
                         return a | b;
                     });
                 process_z_level(z);
-            }
-
-            // cast_zlight may have written into levels outside the range; they stay unseen.
-            for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)
-                                    | std::views::filter(std::not_fn(in_fov_range))) {
-                std::ranges::fill(get_cache(z).seen_cache, light_transparency_solid);
             }
         }
     }
