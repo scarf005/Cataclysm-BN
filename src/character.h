@@ -67,6 +67,12 @@ class player_morale;
 class vehicle;
 class monster;
 class weather_manager;
+#if defined(CATA_MCP)
+namespace engine_client
+{
+struct fact;
+} // namespace engine_client
+#endif
 struct bionic;
 struct char_encumbrance_data;
 struct construction;
@@ -2310,6 +2316,10 @@ class Character : public Creature, public location_visitable<Character>
 
         bool knows_recipe( const recipe *rec ) const;
         void learn_recipe( const recipe *rec );
+#if defined(CATA_MCP)
+        /// Forgets every recipe but those the current skills teach, as a new character with them knows.
+        auto forget_recipes() -> void;
+#endif
         bool can_learn_by_disassembly( const recipe &rec ) const;
 
         /** Checks permanent morale for consistency and recovers it when an inconsistency is found. */
@@ -2331,6 +2341,12 @@ class Character : public Creature, public location_visitable<Character>
         /** Recalculates morale penalty/bonus from wetness based on mutations, equipment and temperature */
         void apply_wetness_morale( const units::temperature &temperature );
         std::vector<std::string> short_description_parts() const;
+#if defined(CATA_MCP)
+        /// What the avatar or a person wields, wears and shows of their mutations, from what `visibility_cap` allows.
+        auto equipment_facts( int visibility_cap ) const -> std::vector<engine_client::fact>;
+        /// What `print_info` prints, a fact per line.
+        auto info_facts() const -> std::vector<engine_client::fact>;
+#endif
         std::string short_description() const;
         int print_info( const catacurses::window &w, int vStart, int vLines, int column ) const override;
         // Checks whether a player can hear a sound at a given volume and location.
