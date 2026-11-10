@@ -2,7 +2,10 @@
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catch/catch.hpp"
-#include "fov_z_range.h"
+#if __has_include("fov_z_range.h")
+#    include "fov_z_range.h"
+#    define PROFILE_HAS_RANGE 1
+#endif
 #include "game.h"
 #include "map/map.h"
 #include "map_helpers.h"
@@ -20,13 +23,12 @@
 TEST_CASE("profile_walk", "[.][profile]") {
     const auto steps =
         std::getenv("PROFILE_WALK_STEPS") ? std::atoi(std::getenv("PROFILE_WALK_STEPS")) : 300;
-    const auto range =
-        std::getenv("PROFILE_FOV_Z_RANGE")
-            ? std::atoi(std::getenv("PROFILE_FOV_Z_RANGE"))
-            : fov_3d_z_range;
     const auto no_autosave = override_option("AUTOSAVE", "false");
-    const auto restore_range = restore_on_out_of_scope<int>(fov_3d_z_range);
-    fov_3d_z_range = range;
+#if defined(PROFILE_HAS_RANGE)
+    const auto range = fov_3d_z_range;
+#else
+    const auto range = -1;
+#endif
     clear_all_state();
     g->place_player(tripoint_bub_ms(30, 66, 0));
     get_weather().weather_id = weather_type_id("clear");

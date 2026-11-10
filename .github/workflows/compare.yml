@@ -1,20 +1,33 @@
-name: profile
+name: compare
 
 on:
   push:
-    branches: [ci/profile-walk]
+    branches: [ci/compare]
   workflow_dispatch:
 
 env:
   LLVM_VERSION: "22"
 
 jobs:
-  profile:
+  walk:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [main, "10776", "10842", ours]
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 1 }
+        with: { ref: "ci/cmp-${{ matrix.target }}", fetch-depth: 1 }
+
+      - uses: actions/checkout@v4
+        with: {
+          path: harness,
+          sparse-checkout: tests/profile_walk_test.cpp,
+          sparse-checkout-cone-mode: false,
+        }
+
+      - run: cp harness/tests/profile_walk_test.cpp tests/ && rm -rf harness
 
       - name: install dependencies
         run: |
@@ -45,7 +58,8 @@ jobs:
 
       - uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: profile-tiles-${{ github.ref_name }}
+          key: profile-tiles-${{ matrix.target }}
+          restore-keys: profile-tiles-
           max-size: 2G
 
       - name: build
@@ -54,31 +68,25 @@ jobs:
             -DCMAKE_C_FLAGS=-fno-omit-frame-pointer -DCMAKE_CXX_FLAGS=-fno-omit-frame-pointer
           cmake --build --preset ci-tiles --target cata_test-tiles -j 4
 
-      - name: profile
+      - name: walk
         timeout-minutes: 120
         run: |
           Xvfb :99 -screen 0 1280x1024x24 &
-          export DISPLAY=:99 LP_NUM_THREADS=2
+          export DISPLAY=:99 LP_NUM_THREADS=2 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_WALK_STEPS=2000
           sleep 1
           mkdir -p prof
           t=build/tests/cata_test-tiles
-          run() { # name, env..., then test args after --
-            name=$1; shift
-            env "$@" perf record -F 499 -g -o prof/$name.data -- $t --gpu-backend=software --rng-seed 1 --min-duration 0 "${TEST_ARGS[@]}" 2>&1 | tee prof/$name.log
-            perf report -i prof/$name.data --stdio --no-children --percent-limit 0.3 -g none > prof/$name.self.txt
-            perf report -i prof/$name.data --stdio --children --percent-limit 1 -g caller,0.5,callee,function,percent --max-stack 40 > prof/$name.tree.txt
-            rm prof/$name.data
-          }
-          TEST_ARGS=(profile_walk)
-          run walk-cpu-r21 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=3000
-          run walk-cpu-r1 CATA_TEST_COMPUTE_ACCELERATION=cpu PROFILE_FOV_Z_RANGE=1 PROFILE_WALK_STEPS=3000
-          run walk-gpusw-r21 PROFILE_FOV_Z_RANGE=21 PROFILE_WALK_STEPS=600
-          TEST_ARGS=(fov_z_range_vision_rebuild_benchmark --benchmark-samples 20)
-          run vision-bench CATA_TEST_COMPUTE_ACCELERATION=cpu
-          rg -n "PROFILE walk|mean|rebuild" prof/*.log | head -80 >> "$GITHUB_STEP_SUMMARY" || true
+          for i in 1 2 3; do
+            $t --gpu-backend=software --rng-seed 1 profile_walk 2>&1 | rg "PROFILE walk" | tee -a prof/walk.txt
+          done
+          perf record -F 499 -g -o prof/walk.data -- $t --gpu-backend=software --rng-seed 1 profile_walk > prof/perf-run.log 2>&1
+          perf report -i prof/walk.data --stdio --no-children --percent-limit 0.3 -g none > prof/self.txt
+          perf report -i prof/walk.data --stdio --children --percent-limit 1 -g caller,0.5,callee,function,percent --max-stack 40 > prof/tree.txt
+          rm prof/walk.data
+          { echo "### ${{ matrix.target }}"; cat prof/walk.txt; } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: profile
+          name: walk-${{ matrix.target }}
           path: prof/
