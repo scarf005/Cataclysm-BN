@@ -534,10 +534,14 @@ input_context game::get_player_input( std::string &action )
         {
             ZoneScopedN( "get_player_input_noanim_redraw" );
             invalidate_main_ui_adaptor();
-            ui_manager::redraw_invalidated();
+            if( !should_defer_redraw_for_queued_input() ) {
+                ui_manager::redraw_invalidated();
+            }
         }
         SCT.vSCT.clear();
 
+        const auto prompt_scope = restore_on_out_of_scope<bool>( main_prompt_reads_input );
+        main_prompt_reads_input = true;
         if( realtime_turns || uquit == QUIT_WATCH ) {
             ctxt.set_timeout( 125 );
             while( true ) {
