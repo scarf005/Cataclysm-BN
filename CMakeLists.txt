@@ -226,13 +226,19 @@ if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(CMAKE_VERBOSE_MAKEFILE ON)
     # Since CataclysmBN does not respect PREFIX for development builds
     # and has funny path handlers, we should create resulting Binaries
-    # in the source directory
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR} CACHE PATH
-            "Single Directory for all Executables.")
+    # in the source directory. Not cached, so a later non-Debug configure
+    # puts binaries back in the build directory.
+    if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+    endif ()
     set(CMAKE_INSTALL_BINDIR .)
 else ()
     set(RELEASE 1)
     add_definitions(-DRELEASE)
+    # Drop the source-root output cached by Debug configures of older versions.
+    if ("${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" STREQUAL "${CMAKE_SOURCE_DIR}")
+        unset(CMAKE_RUNTIME_OUTPUT_DIRECTORY CACHE)
+    endif ()
     # Use CMAKE_INSTALL_PREFIX as storage of data,gfx, etc.. Useful only on *nix OS.
     if(USE_PREFIX_DATA_DIR)
         if ("${CMAKE_SYSTEM_NAME}" MATCHES "(Linux|FreeBSD|Darwin)")
