@@ -3966,8 +3966,7 @@ input_event input_manager::get_input_event()
     // we can skip it if `needupdate` is false to improve performance during mouse
     // move events.
     // `needupdate` stays set when the present is deferred, so the last frame is still shown.
-    if( needupdate && !( queued_input_redraw_scope::active() &&
-                         should_defer_redraw_for_queued_input() ) ) {
+    if( needupdate && !( main_prompt_reads_input && should_defer_redraw_for_queued_input() ) ) {
         ZoneScopedN( "sdl_input_wrefresh" );
         wrefresh( catacurses::stdscr );
     }

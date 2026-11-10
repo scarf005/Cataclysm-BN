@@ -10,20 +10,6 @@
 // Only the branches that return before polling the platform input queue are covered here:
 // polling needs an initialized window, so the queued-key path is verified manually.
 
-TEST_CASE("queued_input_redraw_scope_nests", "[input][redraw]") {
-    CHECK_FALSE(queued_input_redraw_scope::active());
-    {
-        const auto outer = queued_input_redraw_scope{};
-        CHECK(queued_input_redraw_scope::active());
-        {
-            const auto inner = queued_input_redraw_scope{};
-            CHECK(queued_input_redraw_scope::active());
-        }
-        CHECK(queued_input_redraw_scope::active());
-    }
-    CHECK_FALSE(queued_input_redraw_scope::active());
-}
-
 TEST_CASE("redraw_is_not_deferred_when_disallowed", "[input][redraw]") {
     clear_all_state();
     const auto restore_safe_mode = g->safe_mode;

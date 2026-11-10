@@ -11,6 +11,7 @@
 #include "bionics_ui.h"
 #include "bodypart.h"
 #include "calendar.h"
+#include "cata_utility.h"
 #include "catacharset.h"
 #include "catalua.h"
 #include "catalua_hooks.h"
@@ -518,7 +519,8 @@ input_context game::get_player_input( std::string &action )
                 } else {
                     ctxt.reset_timeout();
                 }
-                const auto redraw_scope = queued_input_redraw_scope{};
+                const auto prompt_scope = restore_on_out_of_scope<bool>( main_prompt_reads_input );
+                main_prompt_reads_input = true;
                 keep_waiting = handle_mouseview( ctxt, action );
             }
             if( !keep_waiting || uquit == QUIT_WATCH ||
