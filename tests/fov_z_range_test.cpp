@@ -11,6 +11,7 @@
 #include "weather/weather.h"
 
 #include <algorithm>
+#include <format>
 #include <ranges>
 #include <vector>
 
@@ -155,4 +156,38 @@ TEST_CASE("fov_z_range_covering_all_levels_keeps_full_vision", "[vision][fov_z_r
         CHECK(at_z(ten, z).seen == at_z(full, z).seen);
         CHECK(at_z(ten, z).visibility == at_z(full, z).visibility);
     }
+}
+
+TEST_CASE("fov_z_range_vision_rebuild_benchmark", "[.][benchmark][vision]") {
+    const auto scope = cpu_vision_scope{};
+    setup_daylight();
+    auto& here = get_map();
+
+    const auto bench = [&](const std::string& scene, const int player_z) {
+        g->place_player(tripoint_bub_ms(60, 60, player_z));
+        for (const auto range : {OVERMAP_LAYERS, 5, 1}) {
+            fov_3d_z_range = range;
+            const auto suffix = std::format("{} z={} range={}", scene, player_z, range);
+            BENCHMARK_ADVANCED("full rebuild " + suffix)(Catch::Benchmark::Chronometer meter) {
+                meter.measure([&] {
+                    for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
+                        here.invalidate_map_cache(z);
+                    }
+                    here.build_map_cache(player_z);
+                    here.update_visibility_cache(player_z);
+                });
+            };
+            BENCHMARK_ADVANCED("seen rebuild " + suffix)(Catch::Benchmark::Chronometer meter) {
+                meter.measure([&] {
+                    here.set_seen_cache_dirty(player_z);
+                    here.build_map_cache(player_z, true);
+                });
+            };
+        }
+    };
+
+    bench("field", 0);
+    build_tower(8);
+    bench("tower", 0);
+    bench("tower", 3);
 }
