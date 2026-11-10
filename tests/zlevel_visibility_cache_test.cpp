@@ -138,3 +138,16 @@ TEST_CASE("opening_floor_rebuilds_below_visibility", "[vision][zlevel]") {
     CHECK(below_cache.visibility_cache[below_cache.idx(hole_pos.x(), hole_pos.y())]
           != lit_level::BLANK);
 }
+
+TEST_CASE("visibility_pass_clears_seen_cache_dirty", "[vision][zlevel]") {
+    clear_all_state();
+    auto& here = get_map();
+    g->place_player(tripoint_bub_ms(60, 60, 0));
+
+    // A dirty seen cache forces a full seen rebuild on every pass until it is cleared.
+    here.set_seen_cache_dirty(0);
+    here.build_map_cache(0);
+    here.update_visibility_cache(0);
+
+    CHECK_FALSE(here.access_cache(0).seen_cache_dirty);
+}
