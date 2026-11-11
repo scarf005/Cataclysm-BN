@@ -145,6 +145,10 @@ export const runGame = async (o: RunOptions): Promise<RunResult> => {
     capture?.kill("SIGINT")
     await capture?.status
     const trace = join(o.outDir, `${name}.tracy`)
+    await Deno.writeTextFile(
+      join(o.outDir, `${name}.zones.csv`),
+      await run(join(o.tracyDir, "tracy-csvexport"), [trace]),
+    )
     const zones = (filter: string) =>
       run(join(o.tracyDir, "tracy-csvexport"), ["-u", "-f", filter, trace]).then(parseZones)
     const [blocks, turns, draws] = await Promise.all([

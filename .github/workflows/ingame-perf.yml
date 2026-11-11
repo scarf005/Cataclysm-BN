@@ -4,8 +4,6 @@ name: ingame-perf
 # Dispatch: gh workflow run ingame-perf.yml --ref ci/ingame-perf -f base=<sha> -f head=<sha>
 
 on:
-  push:
-    branches: [ci/ingame-perf]
   workflow_dispatch:
     inputs:
       base: {
@@ -181,3 +179,4 @@ jobs:
             vulkan.txt
             !out/**/*.tracy
             !out/**/ud
+            out/round1-*/*.tracy
