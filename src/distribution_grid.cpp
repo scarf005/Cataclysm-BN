@@ -558,7 +558,8 @@ void distribution_grid_tracker::on_submap_loaded( const tripoint_abs_sm &pos,
         return;
     }
     tracked_submaps_.insert( pos );
-    make_distribution_grid_at( pos );
+    // Many submaps of one OMT load together: build its grid once, in flush_dirty_omts().
+    dirty_omts_.insert( project_to<coords::omt>( pos ) );
 
     // Scan newly-loaded submap for grid_link_tile active furniture and register
     // their export nodes so the link is live immediately on load.
