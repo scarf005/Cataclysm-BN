@@ -9680,14 +9680,11 @@ auto map::mark_visibility_caches_clean() -> void {
 
 auto map::visibility_caches_dirty() const -> bool { return visibility_caches_dirty_; }
 
-auto map::current_lightmap_source_signature() -> std::size_t {
-    ZoneScopedN("lightmap_source_signature");
-
+auto map::sun_lightmap_signature() -> std::size_t {
     auto seed = std::size_t{0};
 
     cata::hash_combine(seed, to_hours<int>(calendar::turn - calendar::turn_zero));
     update_solar_params();
-    cata::hash_combine(seed, angled_sunlight_shadows);
     cata::hash_combine(seed, m_solar.direct_active);
     if (angled_sunlight_shadows && m_solar.direct_active) {
         cata::hash_combine(seed, quantized_solar_signature_value(m_solar.dx_per_z));
@@ -9697,6 +9694,25 @@ auto map::current_lightmap_source_signature() -> std::size_t {
         cata::hash_combine(seed, z);
         cata::hash_combine(seed, quantized_light_signature_value(g->natural_light_level(z)));
     });
+    return seed;
+}
+
+auto map::current_lightmap_source_signature() -> std::size_t {
+    ZoneScopedN("lightmap_source_signature");
+
+    auto seed = std::size_t{0};
+
+    cata::hash_combine(seed, angled_sunlight_shadows);
+    // A lightning flash or a weather change lights the level at once; the sun only drifts.
+    const auto& weather = get_weather();
+    cata::hash_combine(seed, weather.lightning_active);
+    cata::hash_combine(seed, quantized_light_signature_value(weather.weather_id->light_modifier));
+    const auto minute = to_minutes<int>(calendar::turn - calendar::turn_zero);
+    if (minute != m_sun_lightmap_signature_minute) {
+        m_sun_lightmap_signature = sun_lightmap_signature();
+        m_sun_lightmap_signature_minute = minute;
+    }
+    cata::hash_combine(seed, m_sun_lightmap_signature);
 
     hash_character_light_state(seed, get_player_character());
     for (npc& guy : g->all_npcs()) { hash_character_light_state(seed, guy); }

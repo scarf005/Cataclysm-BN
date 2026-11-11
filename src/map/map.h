@@ -2132,6 +2132,8 @@ protected:
     auto direct_sunlight_state_at(point_bub_ms p, int zlev) const -> direct_sunlight_state;
     auto has_direct_sunlight_at(point_bub_ms p, int zlev) const -> bool;
     auto current_lightmap_source_signature() -> std::size_t;
+    // Hash of the sun-driven lightmap inputs: solar angle and natural light of every level.
+    auto sun_lightmap_signature() -> std::size_t;
     void invalidate_lightmap_caches_if_light_state_changed();
 
 public:
@@ -2231,6 +2233,9 @@ protected:
     bool visibility_caches_dirty_ = true;
     std::size_t m_last_lightmap_source_signature = 0;
     bool m_last_lightmap_source_signature_valid = false;
+    // The sun moves slowly, so its signature is only sampled once per game minute.
+    std::size_t m_sun_lightmap_signature = 0;
+    int m_sun_lightmap_signature_minute = -1;
 
     // State for the directional sunlight system.  Rebuilt by update_solar_params().
     struct solar_params {

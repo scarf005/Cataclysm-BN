@@ -12,6 +12,8 @@
 #include "state_helpers.h"
 #include "type_id.h"
 
+#include <ranges>
+
 TEST_CASE("solar_cache_uses_date_sensitive_hour", "[vision][zlevel][sun]") {
     clear_all_state();
 
@@ -48,6 +50,49 @@ TEST_CASE("solar_cache_uses_date_sensitive_hour", "[vision][zlevel][sun]") {
     const auto& winter_cache = here.access_cache(sample.z());
     CHECK(winter_cache.lm[sample_idx] < summer_light);
     CHECK(winter_cache.lm[sample_idx] < LIGHT_AMBIENT_LIT);
+}
+
+TEST_CASE("sun_lightmap_rebuilds_at_most_once_per_minute", "[lightmap][sun]") {
+    clear_all_state();
+
+    const auto restore_angled_sunlight_shadows = restore_on_out_of_scope<bool>(
+        angled_sunlight_shadows);
+    angled_sunlight_shadows = true;
+
+    auto& here = get_map();
+    const auto zlev = 0;
+    const auto lightmap_generation = [&here, zlev]() {
+        return here.access_cache(zlev).lm_cpu_cache_generation;
+    };
+    const auto rebuild_at = [&here, zlev](const time_point when) {
+        calendar::turn = when;
+        g->reset_light_level();
+        here.build_map_cache(zlev);
+    };
+    const auto morning = sunrise(calendar::turn_zero) + 10_minutes;
+    const auto minutes = 30;
+    const auto steps_per_minute = 6;
+
+    rebuild_at(morning);
+    rebuild_at(morning);
+
+    SECTION("sun movement") {
+        auto rebuilds = 0;
+        for (const auto step : std::views::iota(1, minutes * steps_per_minute + 1)) {
+            const auto before = lightmap_generation();
+            rebuild_at(morning + step * 10_seconds);
+            rebuilds += lightmap_generation() != before;
+        }
+        CHECK(rebuilds > 0);
+        CHECK(rebuilds <= minutes);
+    }
+
+    SECTION("dynamic light source") {
+        const auto before = lightmap_generation();
+        REQUIRE(here.add_field(tripoint_bub_ms(60, 60, zlev), field_type_id("fd_fire"), 1));
+        rebuild_at(morning + 1_seconds);
+        CHECK(lightmap_generation() != before);
+    }
 }
 
 TEST_CASE("opening_floor_invalidates_below_seen_cache", "[vision][zlevel]") {
