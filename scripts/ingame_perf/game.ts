@@ -184,6 +184,10 @@ export const runGame = async (o: RunOptions): Promise<RunResult> => {
     await shot("after-walk.png")
     const walkZones = await stopCapture("walk")
     const stepMs = stepTimesMs(walkZones.blocks, o.steps)
+    if (stepMs.length !== o.steps) {
+      const seen = `${walkZones.blocks.length} blocking, ${walkZones.turns.length} do_turn zones`
+      throw new Error(`walk: ${stepMs.length} of ${o.steps} steps in walk.tracy (${seen})`)
+    }
     const walkStart = walkZones.blocks.at(-(o.steps + 1))?.end ?? 0
     const walkEnd = walkZones.blocks.at(-1)?.start ?? 0
     const walkDraws = walkZones.draws.filter((z) => z.start >= walkStart && z.start < walkEnd)
@@ -207,6 +211,10 @@ export const runGame = async (o: RunOptions): Promise<RunResult> => {
     await waitIdle(pid, "turn after wait", { minMs: 500 })
     const waitZones = await stopCapture("wait")
     const hours = waitHours(waitZones.blocks, waitZones.turns, waitZones.draws, o.hours)
+    if (hours.length !== o.hours) {
+      const seen = `${waitZones.blocks.length} blocking, ${waitZones.turns.length} do_turn zones`
+      throw new Error(`wait: ${hours.length} of ${o.hours} hours in wait.tracy (${seen})`)
+    }
 
     const result: RunResult = {
       walk: {

@@ -19,6 +19,10 @@ on:
       rounds: { description: interleaved rounds, default: "5" }
       steps: { description: walk steps per run, default: "150" }
       hours: { description: waited hours per run, default: "3" }
+      build_run: {
+        description: "run id whose game-base and game-head artifacts to reuse instead of building",
+        default: "",
+      }
       compute: {
         description: "COMPUTE_ACCELERATION option (gpu, gpu_software, cpu)",
         default: gpu_software,
@@ -41,6 +45,7 @@ env:
 
 jobs:
   build:
+    if: ${{ !inputs.build_run }}
     strategy:
       fail-fast: false
       matrix:
@@ -102,6 +107,7 @@ jobs:
 
   measure:
     needs: build
+    if: ${{ !cancelled() && needs.build.result != 'failure' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     steps:
@@ -116,7 +122,11 @@ jobs:
       - uses: denoland/setup-deno@v2
 
       - uses: actions/download-artifact@v4
-        with: { path: artifacts }
+        with:
+          path: artifacts
+          pattern: game-*
+          run-id: ${{ inputs.build_run || github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: unpack games
         run: |
@@ -140,7 +150,7 @@ jobs:
           mkdir tracy-tools
           for tool in capture csvexport; do
             cmake -S "tracy-src/$tool" -B "tracy-build/$tool" -G Ninja -DCMAKE_BUILD_TYPE=Release \
-              -DNO_ISA_EXTENSIONS=ON -DPATCH_EXECUTABLE=/usr/bin/patch
+              -DNO_ISA_EXTENSIONS=ON -DTBB_STRICT=OFF -DPATCH_EXECUTABLE=/usr/bin/patch
             cmake --build "tracy-build/$tool" --parallel 4
             cp "tracy-build/$tool/tracy-$tool" tracy-tools/
           done
