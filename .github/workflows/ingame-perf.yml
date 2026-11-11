@@ -1,0 +1,173 @@
+name: ingame-perf
+
+# Measures waiting and walking in the real game binary for two refs, interleaved over several rounds.
+# Dispatch: gh workflow run ingame-perf.yml --ref ci/ingame-perf -f base=<sha> -f head=<sha>
+
+on:
+  push:
+    branches: [ci/ingame-perf]
+  workflow_dispatch:
+    inputs:
+      base: {
+        description: base ref (commit SHA or branch),
+        default: 9f456666aaaf16986873c2db9bb75ee32334dc0f,
+      }
+      head: {
+        description: head ref (commit SHA or branch),
+        default: 6b139eda5ef6e12c1a717b8b6b99ec67f5f6e87b,
+      }
+      rounds: { description: interleaved rounds, default: "5" }
+      steps: { description: walk steps per run, default: "150" }
+      hours: { description: waited hours per run, default: "3" }
+      compute: {
+        description: "COMPUTE_ACCELERATION option (gpu, gpu_software, cpu)",
+        default: gpu_software,
+      }
+
+env:
+  LLVM_VERSION: "22"
+  TRACY_COMMIT: 6d1deb5640ed11da01995fb1791115cfebe54dbf
+  BASE_REF: ${{ inputs.base || '9f456666aaaf16986873c2db9bb75ee32334dc0f' }}
+  HEAD_REF: ${{ inputs.head || '6b139eda5ef6e12c1a717b8b6b99ec67f5f6e87b' }}
+  APT_DEPS: >-
+    libncursesw5-dev mold ripgrep gettext libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers
+    autoconf autoconf-archive automake libtool libltdl-dev
+    libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev
+    libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev
+    libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev
+    libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+    libfreetype-dev libharfbuzz-dev libtiff-dev libavif-dev libwebp-dev libjpeg-dev libjxl-dev
+    libflac-dev libvorbis-dev libxmp-dev libmpg123-dev libwavpack-dev
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        which: [base, head]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with: {
+          ref: "${{ matrix.which == 'base' && env.BASE_REF || env.HEAD_REF }}",
+          fetch-depth: 1,
+        }
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y $APT_DEPS
+
+      - uses: aminya/setup-cpp@v1
+        with:
+          compiler: llvm-${{ env.LLVM_VERSION }}
+          cmake: true
+          ninja: true
+          setup-cpp: false
+
+      - uses: denoland/setup-deno@v2
+
+      - uses: ./.github/actions/build-shadercross
+
+      - run: bash build-scripts/generate-shaders.sh
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ingame-perf-${{ matrix.which }}
+          restore-keys: ingame-perf-
+          max-size: 2G
+
+      - name: build
+        run: |
+          cmake --preset ci-tiles -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF -DTESTS=OFF -DLOCALIZE=OFF \
+            -DUSE_TRACY=ON -DTRACY_ON_DEMAND=ON -DTRACY_ONLY_IPV4=ON
+          cmake --build --preset ci-tiles --target cataclysm-bn-tiles -j 4
+
+      - name: package
+        run: |
+          mkdir -p pkg/lib
+          cp build/src/cataclysm-bn-tiles pkg/
+          strip --strip-debug pkg/cataclysm-bn-tiles
+          find build -name '*.so*' -not -path '*/CMakeFiles/*' -exec cp -a {} pkg/lib/ \;
+          cp -r data gfx sound pkg/
+          tar --zstd -cf game-${{ matrix.which }}.tar.zst -C pkg .
+          ls -l game-${{ matrix.which }}.tar.zst
+          ldd pkg/cataclysm-bn-tiles | rg -i "not found|sdl3 " || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game-${{ matrix.which }}
+          path: game-${{ matrix.which }}.tar.zst
+          compression-level: 0
+
+  measure:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y $APT_DEPS xvfb xdotool imagemagick vulkan-tools zstd patch locales
+          sudo locale-gen en_US.UTF-8
+
+      - uses: denoland/setup-deno@v2
+
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: unpack games
+        run: |
+          for which in base head; do
+            mkdir "$which"
+            tar --zstd -xf "artifacts/game-$which/game-$which.tar.zst" -C "$which"
+          done
+
+      - uses: actions/cache@v4
+        id: tracy-cache
+        with:
+          path: tracy-tools
+          key: tracy-tools-${{ env.TRACY_COMMIT }}
+
+      - name: build Tracy capture tools
+        if: steps.tracy-cache.outputs.cache-hit != 'true'
+        run: |
+          git init tracy-src
+          git -C tracy-src fetch --depth 1 https://github.com/wolfpld/tracy.git "$TRACY_COMMIT"
+          git -C tracy-src checkout FETCH_HEAD
+          mkdir tracy-tools
+          for tool in capture csvexport; do
+            cmake -S "tracy-src/$tool" -B "tracy-build/$tool" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+              -DNO_ISA_EXTENSIONS=ON -DPATCH_EXECUTABLE=/usr/bin/patch
+            cmake --build "tracy-build/$tool" --parallel 4
+            cp "tracy-build/$tool/tracy-$tool" tracy-tools/
+          done
+
+      - name: measure
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 &
+          icd=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json | head -n 1)
+          export VK_DRIVER_FILES=$icd LD_LIBRARY_PATH=$PWD/base/lib:$PWD/head/lib
+          DISPLAY=:99 vulkaninfo --summary | rg -i "deviceName|driverName" | tee vulkan.txt
+          mkdir out
+          deno run -A scripts/ingame_perf/compare.ts --base base --head head --tracy tracy-tools --out out \
+            --display :99 --rounds "${{ inputs.rounds || 5 }}" --steps "${{ inputs.steps || 150 }}" \
+            --hours "${{ inputs.hours || 3 }}" --compute "${{ inputs.compute || 'gpu_software' }}"
+          {
+            echo "base ${BASE_REF}"
+            echo "head ${HEAD_REF}"
+            echo
+            cat out/summary.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ingame-perf
+          path: |
+            out
+            vulkan.txt
+            !out/**/*.tracy
+            !out/**/ud
