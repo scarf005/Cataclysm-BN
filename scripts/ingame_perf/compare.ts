@@ -8,7 +8,7 @@
  *   [--steps 150] [--hours 3] [--compute gpu_software]
  */
 import { Command } from "@cliffy/command"
-import { join } from "@std/path"
+import { join, resolve } from "@std/path"
 import { type Paired, paired } from "./analyze.ts"
 import { runGame, type RunResult } from "./game.ts"
 
@@ -28,7 +28,7 @@ const { options: args } = await new Command()
   .option("--compute <mode:string>", "COMPUTE_ACCELERATION option", { default: "gpu_software" })
   .parse(Deno.args)
 const { rounds, steps, hours } = args
-const dirs: Record<Ref, string> = { base: args.base, head: args.head }
+const dirs: Record<Ref, string> = { base: resolve(args.base), head: resolve(args.head) }
 const results: Record<Ref, RunResult[]> = { base: [], head: [] }
 
 for (let round = 0; round < rounds; round++) {
@@ -38,9 +38,9 @@ for (let round = 0; round < rounds; round++) {
     console.log(`round ${round + 1}/${rounds}: ${ref}`)
     const result = await runGame({
       gameDir: dirs[ref],
-      outDir: join(args.out, `round${round + 1}-${ref}`),
+      outDir: resolve(args.out, `round${round + 1}-${ref}`),
       display: args.display,
-      tracyDir: args.tracy,
+      tracyDir: resolve(args.tracy),
       port: 8086 + round * 2 + (ref === "head" ? 1 : 0),
       steps,
       hours,

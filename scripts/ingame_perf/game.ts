@@ -227,6 +227,10 @@ export const runGame = async (o: RunOptions): Promise<RunResult> => {
     }
     await Deno.writeTextFile(join(o.outDir, "result.json"), JSON.stringify(result, null, 2))
     return result
+  } catch (error) {
+    const log = await Deno.readTextFile(join(o.outDir, "game.log")).catch(() => "")
+    console.error(`game.log tail:\n${log.split("\n").slice(-20).join("\n")}`)
+    throw error
   } finally {
     for (const child of [capture, game]) {
       try {
