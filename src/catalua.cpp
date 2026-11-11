@@ -655,7 +655,14 @@ auto get_hook_entries( sol::state_view lua, std::string_view hook_name,
     return entry.entries;
 }
 
+auto hook_calls = std::uint64_t { 0 };
+
 } // namespace
+
+auto hook_call_count() -> std::uint64_t
+{
+    return hook_calls;
+}
 
 auto has_hooks( std::string_view hook_name, const hook_opts &opts ) -> bool
 {
@@ -735,6 +742,7 @@ auto run_hooks( std::string_view hook_name,
                 func = obj.as<sol::protected_function>();
             }
 
+            ++hook_calls;
             sol::protected_function_result res = func( params );
             check_func_result( res );
 
@@ -1362,6 +1370,7 @@ void run_on_mapgen_postprocess_hooks_batch( lua_state &state, mapgen_constructor
                     func = obj.as<sol::protected_function>();
                 }
 
+                ++hook_calls;
                 sol::protected_function_result res = func( params );
                 check_func_result( res );
 

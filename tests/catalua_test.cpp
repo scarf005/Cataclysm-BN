@@ -31,6 +31,7 @@
 #include "iexamine.h"
 #include "init.h"
 #include "json.h"
+#include "line.h"
 #include "map/mapbuffer.h"
 #include "map/mapbuffer_registry.h"
 #include "map/submap_load_manager.h"
@@ -70,6 +71,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // workaround for https://github.com/llvm/llvm-project/issues/113087
@@ -3365,6 +3367,30 @@ TEST_CASE("lua_hook_wiring_monster_spawn", "[lua]") {
 
     CHECK(*mon_ptr == &mon);
     CHECK(*cre_ptr == static_cast<Creature*>(&mon));
+}
+
+/// The zombie spawned at bub (10, 10, 0) runs an on_monster_spawn hook. The hook adds a spawn at
+/// (100, 100, 0), on a submap later in bubble order. The same spawn_monsters call places it too.
+TEST_CASE("places_spawn_that_lua_hook_adds_on_later_submap_in_same_pass", "[lua][spawn]") {
+    clear_all_state();
+    auto& state = *DynamicDataLoader::get_instance().lua;
+    auto& here = get_map();
+    const auto later = tripoint_bub_ms(100, 100, 0);
+
+    auto added = false;
+    const auto [list, idx] = push_hook(state.lua, "on_monster_spawn", [&](sol::table) {
+        if (!std::exchange(added, true)) { here.add_spawn(mtype_id("mon_zombie"), 1, later); }
+    });
+    const auto cleanup = hook_cleanup{list, idx};
+    here.add_spawn(mtype_id("mon_zombie"), 1, tripoint_bub_ms(10, 10, 0));
+
+    here.spawn_monsters(true);
+
+    REQUIRE(added);
+    auto near_later = 0;
+    for (const auto& m : g->all_monsters()) { near_later += rl_dist(m.bub_pos(), later) <= 3; }
+    here.clear_spawns();
+    CHECK(near_later == 1);
 }
 
 TEST_CASE("lua_hook_wiring_mon_death", "[lua]") {

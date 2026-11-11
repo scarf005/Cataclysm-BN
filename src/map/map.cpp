@@ -124,6 +124,7 @@
 #include <queue>
 #include <ranges>
 #include <shared_mutex>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <variant>
@@ -8117,9 +8118,53 @@ void map::spawn_monsters_submap(const tripoint_bub_sm& gp, bool ignore_sight) {
     current_submap->spawns.clear();
 }
 
+namespace {
+
+/// Bubble submaps that hold stored monsters, a monster group or mapgen spawn points: the only ones
+/// spawn_monsters_submap can act on.
+auto submaps_with_spawns(const map& m, const tripoint_range<tripoint_bub_sm>& bubble)
+    -> std::vector<tripoint_bub_sm> {
+    const auto populated =
+        get_overmapbuffer(m.get_bound_dimension())
+            .populated_submaps(
+                m.get_abs_sub(), m.get_abs_sub() + point_rel_sm(m.getmapsize(), m.getmapsize()));
+    const auto has_spawns = [&](const tripoint_bub_sm& gp) {
+        const auto abs = map_local_to_abs(m, gp);
+        const auto view = m.active_submap_view(abs);
+        return !view || !view->get_submap().spawns.empty()
+            || std::binary_search(populated.begin(), populated.end(), abs);
+    };
+    return bubble | std::views::filter(has_spawns) | std::ranges::to<std::vector>();
+}
+
+/// Runs spawn on each bubble submap with spawns, in bubble order. A Lua hook can add spawns during
+/// spawn. After a hook runs, rebuild the list of later submaps.
+template <typename Fn>
+auto for_each_submap_with_spawns(
+    const map& m, const tripoint_range<tripoint_bub_sm>& bubble, Fn&& spawn) -> void {
+    const auto bubble_order = [](const tripoint_bub_sm& p) {
+        return std::tuple(p.z(), p.y(), p.x());
+    };
+    auto todo = submaps_with_spawns(m, bubble);
+    for (auto it = todo.cbegin(); it != todo.cend();) {
+        const auto gp = *it++;
+        const auto hook_calls = cata::hook_call_count();
+        spawn(gp);
+        if (cata::hook_call_count() == hook_calls) { continue; }
+        todo = submaps_with_spawns(m, bubble)
+             | std::views::filter([&](const auto& p) { return bubble_order(p) > bubble_order(gp); })
+             | std::ranges::to<std::vector>();
+        it = todo.cbegin();
+    }
+}
+
+} // namespace
+
 void map::spawn_monsters(bool ignore_sight) {
     ZoneScoped;
-    for (const auto gp : bubble_submaps()) { spawn_monsters_submap(gp, ignore_sight); }
+    for_each_submap_with_spawns(*this, bubble_submaps(), [&](const auto& gp) {
+        spawn_monsters_submap(gp, ignore_sight);
+    });
 }
 
 auto map::spawn_monsters_new_submaps(const point_rel_sm& shift_amount) -> void {
@@ -8131,9 +8176,9 @@ auto map::spawn_monsters_new_submaps(const point_rel_sm& shift_amount) -> void {
         spawn_monsters(false);
         return;
     }
-    for (const auto gp : bubble_submaps()) {
+    for_each_submap_with_spawns(*this, bubble_submaps(), [&](const auto& gp) {
         if (inbounds(gp + shift_amount)) { spawn_monsters_submap(gp, false); }
-    }
+    });
 }
 
 void map::clear_spawns() {
