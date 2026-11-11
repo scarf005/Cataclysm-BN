@@ -179,4 +179,3 @@ jobs:
             vulkan.txt
             !out/**/*.tracy
             !out/**/ud
-            out/round1-*/*.tracy

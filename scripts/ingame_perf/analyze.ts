@@ -11,13 +11,18 @@ export type Zone = { name: string; start: number; end: number }
 /// starts once the game is ready for input again.
 export const inputBlockZone = "get_player_input_noanim_blocking_handle_mouseview"
 
-export const parseZones = (csv: string): Zone[] =>
-  csv.split("\n").slice(1).filter((line) => line !== "").map((line) => {
+/// Rows are `name,src_file,src_line,ns_since_start,exec_time_ns,thread` plus a trailing `value`
+/// column in newer Tracy versions, so the columns are counted from the header.
+export const parseZones = (csv: string): Zone[] => {
+  const [header, ...rows] = csv.split("\n")
+  const tail = header.split(",").length - 1
+  return rows.filter((line) => line !== "").map((line) => {
     const c = line.split(",")
-    const n = c.length
-    const start = Number(c[n - 4])
-    return { name: c.slice(0, n - 6).join(","), start, end: start + Number(c[n - 3]) }
+    const fields = c.slice(c.length - tail)
+    const start = Number(fields[2])
+    return { name: c.slice(0, c.length - tail).join(","), start, end: start + Number(fields[3]) }
   })
+}
 
 const ms = (ns: number) => ns / 1e6
 

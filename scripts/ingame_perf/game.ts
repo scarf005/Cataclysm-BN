@@ -149,8 +149,11 @@ export const runGame = async (o: RunOptions): Promise<RunResult> => {
       join(o.outDir, `${name}.zones.csv`),
       await run(join(o.tracyDir, "tracy-csvexport"), [trace]),
     )
-    const zones = (filter: string) =>
-      run(join(o.tracyDir, "tracy-csvexport"), ["-u", "-f", filter, trace]).then(parseZones)
+    const zones = async (filter: string) => {
+      const csv = await run(join(o.tracyDir, "tracy-csvexport"), ["-u", "-f", filter, trace])
+      await Deno.writeTextFile(join(o.outDir, `${name}.${filter.replaceAll(":", "_")}.csv`), csv)
+      return parseZones(csv)
+    }
     const [blocks, turns, draws] = await Promise.all([
       zones(inputBlockZone),
       zones("game::do_turn"),

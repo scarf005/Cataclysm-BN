@@ -16,6 +16,12 @@ Deno.test("parseZones() reads csvexport rows and keeps commas in names", () => {
   ])
 })
 
+Deno.test("parseZones() reads rows without the value column", () => {
+  const csv = "name,src_file,src_line,ns_since_start,exec_time_ns,thread\n" +
+    "a,/src/a.cpp,1,100,50,7\n"
+  assertEquals(parseZones(csv), [{ name: "a", start: 100, end: 150 }])
+})
+
 Deno.test("stepTimesMs() measures key arrival to next block over the last steps only", () => {
   const blocks = [
     z(inputBlockZone, 0, 900),
