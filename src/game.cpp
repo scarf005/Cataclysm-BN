@@ -2383,9 +2383,7 @@ bool game::do_turn()
     // consider a stripped down cache just for monsters.
     {
         ZoneScopedN( "do_turn_monster_visibility_cache" );
-        // Activity and sleep turns keep the lightmap of the last redraw, as skip-window turns do.
-        const auto in_activity = ( u.activity && *u.activity ) || u.in_sleep_state();
-        m.build_map_cache( get_levz(), in_activity );
+        m.build_map_cache( get_levz(), false );
     }
     // This has to be done after updating our map caches, as sound propagation relies on terrain.
     if( !soundperf ) {
