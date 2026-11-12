@@ -2143,10 +2143,6 @@ void sounds::process_sounds()
         sound_cache.filtered_sound_lists_cleared += sound_cache.sound_list_filtered.size();
         sound_cache.sound_list_filtered.clear();
     }
-    // Without sounds no monster hears anything.
-    if( sound_instance_caches.empty() ) {
-        return;
-    }
 
     auto make_new_filtered_list = [&]( const sound_filter_key & key ) {
         std::vector<short> filtered_list;
