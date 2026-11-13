@@ -1,5 +1,6 @@
 #include "mapbuffer.h"
 
+#include "../overmap/omdata.h"
 #include "../overmap/overmapbuffer.h"
 #include "avatar.h"
 #include "batch_turns.h"
@@ -721,6 +722,10 @@ auto mapbuffer_abs_tile_view::passable_with_vehicle(const optional_vpart_positio
     return move_cost_with_vehicle(vp) != 0;
 }
 
+auto mapbuffer_abs_tile_view::has_flag(ter_bitflags flag) const -> bool {
+    return get_ter_t().has_flag(flag) || get_furn_t().has_flag(flag);
+}
+
 mapbuffer_abs_tile_with_vehicle_view::mapbuffer_abs_tile_with_vehicle_view(
     const mapbuffer_abs_tile_view& tile, const optional_vpart_position& vehicle_part)
     : tile_(tile),
@@ -1105,6 +1110,7 @@ void mapbuffer::clear() {
         submaps_with_active_items_.clear();
         submaps_with_luminous_items_.clear();
         submaps.clear();
+        ++submaps_removed_generation_;
         pocket_info_.reset();
     }
     std::lock_guard<std::mutex> pw_lk(pending_writes_mutex_);
@@ -1117,6 +1123,7 @@ auto mapbuffer::add_submap(const tripoint_abs_sm& p, std::unique_ptr<submap>& sm
     if (submaps.contains(p)) { return false; }
 
     submaps[p] = std::move(sm);
+    ++submaps_added_generation_;
     register_submap_vehicles(p, *submaps[p]);
     if (!submaps[p]->active_items.empty()) { submaps_with_active_items_.insert(p); }
     refresh_luminous_item_submap_index(
@@ -1149,6 +1156,7 @@ void mapbuffer::remove_submap(tripoint_abs_sm addr) {
     submaps_with_active_items_.erase(addr);
     submaps_with_luminous_items_.erase(addr);
     submaps.erase(m_target);
+    ++submaps_removed_generation_;
 }
 
 void mapbuffer::transfer_all_to(mapbuffer& dest) {
@@ -1171,6 +1179,8 @@ void mapbuffer::transfer_all_to(mapbuffer& dest) {
         }
         dest.submaps.emplace(kv.first, std::move(kv.second));
     }
+    ++dest.submaps_added_generation_;
+    ++submaps_removed_generation_;
     loaded_vehicles_.clear();
     vehicle_footprint_by_location_.clear();
     vehicle_footprint_locations_.clear();
@@ -1199,16 +1209,12 @@ void mapbuffer::unload_omt(const tripoint_abs_omt& omt_addr, bool save) {
             {base, base + point_rel_sm::east(), base + point_rel_sm::south(),
              base + point_rel_sm::south_east()}};
 
-        bool all_uniform = true;
         for (const tripoint_abs_sm& addr : addrs) {
             const auto it = submaps.find(addr);
-            if (it != submaps.end() && it->second && !it->second->is_uniform) {
-                all_uniform = false;
-                break;
-            }
+            if (it != submaps.end() && it->second && !it->second->is_uniform) { break; }
         }
 
-        if (!all_uniform && !disable_mapgen) {
+        if (!disable_mapgen) {
             std::ostringstream buf;
             {
                 JsonOut jsout(buf);
@@ -1269,9 +1275,11 @@ void mapbuffer::unload_omt(const tripoint_abs_omt& omt_addr, bool save) {
         submaps_with_active_items_.erase(p);
         submaps.erase(p);
     }
+    ++submaps_removed_generation_;
 }
 
 auto mapbuffer::lookup_submap(const tripoint_abs_sm& p) -> submap* {
+    ZoneScoped;
     // Fast path: submap already resident in memory.
     auto* resident_sm = static_cast<submap*>(nullptr);
     { resident_sm = lookup_submap_in_memory(p); }
@@ -1428,10 +1436,33 @@ auto mapbuffer::for_each_simulated_submap_position(
 
 auto mapbuffer::for_each_simulated_submap(
     const std::function<void(const tripoint_abs_sm&, submap&)>& fn) -> void {
-    for_each_simulated_submap_position([&](const tripoint_abs_sm& pos) {
-        auto* const sm = lookup_submap_in_memory(pos);
+    const auto loader_generation = submap_loader.simulated_generation();
+    const auto is_stale = [&](const simulated_submap_cache& cache) {
+        return cache.removed_generation != submaps_removed_generation_
+            || (cache.tracks_additions && cache.added_generation != submaps_added_generation_);
+    };
+    if (!simulated_submap_cache_ || simulated_submap_cache_->loader_generation != loader_generation
+        || is_stale(*simulated_submap_cache_)) {
+        auto lk = std::lock_guard<std::recursive_mutex>(submaps_mutex_);
+        auto& cache = simulated_submap_cache_.emplace(simulated_submap_cache{
+            .loader_generation = loader_generation,
+            .added_generation = submaps_added_generation_,
+            .removed_generation = submaps_removed_generation_,
+            .tracks_additions = submap_loader.simulated_submaps(dimension_id_).empty(),
+        });
+        for_each_simulated_submap_position([&](const tripoint_abs_sm& pos) {
+            const auto iter = submaps.find(pos);
+            cache.entries.push_back(
+                {.pos = pos, .sm = iter != submaps.end() ? iter->second.get() : nullptr});
+            cache.tracks_additions |= cache.entries.back().sm == nullptr;
+        });
+    }
+    // fn may load or unload submaps; entries after such a change are looked up again.
+    const auto& cache = *simulated_submap_cache_;
+    for (const auto& [pos, cached] : cache.entries) {
+        auto* const sm = is_stale(cache) ? lookup_submap_in_memory(pos) : cached;
         if (sm != nullptr) { fn(pos, *sm); }
-    });
+    }
 }
 
 auto mapbuffer::simulated_submap_positions() const -> std::vector<tripoint_abs_sm> {
@@ -1478,9 +1509,11 @@ auto mapbuffer::mark_submap_caches_dirty(const mapbuffer_mark_submap_caches_dirt
     if (options.begin.x() >= options.end.x() || options.begin.y() >= options.end.y()) { return; }
 
     const auto max = point_abs_sm(options.end.x() - 1, options.end.y() - 1);
+    auto lk = std::lock_guard<std::recursive_mutex>(submaps_mutex_);
     for (const auto pos : point_range<point_abs_sm>(options.begin, max)) {
-        auto* const sm = lookup_submap_in_memory(tripoint_abs_sm(pos, options.zlev));
-        if (sm == nullptr) { continue; }
+        const auto iter = submaps.find(tripoint_abs_sm(pos, options.zlev));
+        if (iter == submaps.end() || iter->second == nullptr) { continue; }
+        auto* const sm = iter->second.get();
         sm->transparency_dirty = sm->transparency_dirty || options.transparency;
         sm->floor_dirty = sm->floor_dirty || options.floor;
         sm->outside_dirty = sm->outside_dirty || options.outside;
@@ -3420,7 +3453,6 @@ auto mapbuffer::run_omt_pillar_post_pass(const point_abs_omt& omt_pos) -> void {
         point_rel_sm::south(),
         point_rel_sm::south_east(),
     });
-
     auto lk = std::lock_guard<std::recursive_mutex>(submaps_mutex_);
     struct vertical_transition_link_request {
         tripoint_abs_sm target_pos;
@@ -3441,11 +3473,18 @@ auto mapbuffer::run_omt_pillar_post_pass(const point_abs_omt& omt_pos) -> void {
 
     for (const auto zlev : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
         const auto omt_addr = tripoint_abs_omt(omt_pos, zlev);
+        bool can_be_uniform =
+            !get_overmapbuffer(get_dimension_id())
+                 .ter(omt_addr)
+                 ->has_flag(oter_flags::cant_be_uniform);
+
         const auto base = project_to<coords::sm>(omt_addr);
         for (const auto& offset : offsets) {
             const auto sm_pos = base + offset;
             auto* const sub_here = lookup_submap_in_memory(sm_pos);
             if (sub_here == nullptr) { continue; }
+
+            if (sub_here->is_uniform) { sub_here->is_uniform = can_be_uniform; }
 
             auto* const sub_below =
                 zlev > -OVERMAP_DEPTH ? lookup_submap_in_memory(sm_pos + tripoint_below) : nullptr;
