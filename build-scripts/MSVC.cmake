@@ -48,6 +48,8 @@ Linker flags used by all builds:
 /NXCOMPAT     same as above
 No need to force /TLBID:1 because is default
 
+CATA_MSVC_NO_ICF skips /OPT:ICF. CI uses it to link faster.
+
 #]=======================================================================]
 
 # Path has changed, so this configure run will find cl.exe
@@ -68,10 +70,13 @@ add_compile_definitions(
     LOCALIZE
     USE_VCPKG
 )
+option(CATA_MSVC_NO_ICF "Link without /OPT:ICF" OFF)
+if(NOT CATA_MSVC_NO_ICF)
+    add_link_options(/OPT:ICF)
+endif()
 add_link_options(
     /DEBUG
     /OPT:REF
-    /OPT:ICF
     /LTCG:OFF
     /MANIFEST:NO
     /INCREMENTAL:NO
