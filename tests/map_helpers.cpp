@@ -195,3 +195,4 @@ void set_time(const time_point& time) {
     g->m.build_map_cache(z);
     g->m.update_visibility_cache(z);
 }
+// autofix check
