@@ -97,6 +97,8 @@ runs:
           windows_url=$(artifact_url "windows-tiles-x64-msvc-${artifact_label}")
           macos_url=$(artifact_url "osx-tiles-x64-${artifact_label}")
           android_url=$(artifact_url "android-x64-${artifact_label}")
+          # Pull requests build macOS and Android only with the ci:full label. Check the jobs of this run, because the label can change after the run starts.
+          full=$(gh api "repos/${REPOSITORY}/actions/runs/${RUN_ID}/jobs?per_page=100" --jq 'any(.jobs[]; .name | startswith("builds / "))')
 
           content=$(
             {
@@ -106,8 +108,12 @@ runs:
               echo
               artifact_line 'Linux tiles' "$linux_url"
               artifact_line 'Windows tiles' "$windows_url"
-              artifact_line 'macOS tiles' "$macos_url"
-              artifact_line 'Android tiles' "$android_url"
+              if [ "$full" = true ] || [ -n "$macos_url" ]; then
+                artifact_line 'macOS tiles' "$macos_url"
+              fi
+              if [ "$full" = true ] || [ -n "$android_url" ]; then
+                artifact_line 'Android tiles' "$android_url"
+              fi
             }
           )
 
