@@ -166,6 +166,27 @@ TEST_CASE("grid_and_vehicle_outside_bubble", "[grids][vehicle]") {
     }
 }
 
+// Checks that set_up_grid removes a grid that mapgen left on the connector OMT.
+// Map corner at submap (41, 40) puts the connector (local 13, 10) in OMT (21, 20), east of corner
+// OMT (20, 20). A grid from OMT (21, 20) north to (21, 10) reaches submaps that are not loaded, so
+// it has no tiles. Expected: set_up_grid still gives one grid with the connector and the battery.
+TEST_CASE("grid_set_up_removes_mapgen_grid_at_connector", "[grids][vehicle]") {
+    clear_all_state();
+    move_player_out_of_the_way();
+    map& m = get_map();
+    m.load(point_abs_sm(41, 40), true);
+    const auto connector_omt = tripoint_abs_omt(21, 20, g->u.abs_pos().z());
+    for (auto i = 0; i < 10; ++i) {
+        REQUIRE(ACTIVE_OVERMAP_BUFFER.add_grid_connection(
+            connector_omt + point(0, -i), connector_omt + point(0, -i - 1)));
+    }
+    REQUIRE(ACTIVE_OVERMAP_BUFFER.electric_grid_at(connector_omt).size() == 11);
+    GIVEN("vehicle and battery are on one grid") {
+        auto setup = set_up_grid(m);
+        test_grid_veh(setup.grid, setup.veh, setup.battery);
+    }
+}
+
 struct grid_setup_consumer {
     distribution_grid& grid;
     steady_consumer_tile& consumer;
