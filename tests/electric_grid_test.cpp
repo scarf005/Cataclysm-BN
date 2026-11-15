@@ -12,10 +12,12 @@
 #include "game.h"
 #include "map/mapbuffer.h"
 #include "map_helpers.h"
+#include "options.h"
 #include "state_helpers.h"
 #include "stringmaker.h"
 #include "vehicle/vehicle.h"
 
+#include <iostream>
 #include <vector>
 
 static furn_str_id f_battery("f_battery");
@@ -136,6 +138,14 @@ static auto set_up_grid(map& m) -> grid_setup {
 
     connect_grid_vehicle(*veh, *grid_connector, connector_abs_pos);
 
+    {
+        const auto omt = project_to<coords::omt>(connector_abs_pos);
+        std::cout << "GRIDDBG map_abs_sub=" << m.get_abs_sub().to_string() << " main_abs_sub="
+                  << get_map().get_abs_sub().to_string() << " u=" << g->u.abs_pos().to_string()
+                  << " opt=" << get_option<bool>("ELECTRIC_GRID") << " om_grid="
+                  << ACTIVE_OVERMAP_BUFFER.electric_grid_at(omt).size() << " id_before="
+                  << get_distribution_grid_tracker().debug_grid_id(omt) << std::endl;
+    }
     distribution_grid& grid = get_distribution_grid_tracker().grid_at(connector_abs_pos);
     REQUIRE(!grid.empty());
     REQUIRE(&grid == &get_distribution_grid_tracker().grid_at(battery_abs_pos));

@@ -231,11 +231,10 @@ jobs:
             if build/tests/cata_test --filenames-as-tags --rng-seed 1794764120 --gpu-backend=software --user-dir=ud_${name}_$i "$1" > out_${name}_$i.txt 2>&1; then r=ok; else r=FAIL; fi
             echo "BISECT $name $i $r $(tail -n 3 out_${name}_$i.txt | tr '\n' ' ')"; done; }
           run alone "$eg"
-          for f in book_scanning cata_variant char_healing creature_in_field cultivated_harvest digital_media drop_preview effective_dps; do
-            run "$f" "$t [#${f}_test],$eg"
-          done
-          run shard08 "$eg,$t [#digital_media_test],$t [#book_scanning_test],$t [#cultivated_harvest_test],$t [#char_healing_test],$t [#melee_dodge_hit_test],$t [#effective_dps_test],starting_items,$t [#cata_variant_test],$t [#creature_in_field_test],$t [#drop_preview_test]"
-          for o in out_*.txt; do sed -n '/electric_grid_test.cpp:[0-9]*: FAILED/,+12p' "$o"; done | head -n 80
+          run cif "$t [#creature_in_field_test],$eg"
+          run cifacid "creature_in_field,$eg"
+          run cifslip "$t [#creature_in_field_test] ~creature_in_field,$eg"
+          for o in out_*_1.txt; do echo "== $o"; sed -n '/GRIDDBG/p' "$o"; done
 
       - name: run tests
         if: ${{ github.ref_name != 'main' && env.SKIP == 'false' }}
