@@ -1310,6 +1310,7 @@ void options_manager::cOpt::setPrev()
 //set value
 void options_manager::cOpt::setValue( float fSetIn )
 {
+    calendar::invalidate_time_config_cache();
     if( sType != "float" ) {
         debugmsg( "tried to set a float value to a %s option", sType );
         return;
