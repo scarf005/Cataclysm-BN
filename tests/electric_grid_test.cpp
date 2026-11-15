@@ -106,13 +106,23 @@ struct grid_setup {
     battery_tile& battery;
 };
 
+// Removes every grid that touches an OMT of the map, also grids from mapgen.
 static void clear_grid_connections(map& m) {
-    auto om = ACTIVE_OVERMAP_BUFFER.get_om_global(project_to<coords::omt>(m.get_abs_sub()));
-    om.om->set_electric_grid_connections(om.local, {});
+    auto& buffer = ACTIVE_OVERMAP_BUFFER;
+    const auto corner =
+        tripoint_abs_omt(project_to<coords::omt>(m.get_abs_sub()), g->u.abs_pos().z());
+    const auto omt_count = m.getmapsize() / 2 + 1;
+    for (auto x = 0; x < omt_count; ++x) {
+        for (auto y = 0; y < omt_count; ++y) {
+            for (const auto& grid_omt : buffer.electric_grid_at(corner + point(x, y))) {
+                auto om = buffer.get_om_global(grid_omt);
+                om.om->set_electric_grid_connections(om.local, {});
+            }
+        }
+    }
 }
 
 static auto set_up_grid(map& m) -> grid_setup {
-    // TODO: clear_grids()
     clear_grid_connections(m);
 
     const auto z = g->u.abs_pos().z();
@@ -203,7 +213,6 @@ struct grid_setup_watcher {
 
 template <typename T, typename S>
 static auto set_up_grid_with_consumer(map& m, const furn_str_id& act_tile_id) -> S {
-    // TODO: clear_grids()
     const auto z = g->u.abs_pos().z();
     clear_grid_connections(m);
 
