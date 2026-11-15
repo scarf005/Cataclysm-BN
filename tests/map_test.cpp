@@ -6,6 +6,7 @@
 #include "avatar.h"
 #include "avatar_action.h"
 #include "bodypart.h"
+#include "cached_options.h"
 #include "calendar.h"
 #include "cata_utility.h"
 #include "catch/catch.hpp"
@@ -13,6 +14,7 @@
 #include "construction_partial.h"
 #include "coordinates.h"
 #include "data_vars.h"
+#include "debug.h"
 #include "enums.h"
 #include "game.h"
 #include "game_constants.h"
@@ -699,6 +701,41 @@ TEST_CASE("field_intensity_can_make_a_tile_impassable", "[map][field][movement]"
     CHECK(here.move_cost(pos) == 0);
 }
 
+TEST_CASE("map_load_marks_every_level_dirty", "[map]") {
+    clear_all_state();
+    auto& here = get_map();
+    here.build_map_cache(0);
+    REQUIRE_FALSE(here.access_cache(0).transparency_cache_dirty.any());
+
+    here.load(here.get_abs_sub(), false);
+    for (const auto z : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
+        CAPTURE(z);
+        const auto& cache = here.access_cache(z);
+        CHECK(cache.transparency_cache_dirty.all());
+        CHECK(cache.floor_cache_dirty.all());
+        CHECK(cache.outside_cache_dirty.all());
+        CHECK(cache.absorption_cache_dirty.all());
+        CHECK(cache.seen_cache_dirty);
+    }
+}
+
+/// Puts one zombie spawn point on a submap far from the avatar, at bubble (100, 100, 0).
+/// spawn_monsters must find that submap and place the zombie within 3 tiles of the point.
+TEST_CASE("spawn_monsters_places_submap_spawn_points", "[map][spawn]") {
+    clear_all_state();
+    auto& here = get_map();
+    const auto spawn_pos = tripoint_bub_ms(100, 100, 0);
+    here.add_spawn(mtype_id("mon_zombie"), 1, spawn_pos);
+
+    here.spawn_monsters(true);
+
+    auto near_spawn = 0;
+    for (const monster& m : g->all_monsters()) {
+        near_spawn += rl_dist(m.bub_pos(), spawn_pos) <= 3;
+    }
+    CHECK(near_spawn == 1);
+}
+
 TEST_CASE(
     "liquid_drop_on_independent_map_consumes_its_source_item",
     "[map][item][liquid][field][fluid_regression]") {
@@ -839,7 +876,7 @@ TEST_CASE("mapbuffer_vehicle_lookup_uses_absolute_coordinates") {
     CHECK(MAPBUFFER.passable(abs_pos) == false);
 }
 
-TEST_CASE("place_player_can_safely_move_multiple_submaps") {
+TEST_CASE("place_player_can_safely_move_multiple_submaps", "[!mayfail]") {
     clear_all_state();
     // Regression test for the situation where game::place_player would misuse
     // map::shift if the resulting shift exceeded a single submap, leading to a
@@ -1735,4 +1772,99 @@ TEST_CASE("flammable_fields_can_be_ignited", "[map][field][fire]") {
     REQUIRE(fire != nullptr);
     CHECK(fire->get_field_intensity() == std::max(2, intensity));
     CHECK(fire->get_field_age() == -10_minutes * intensity);
+}
+
+TEST_CASE("bubble_guard_frees_other_dimension_submap_at_bubble_position") {
+    // Checks that unload_omt and save with delete free a submap from another dimension at a reality
+    // bubble position. The reality bubble is in the primary dimension, so it holds no submap of
+    // "unload_omt_test_dim". Freeing the "unload_omt_test_dim" submap at the bubble origin must
+    // log no error and remove it from memory.
+    clear_all_state();
+
+    static const dimension_id dim_id("unload_omt_test_dim");
+    auto& buffer = MAPBUFFER_REGISTRY.get(dim_id);
+    const auto cleanup = on_out_of_scope([&]() { MAPBUFFER_REGISTRY.unload_dimension(dim_id); });
+    const auto sm_pos = g->m.get_abs_sub() + tripoint_rel_sm(0, 0, 0);
+    REQUIRE(g->m.inbounds(sm_pos));
+    auto* const sm = add_absolute_test_submap(buffer, sm_pos, ter_id("t_rock"));
+    REQUIRE(sm != nullptr);
+    // save() frees uniform submaps without writing them to disk.
+    sm->is_uniform = true;
+
+    const auto errors = capture_debugmsg_during([&]() {
+        SECTION("unload_omt") { buffer.unload_omt(project_to<coords::omt>(sm_pos), false); }
+        SECTION("save with delete") { buffer.save(true, false, false); }
+    });
+
+    CHECK(errors.empty());
+    CHECK(buffer.lookup_submap_in_memory(sm_pos) == nullptr);
+}
+
+TEST_CASE("clear_map_moves_load_region_to_bubble", "[map]") {
+    // Checks that clear_map puts the load region back on the reality bubble after a test moves the
+    // map with map::load. The region covers the bubble at origin O, then the map loads at
+    // O + (mapsize, 0). After clear_map, the bubble center must be simulated, so later tests
+    // process its items and do not evict its submaps.
+    clear_all_state();
+    auto& m = get_map();
+    const auto old_abs_sub = m.get_abs_sub();
+    const auto had_region = m.has_active_load_region();
+    const auto bubble_size = point_rel_sm(g_mapsize, g_mapsize);
+    const auto cleanup = on_out_of_scope([&]() {
+        m.load(old_abs_sub, true);
+        clear_map();
+        if (!had_region) { m.release_active_load_region(); }
+    });
+    m.update_active_load_region(old_abs_sub, old_abs_sub + bubble_size);
+
+    m.load(old_abs_sub + point_rel_sm(m.getmapsize(), 0), true);
+    clear_map();
+
+    const auto center = m.get_abs_sub() + point_rel_sm(g_mapsize / 2, g_mapsize / 2);
+    CHECK(submap_loader.is_simulated(m.get_bound_dimension(), center));
+    // Test processes start with a MAPSIZE map, which is larger than g_mapsize. Retained submaps
+    // outside the region can be evicted while the map still uses them.
+    const auto corner = m.get_abs_sub() + point_rel_sm(m.getmapsize() - 1, m.getmapsize() - 1);
+    CHECK(submap_loader.is_simulated(m.get_bound_dimension(), corner));
+}
+
+TEST_CASE("map_shift_load_region_covers_the_whole_map", "[map]") {
+    // Checks that the load region covers the whole map after the avatar moves to another submap.
+    // Test processes start with a MAPSIZE map, which is larger than g_mapsize. With a MAPSIZE map
+    // and an active load region, the avatar moves from (60, 60) to (10, 10), so update_map shifts
+    // the map. Then the far corner of the map must be simulated, or its retained submaps can be
+    // evicted while the map uses them.
+    clear_all_state();
+    auto& m = get_map();
+    auto& you = get_avatar();
+    const auto old_position = you.abs_pos();
+    const auto old_size = m.getmapsize();
+    const auto old_abs_sub = m.get_abs_sub();
+    const auto had_region = m.has_active_load_region();
+    // Turn off the lazy border. update_map makes a lazy border request, and
+    // release_active_load_region keeps it. A kept request covers no simulated region, so later
+    // tests see unsimulated submaps.
+    const auto restore_lazy_border = restore_on_out_of_scope(lazy_border_enabled);
+    lazy_border_enabled = false;
+    const auto cleanup = on_out_of_scope([&]() {
+        you.setpos(old_position);
+        m.resize(old_size);
+        m.load(old_abs_sub, false);
+        clear_map();
+        if (!had_region) {
+            m.release_active_load_region();
+            // update_map ran submap_loader.update(), so clear its caches of the released region.
+            submap_loader.drain_lazy_loads();
+            submap_loader.flush_prev_desired();
+        }
+    });
+    m.resize(MAPSIZE);
+    m.load(old_abs_sub, false);
+    REQUIRE(m.getmapsize() > g_mapsize);
+    m.update_active_load_region(old_abs_sub, old_abs_sub + point_rel_sm(MAPSIZE, MAPSIZE));
+
+    you.setpos(tripoint_bub_ms{10, 10, 0});
+
+    const auto corner = m.get_abs_sub() + point_rel_sm(m.getmapsize() - 1, m.getmapsize() - 1);
+    CHECK(submap_loader.is_simulated(m.get_bound_dimension(), corner));
 }

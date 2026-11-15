@@ -20,6 +20,7 @@
 #include "debug.h"
 #include "enum_bitset.h"
 #include "filesystem.h"
+#include "fov_z_range.h"
 #include "fstream_utils.h"
 #include "game.h"
 #include "game_constants.h"
@@ -1361,6 +1362,7 @@ void options_manager::cOpt::setValue( float fSetIn )
 //set value
 void options_manager::cOpt::setValue( int iSetIn )
 {
+    calendar::invalidate_time_config_cache();
     if( sType != "int" ) {
         debugmsg( "tried to set an int value to a %s option", sType );
         return;
@@ -1374,6 +1376,7 @@ void options_manager::cOpt::setValue( int iSetIn )
 //set value
 void options_manager::cOpt::setValue( const std::string &sSetIn )
 {
+    calendar::invalidate_time_config_cache();
     if( sType == "string_select" ) {
         if( getItemPos( sSetIn ) != -1 ) {
             sSet = sSetIn;
@@ -2274,6 +2277,12 @@ void options_manager::add_options_graphics()
          true
        );
 
+    add( "DEFER_REDRAW_ON_QUEUED_INPUT", graphics,
+         translate_marker( "Skip redraw while keys are queued" ),
+         translate_marker( "If true, skips drawing a frame when another key press is already waiting, e.g. while holding a movement key.  The last frame is always drawn, and frames are never skipped when safe mode stops you." ),
+         true
+       );
+
     add( "NIGHT_VISION_DEFAULT_COLOR", graphics, translate_marker( "Night Vision Default Colors" ),
     translate_marker( "Choose from default night vision colors." ), {
         { "#2eab01", translate_marker( "Green" ) },
@@ -2917,218 +2926,94 @@ void options_manager::add_options_world_default()
                                             to_translation( "Enabled Skill Buffs" ),
                                             to_translation( "Enable or disable major skill buffs" ) ),
     [&]( const std::string & page_id ) {
-        add( "cooking_kcal_buff", page_id, "Cooking Calories Buff",
-             "Include the scaling calories from cooking buff?",
+        add( "cooking_kcal_buff", page_id,
+             translate_marker( "Cooking Calories Buff" ),
+             translate_marker( "Include the scaling calories from cooking buff?" ),
              true );
-        add( "althletics_encumbrance_buff", page_id, "Althletics Encumbrance Buff",
-             "Include the reduce all encumbrance per level of althletics buff?",
+        add( "althletics_encumbrance_buff", page_id,
+             translate_marker( "Athletics Encumbrance Buff" ),
+             translate_marker( "Include the reduce all encumbrance per level of athletics buff?" ),
              true );
     }
                     );
     add_empty_line();
 
-    add( "canmutprofmut", world_default, "Starting Trait Cancelling",
-         "Allow starting traits to be cancelled and effected by purifiers?",
+    add( "canmutprofmut", world_default,
+         translate_marker( "Starting Trait Cancelling" ),
+         translate_marker( "Allow starting traits to be cancelled and effected by purifiers?" ),
          false );
 
     add_empty_line();
 
     add( "ITEM_SPAWNRATE", world_default,
-         "Item spawn scaling factor",
-         "A scaling factor that determines density of item spawns. A higher number means more items. Affects both map generation and monster death drops.",
+         translate_marker( "Item spawn scaling factor" ),
+         translate_marker( "A scaling factor that determines density of item spawns. A higher number means more items. Affects both map generation and monster death drops." ),
          0.01, 10.0, 1.0, 0.01 );
+
+    struct item_category_option {
+        const char *id_suffix;
+        const char *name;
+        const char *description;
+    };
+
+    static constexpr item_category_option item_category_options[] = {
+        { "ammo", translate_marker( "AMMO" ), translate_marker( "Spawn rate for items from AMMO category." ) },
+        { "artifacts", translate_marker( "ARTIFACTS" ), translate_marker( "Spawn rate for items from ARTIFACTS category." ) },
+        { "battery", translate_marker( "BATTERIES" ), translate_marker( "Spawn rate for items from BATTERIES category." ) },
+        { "bionics", translate_marker( "BIONICS" ), translate_marker( "Spawn rate for items from BIONICS category." ) },
+        { "books", translate_marker( "BOOKS" ), translate_marker( "Spawn rate for items from BOOKS category." ) },
+        { "perishables_canned", translate_marker( "CANNED PERISHABLES" ), translate_marker( "Spawn rate for items from CANNED PERISHABLES category." ) },
+        { "scrap_ceramics", translate_marker( "CERAMIC SCRAP" ), translate_marker( "Spawn rate for items from CERAMIC SCRAP category." ) },
+        { "chems", translate_marker( "CHEMICAL STUFF" ), translate_marker( "Spawn rate for items from CHEMICAL STUFF category." ) },
+        { "tools_chemistry", translate_marker( "CHEMISTRY TOOLS" ), translate_marker( "Spawn rate for items from CHEMISTRY TOOLS category." ) },
+        { "clothing", translate_marker( "CLOTHING" ), translate_marker( "Spawn rate for items from CLOTHING category." ) },
+        { "container", translate_marker( "CONTAINER" ), translate_marker( "Spawn rate for items from CONTAINER category." ) },
+        { "cooking_ingredients", translate_marker( "COOKING INGREDIENTS" ), translate_marker( "Spawn rate for items from COOKING INGREDIENTS category." ) },
+        { "tools_cooking", translate_marker( "COOKING TOOLS" ), translate_marker( "Spawn rate for items from COOKING TOOLS category." ) },
+        { "deployables", translate_marker( "DEPLOYABLES" ), translate_marker( "Spawn rate for items from DEPLOYABLES category." ) },
+        { "drugs", translate_marker( "DRUGS" ), translate_marker( "Spawn rate for items from DRUGS category." ) },
+        { "scrap_electronics", translate_marker( "ELECTRONIC SCRAP" ), translate_marker( "Spawn rate for items from ELECTRONIC SCRAP category." ) },
+        { "electronics", translate_marker( "ELECTRONICS" ), translate_marker( "Spawn rate for items from ELECTRONICS category." ) },
+        { "tools_entry", translate_marker( "ENTRY TOOLS" ), translate_marker( "Spawn rate for items from ENTRY TOOLS category." ) },
+        { "scrap_fabric", translate_marker( "FABRICS" ), translate_marker( "Spawn rate for items from FABRICS category." ) },
+        { "tools_farming", translate_marker( "FARM TOOLS" ), translate_marker( "Spawn rate for items from FARM TOOLS category." ) },
+        { "food", translate_marker( "FOOD" ), translate_marker( "Spawn rate for items from FOOD category." ) },
+        { "fuel", translate_marker( "FUEL" ), translate_marker( "Spawn rate for items from FUEL category." ) },
+        { "scrap_glass", translate_marker( "GLASS SCRAP" ), translate_marker( "Spawn rate for items from GLASS SCRAP category." ) },
+        { "guns", translate_marker( "GUNS" ), translate_marker( "Spawn rate for items from GUNS category." ) },
+        { "scrap_leather", translate_marker( "LEATHER SCRAP" ), translate_marker( "Spawn rate for items from LEATHER SCRAP category." ) },
+        { "magazines", translate_marker( "MAGAZINES" ), translate_marker( "Spawn rate for items from MAGAZINES category." ) },
+        { "maps", translate_marker( "MAPS" ), translate_marker( "Spawn rate for items from MAPS category." ) },
+        { "scrap_metal", translate_marker( "METAL SCRAP" ), translate_marker( "Spawn rate for items from METAL SCRAP category." ) },
+        { "scrap_misc", translate_marker( "MISC SCRAP" ), translate_marker( "Spawn rate for items from MISC SCRAP category." ) },
+        { "mods", translate_marker( "MODS" ), translate_marker( "Spawn rate for items from MODS category." ) },
+        { "mutagen", translate_marker( "MUTAGENS" ), translate_marker( "Spawn rate for items from MUTAGENS category." ) },
+        { "other", translate_marker( "OTHER" ), translate_marker( "Spawn rate for items from OTHER category." ) },
+        { "tools", translate_marker( "OTHER TOOLS" ), translate_marker( "Spawn rate for items from OTHER TOOLS category." ) },
+        // this needs special handling since it uses .goes_bad() instead of an actual group
+        { "perishables", translate_marker( "PERISHABLES" ), translate_marker( "Spawn rate for items from PERISHABLES category." ) },
+        { "scrap_plastic", translate_marker( "PLASTIC SCRAP" ), translate_marker( "Spawn rate for items from PLASTIC SCRAP category." ) },
+        { "rocks", translate_marker( "ROCKS" ), translate_marker( "Spawn rate for items from ROCKS category." ) },
+        { "scrap_rubber", translate_marker( "RUBBER SCRAP" ), translate_marker( "Spawn rate for items from RUBBER SCRAP category." ) },
+        { "seeds", translate_marker( "SEEDS" ), translate_marker( "Spawn rate for items from SEEDS category." ) },
+        { "soil", translate_marker( "SOIL" ), translate_marker( "Spawn rate for items from SOIL category." ) },
+        { "spare_parts", translate_marker( "SPARE PARTS" ), translate_marker( "Spawn rate for items from SPARE PARTS category." ) },
+        { "spellbooks", translate_marker( "SPELLBOOKS" ), translate_marker( "Spawn rate for items from SPELLBOOKS category." ) },
+        { "valuables", translate_marker( "VALUABLES" ), translate_marker( "Spawn rate for items from VALUABLES category." ) },
+        { "veh_parts", translate_marker( "VEHICLE PARTS" ), translate_marker( "Spawn rate for items from VEHICLE PARTS category." ) },
+        { "weapons", translate_marker( "WEAPONS" ), translate_marker( "Spawn rate for items from WEAPONS category." ) },
+        { "scrap_wood", translate_marker( "WOOD SCRAP" ), translate_marker( "Spawn rate for items from WOOD SCRAP category." ) },
+        { "tools_workshop", translate_marker( "WORKSHOP TOOLS" ), translate_marker( "Spawn rate for items from WORKSHOP TOOLS category." ) }
+    };
 
     add_option_group( world_default, Group( "item_category_spawn_rate",
                                             to_translation( "Item category scaling factors" ),
                                             to_translation( "Spawn rate for item categories. For map generation: values ≤ 1.0 represent a chance to spawn, >1.0 means extra spawns. For monster drops: values >1.0 increase spawn probability (capped at 100%). Set to 0.0 to disable spawning items from that category." ) ),
     [&]( const std::string & page_id ) {
-
-        add( "SPAWN_RATE_ammo", page_id, "AMMO",
-             "Spawn rate for items from AMMO category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_artifacts", page_id, "ARTIFACTS",
-             "Spawn rate for items from ARTIFACTS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_battery", page_id, "BATTERIES",
-             "Spawn rate for items from BATTERIES category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_bionics", page_id, "BIONICS",
-             "Spawn rate for items from BIONICS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_books", page_id, "BOOKS",
-             "Spawn rate for items from BOOKS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_perishables_canned", page_id, "CANNED PERISHABLES",
-             "Spawn rate for items from CANNED PERISHABLES category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_ceramics", page_id, "CERAMIC SCRAP",
-             "Spawn rate for items from CERAMIC SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_chems", page_id, "CHEMICAL STUFF",
-             "Spawn rate for items from CHEMICAL STUFF category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_tools_chemistry", page_id, "CHEMISTRY TOOLS",
-             "Spawn rate for items from CHEMISTRY TOOLS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_clothing", page_id, "CLOTHING",
-             "Spawn rate for items from CLOTHING category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_container", page_id, "CONTAINER",
-             "Spawn rate for items from CONTAINER category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_cooking_ingredients", page_id, "COOKING INGREDIENTS",
-             "Spawn rate for items from COOKING INGREDIENTS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_tools_cooking", page_id, "COOKING TOOLS",
-             "Spawn rate for items from COOKING TOOLS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_deployables", page_id, "DEPLOYABLES",
-             "Spawn rate for items from DEPLOYABLES category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_drugs", page_id, "DRUGS",
-             "Spawn rate for items from DRUGS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_electronics", page_id, "ELECTRONIC SCRAP",
-             "Spawn rate for items from ELECTRONIC SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_electronics", page_id, "ELECTRONICS",
-             "Spawn rate for items from ELECTRONICS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_tools_entry", page_id, "ENTRY TOOLS",
-             "Spawn rate for items from ENTRY TOOLS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_fabric", page_id, "FABRICS",
-             "Spawn rate for items from FABRICS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_tools_farming", page_id, "FARM TOOLS",
-             "Spawn rate for items from FARM TOOLS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_food", page_id, "FOOD",
-             "Spawn rate for items from FOOD category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_fuel", page_id, "FUEL",
-             "Spawn rate for items from FUEL category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_glass", page_id, "GLASS SCRAP",
-             "Spawn rate for items from GLASS SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_guns", page_id, "GUNS",
-             "Spawn rate for items from GUNS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_leather", page_id, "LEATHER SCRAP",
-             "Spawn rate for items from LEATHER SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_magazines", page_id, "MAGAZINES",
-             "Spawn rate for items from MAGAZINES category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_maps", page_id, "MAPS",
-             "Spawn rate for items from MAPS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_metal", page_id, "METAL SCRAP",
-             "Spawn rate for items from METAL SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_misc", page_id, "MISC SCRAP",
-             "Spawn rate for items from MISC SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_mods", page_id, "MODS",
-             "Spawn rate for items from MODS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_mutagen", page_id, "MUTAGENS",
-             "Spawn rate for items from MUTAGENS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_other", page_id, "OTHER",
-             "Spawn rate for items from OTHER category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_tools", page_id, "OTHER TOOLS",
-             "Spawn rate for items from OTHER TOOLS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        // this needs special handling since it uses .goes_bad() instead of an actual group
-        add( "SPAWN_RATE_perishables", page_id, "PERISHABLES",
-             "Spawn rate for items from PERISHABLES category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_plastic", page_id, "PLASTIC SCRAP",
-             "Spawn rate for items from PLASTIC SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_rocks", page_id, "ROCKS",
-             "Spawn rate for items from ROCKS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_rubber", page_id, "RUBBER SCRAP",
-             "Spawn rate for items from RUBBER SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_seeds", page_id, "SEEDS",
-             "Spawn rate for items from SEEDS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_soil", page_id, "SOIL",
-             "Spawn rate for items from SOIL category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_spare_parts", page_id, "SPARE PARTS",
-             "Spawn rate for items from SPARE PARTS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_spellbooks", page_id, "SPELLBOOKS",
-             "Spawn rate for items from SPELLBOOKS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_valuables", page_id, "VALUABLES",
-             "Spawn rate for items from VALUABLES category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_veh_parts", page_id, "VEHICLE PARTS",
-             "Spawn rate for items from VEHICLE PARTS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_weapons", page_id, "WEAPONS",
-             "Spawn rate for items from WEAPONS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_scrap_wood", page_id, "WOOD SCRAP",
-             "Spawn rate for items from WOOD SCRAP category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-        add( "SPAWN_RATE_tools_workshop", page_id, "WORKSHOP TOOLS",
-             "Spawn rate for items from WORKSHOP TOOLS category.",
-             0.0, 20.0, 1.0, 0.01 );
-
-
+        for( const auto &opt : item_category_options ) {
+            add( std::string( "SPAWN_RATE_" ) + opt.id_suffix, page_id, opt.name, opt.description,
+                 0.0, 20.0, 1.0, 0.01 );
+        }
     } );
 
     add_empty_line();
@@ -4198,7 +4083,8 @@ std::string options_manager::show( bool ingame, const bool world_options_only,
             } else if( iter.first == "TERMINAL_X" || iter.first == "TERMINAL_Y" ) {
                 terminal_size_changed = true;
             }
-            if( iter.first == "COLORED_LIGHTING" || iter.first == "USE_TILES" ) {
+            if( iter.first == "COLORED_LIGHTING" || iter.first == "USE_TILES" ||
+                iter.first == "FOV_3D_Z_RANGE" ) {
                 colored_lighting_changed = true;
             }
         }
@@ -4224,6 +4110,9 @@ std::string options_manager::show( bool ingame, const bool world_options_only,
             }
             if( ingame && colored_lighting_changed ) {
                 g->m.invalidate_lightmap_caches();
+                for( int z = -OVERMAP_DEPTH; z <= OVERMAP_HEIGHT; ++z ) {
+                    g->m.set_seen_cache_dirty( z );
+                }
             }
             g->on_options_changed();
         } else {
@@ -4242,6 +4131,7 @@ std::string options_manager::show( bool ingame, const bool world_options_only,
     if( lang_changed ) {
         set_language();
     }
+    calendar::invalidate_time_config_cache();
     calendar::set_eternal_season( ::get_option<bool>( "ETERNAL_SEASON" ) );
     calendar::set_season_length( ::get_option<int>( "SEASON_LENGTH" ) );
 
@@ -4331,6 +4221,7 @@ std::string options_manager::migrateOptionValue( const std::string &name,
 
 void options_manager::cache_to_globals()
 {
+    calendar::invalidate_time_config_cache();
     enum_bitset<DL> levels;
     levels.set( DL::Error );
     for( const debug_log_level &e : debug_log_levels ) {
@@ -4363,6 +4254,7 @@ void options_manager::cache_to_globals()
     message_ttl = ::get_option<int>( "MESSAGE_TTL" );
     message_cooldown = ::get_option<int>( "MESSAGE_COOLDOWN" );
     angled_sunlight_shadows = ::get_option<bool>( "FOV_3D_OCCLUSION" );
+    fov_3d_z_range = ::get_option<int>( "FOV_3D_Z_RANGE" );
     const auto prevent_occlusion_option = ::get_option<std::string>( "PREVENT_OCCLUSION" );
     prevent_occlusion = prevent_occlusion_option == "off" ? 0 : prevent_occlusion_option == "on" ? 1 :
                         2;
@@ -4538,6 +4430,7 @@ options_manager::options_container options_manager::get_world_defaults() const
 
 void options_manager::set_world_options( options_container *options )
 {
+    calendar::invalidate_time_config_cache();
     if( options == nullptr ) {
         world_options.reset();
     } else {

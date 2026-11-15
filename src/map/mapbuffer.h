@@ -9,11 +9,13 @@
 #include "mapgen/mapgen_functions.h"
 #include "memory_fast.h"
 #include "point.h"
+#include "profile.h"
 #include "submap_load_manager.h"
 #include "type_id.h"
 #include "vehicle/vpart_position.h"
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -199,6 +201,7 @@ public:
     auto passable_ter_furn() const -> bool;
     auto move_cost_with_vehicle(const optional_vpart_position& vp) const -> int;
     auto passable_with_vehicle(const optional_vpart_position& vp) const -> bool;
+    auto has_flag(ter_bitflags flag) const -> bool;
 
 private:
     tripoint_abs_sm abs_sm_;
@@ -641,6 +644,7 @@ public:
      * Thread-safe: may be called from background worker threads (under gen_mutex).
      */
     auto lookup_submap_in_memory(const tripoint_abs_sm& p) -> submap* {
+        ZoneScoped;
         std::lock_guard<std::recursive_mutex> lk(submaps_mutex_);
         const auto iter = submaps.find(p);
         return iter != submaps.end() ? iter->second.get() : nullptr;
@@ -817,6 +821,11 @@ public:
         }
     }
 
+    /// Changes whenever a submap is added to this buffer.
+    auto submaps_added_generation() const -> std::uint64_t { return submaps_added_generation_; }
+    /// Changes whenever a submap is removed from this buffer.
+    auto submaps_removed_generation() const -> std::uint64_t { return submaps_removed_generation_; }
+
     auto loaded_submap_count() const -> std::size_t {
         std::lock_guard<std::recursive_mutex> lk(submaps_mutex_);
         return submaps.size();
@@ -875,6 +884,23 @@ private:
     auto for_each_simulated_submap_position(
         const std::function<void(const tripoint_abs_sm&)>& fn,
         std::optional<int> zlev = std::nullopt) const -> void;
+    struct simulated_submap_entry {
+        tripoint_abs_sm pos;
+        submap* sm;
+    };
+    /// for_each_simulated_submap() targets, valid while the generations below still match.
+    struct simulated_submap_cache {
+        std::uint64_t loader_generation = 0;
+        std::uint64_t added_generation = 0;
+        std::uint64_t removed_generation = 0;
+        /// Positions follow the loaded submaps (index fallback) or some are not loaded yet.
+        bool tracks_additions = false;
+        std::vector<simulated_submap_entry> entries;
+    };
+    std::optional<simulated_submap_cache> simulated_submap_cache_;
+    /// Bumped when `submaps` gains (possibly on a worker thread) or loses entries.
+    std::atomic<std::uint64_t> submaps_added_generation_ = 0;
+    std::atomic<std::uint64_t> submaps_removed_generation_ = 0;
     submap_map_t submaps;
     Creature_tracker creature_tracker_;
     std::list<shared_ptr_fast<npc>> active_npcs_;

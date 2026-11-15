@@ -10,10 +10,13 @@
 #include "game.h"
 #include "hash_utils.h"
 #include "item.h"
+#include "map/field_type.h"
 #include "map_helpers.h"
 #include "morale_types.h"
 #include "player.h"
+#include "player_activity.h"
 #include "player_helpers.h"
+#include "skill.h"
 #include "state_helpers.h"
 #include "units.h"
 #include "units_temperature.h"
@@ -38,6 +41,31 @@ TEST_CASE("floor_clothing_warmth_preserves_partial_volumes", "[bodytemp]") {
     CHECK(Character::floor_item_warmth(pos) == units::from_legacy_bodypart_temp_delta(90));
     here.add_item_or_charges(pos, item::spawn("test_hazmat_suit"));
     CHECK(Character::floor_item_warmth(pos) == units::from_legacy_bodypart_temp_delta(16410));
+}
+
+TEST_CASE("heat_radiation_sums_visible_sources_across_submaps", "[bodytemp]") {
+    clear_all_state();
+    const auto cleanup = on_out_of_scope([]() { clear_all_state(); });
+    calendar::turn = calendar::turn_zero + 12_hours;
+    auto& here = get_map();
+    // x = 59 and x = 60 lie in different submaps.
+    const auto pos = tripoint_bub_ms(59, 60, 0);
+    g->place_player(pos);
+    here.add_field(pos + point(2, 0), fd_fire, 2);
+    here.ter_set(pos + point(-2, 2), ter_id("t_lava"));
+    // Outside the radius of 6.
+    here.add_field(pos + point(8, 0), fd_fire, 3);
+    // Behind a wall.
+    here.ter_set(pos + point(0, -2), ter_id("t_lava"));
+    for (auto x = -1; x <= 1; ++x) { here.ter_set(pos + point(x, -1), ter_id("t_rock_wall")); }
+    here.invalidate_map_cache(0);
+    here.build_map_cache(0);
+
+    // 6 * intensity^2 / distance per visible source.
+    CHECK(get_heat_radiation(pos, false) == 6 * 2 * 2 / 2 + 6 * 3 * 3 / 2);
+    CHECK(get_heat_radiation(pos, true) == 3);
+    const auto other = pos + point(1, 1);
+    CHECK(get_heat_radiation(other, false) == 6 * 2 * 2 / 1 + 6 * 3 * 3 / 3);
 }
 
 TEST_CASE("wetness_morale_interpolates_body_temperature", "[bodytemp][morale]") {
@@ -637,4 +665,38 @@ TEST_CASE("player_move_through_vehicle_holes") {
     avatar_action::move(get_avatar(), get_map(), point_rel_ms::north_west());
 
     CHECK(get_avatar().bub_pos() == pos);
+}
+
+TEST_CASE("clear_skills_resets_exercise_and_highest_level", "[skill]") {
+    // Checks that clear_skills leaves no training progress from an earlier test.
+    // Level 3 electronics with 232 exercise must become level 0, exercise 0 and highest level 0.
+    clear_all_state();
+    auto& dummy = get_avatar();
+    auto& electronics = dummy.get_skill_level_object(skill_id("electronics"));
+    electronics.level(3);
+    electronics.train(232, true);
+    REQUIRE(electronics.exercise(true) == 232);
+
+    dummy.clear_skills();
+
+    CHECK(electronics.level() == 0);
+    CHECK(electronics.exercise(true) == 0);
+    CHECK(electronics.highestLevel() == 0);
+}
+
+TEST_CASE("clear_character_leaves_no_activity_state", "[activity]") {
+    // Checks that clear_character removes all activity state from an earlier test.
+    // A stopped activity with index 7 and one backlog entry must become a fresh activity with
+    // index 0 and an empty backlog, so a continued read does not reuse index 7.
+    clear_all_state();
+    auto& dummy = get_avatar();
+    dummy.assign_activity(std::make_unique<player_activity>(activity_id("ACT_WAIT"), 100, 7));
+    dummy.activity->set_to_null();
+    dummy.backlog.emplace_front(std::make_unique<player_activity>(activity_id("ACT_WAIT"), 100));
+
+    clear_character(dummy);
+
+    CHECK(dummy.activity->is_null());
+    CHECK(dummy.activity->index == 0);
+    CHECK(dummy.backlog.empty());
 }
