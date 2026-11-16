@@ -37,12 +37,22 @@ void clear_vehicles() {
 
 void wipe_map_terrain() {
     auto& here = get_map();
-    const int mapsize = here.getmapsize() * SEEX;
+    const int mapsize = here.getmapsize();
     for (int z = -2; z <= OVERMAP_HEIGHT; ++z) {
         const ter_id terrain = z == 0 ? t_grass : z < 0 ? t_rock : t_open_air;
         for (int x = 0; x < mapsize; ++x) {
             for (int y = 0; y < mapsize; ++y) {
-                g->m.set(tripoint_bub_ms{x, y, z}, terrain, f_null);
+                const tripoint_bub_sm grid_pos(x, y, z);
+                const auto* const sm = here.get_mapbuffer().lookup_submap_in_memory(
+                    map_local_to_abs(here, grid_pos));
+                // Read the submap directly: a map::set call per tile costs two submap lookups.
+                for (const auto local : submap_tiles()) {
+                    if (sm != nullptr && sm->get_ter(local) == terrain
+                        && sm->get_furn(local) == f_null) {
+                        continue;
+                    }
+                    here.set(project_combine(grid_pos, local), terrain, f_null);
+                }
             }
         }
     }
