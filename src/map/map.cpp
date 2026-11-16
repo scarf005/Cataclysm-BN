@@ -221,6 +221,18 @@ void hash_character_light_state(std::size_t& seed, const Character& who) {
     cata::hash_combine(seed, has_cached_light);
 }
 
+/// Marks every cache of z-level @p zlev dirty, in the map and in its resident submaps.
+auto mark_level_caches_dirty(map& here, const int zlev) -> void {
+    here.set_transparency_cache_dirty(zlev);
+    here.set_floor_cache_dirty(zlev);
+    here.set_outside_cache_dirty(zlev);
+    here.set_absorption_cache_dirty(zlev);
+    here.set_seen_cache_dirty(zlev);
+    here.set_pathfinding_cache_dirty(zlev);
+    here.set_suspension_cache_dirty(zlev);
+    here.set_vehicle_cache_dirty(zlev);
+}
+
 } // namespace
 
 #define dbg(x) DebugLog((x), DC::Map)
@@ -7336,11 +7348,20 @@ auto map::get_dir_circle(const tripoint_bub_ms& f, const tripoint_bub_ms& t) con
 void map::load(const point_abs_sm& w, const bool update_vehicle, const bool pump_events) {
     funnel_locations_.clear();
     set_abs_sub(w);
+    // Mark whole levels dirty once before and after the load. A full-level mark in every loadn()
+    // call costs my_MAPSIZE^2 submap lookups per loaded submap.
+    const auto mark_all_levels_dirty = [&] {
+        for (const auto zlev : std::views::iota(-OVERMAP_DEPTH, OVERMAP_HEIGHT + 1)) {
+            mark_level_caches_dirty(*this, zlev);
+        }
+    };
+    mark_all_levels_dirty();
     for (const auto p : bubble_submaps()) {
-        loadn(p, update_vehicle);
+        loadn(p, update_vehicle, true);
         MAPBUFFER_REGISTRY.get(bound_dimension_).actualize_submap(map_local_to_abs(*this, p));
         if (pump_events) { inp_mngr.pump_events(); }
     }
+    mark_all_levels_dirty();
     refresh_active_submap_view();
     validate_active_submap_view_complete("map::load");
     reset_vehicle_cache();
@@ -7853,14 +7874,7 @@ void map::loadn(const tripoint_bub_sm& grid, const bool update_vehicles, const b
                 .pathfinding = true,
             });
         } else {
-            set_transparency_cache_dirty(grid.z());
-            set_floor_cache_dirty(grid.z());
-            set_outside_cache_dirty(grid.z());
-            set_absorption_cache_dirty(grid.z());
-            set_seen_cache_dirty(grid.z());
-            set_pathfinding_cache_dirty(grid.z());
-            set_suspension_cache_dirty(grid.z());
-            set_vehicle_cache_dirty(grid.z());
+            mark_level_caches_dirty(*this, grid.z());
         }
     }
     // Overlay boundary terrain on the edge tiles of this submap if it sits at the
