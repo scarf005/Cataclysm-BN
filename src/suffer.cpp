@@ -17,6 +17,7 @@
 #include "int_id.h"
 #include "inventory.h"
 #include "item.h"
+#include "itype.h"
 #include "map/field_type.h"
 #include "map/map.h"
 #include "messages.h"
@@ -45,6 +46,7 @@
 #include "units.h"
 #include "units_energy.h"
 #include "units_temperature.h"
+#include "utils/suffer_artifact_guard.h"
 #include "weather/weather.h"
 
 #include <algorithm>
@@ -290,6 +292,10 @@ void Character::suffer_while_underwater()
 namespace
 {
 
+/// False while the current Character::suffer call has found no artifact item on the character.
+/// Every artifact effect comes from an item with artifact data, so has_artifact_with is false too.
+auto suffer_may_find_artifact = true;
+
 auto grabbing_strength_from( const Creature &grabber ) -> int
 {
     if( const monster *const mon = grabber.as_monster() ) {
@@ -408,12 +414,13 @@ void Character::suffer_while_awake( const int current_stim )
     if( has_trait( trait_CHEMIMBALANCE ) ) {
         suffer_from_chemimbalance();
     }
-    if( ( has_trait( trait_SCHIZOPHRENIC ) || has_artifact_with( AEP_SCHIZO ) ) &&
+    const auto schizo_artifact = suffer_may_find_artifact && has_artifact_with( AEP_SCHIZO );
+    if( ( has_trait( trait_SCHIZOPHRENIC ) || schizo_artifact ) &&
         !has_effect( effect_took_thorazine ) && !has_effect( effect_feral_killed_recently ) ) {
         suffer_from_schizophrenia();
     }
 
-    if( ( has_trait( trait_NARCOLEPTIC ) || has_artifact_with( AEP_SCHIZO ) ) &&
+    if( ( has_trait( trait_NARCOLEPTIC ) || schizo_artifact ) &&
         !has_effect( effect_took_antinarcoleptic ) ) {
         if( one_turn_in( 8_hours ) ) {
             add_msg_player_or_npc( m_bad,
@@ -1504,6 +1511,9 @@ void Character::suffer_from_bad_bionics()
 void Character::suffer_from_artifacts()
 {
     ZoneScoped;
+    if( !suffer_may_find_artifact ) {
+        return;
+    }
     // Artifact effects
     if( has_artifact_with( AEP_ATTENTION ) ) {
         add_effect( effect_attention, 3_turns );
@@ -1659,6 +1669,14 @@ void Character::suffer()
 {
     ZoneScopedN( "character_suffer" );
     const int current_stim = get_stim();
+    // One walk here replaces the six has_artifact_with walks below for a character without
+    // artifacts. suffer adds no artifact item to the character, so the answer holds to the end.
+    // npc::has_artifact_with is always false, so an NPC needs no walk.
+    const auto is_artifact = []( const item & it ) { return static_cast<bool>( it.type->artifact ); };
+    const auto holds_artifact = [&]( const item * it ) { return it->has_item_with( is_artifact ); };
+    suffer_may_find_artifact = !suffer_artifact_guard_enabled || ( !is_npc() &&
+                               ( std::ranges::any_of( wielded_items(), holds_artifact ) ||
+                                 std::ranges::any_of( worn, holds_artifact ) || inv.has_item_with( is_artifact ) ) );
     // TODO: Remove this section and encapsulate hp_cur
     for( const std::pair<const bodypart_str_id, bodypart> &elem : get_body() ) {
         if( elem.second.get_hp_cur() <= 0 ) {

@@ -268,5 +268,12 @@
     "copy-from": "test_socks",
     "name": "TEST relic character barter mod",
     "relic_data": { "passive_effects": [ { "has": "WORN", "values": [ { "value": "CLIMATE_CONTROL", "add": 500 } ] } ] }
+  },
+  {
+    "type": "GENERIC",
+    "id": "test_artifact_attention",
+    "copy-from": "test_relic_base",
+    "name": "TEST artifact attention",
+    "artifact_data": { "effects_carried": [ "AEP_ATTENTION" ] }
   }
 ]
