@@ -6352,6 +6352,38 @@ struct BodyTemperatureModifiers {
 namespace
 {
 
+/// Body part values that update_bodytemp reads or writes.
+struct bodytemp_part_state {
+    bodypart_str_id id;
+    units::temperature temp_cur;
+    units::temperature temp_conv;
+    int frostbite_timer = 0;
+    int wetness = 0;
+    auto operator==( const bodytemp_part_state & ) const -> bool = default;
+};
+
+auto part_state( const std::pair<const bodypart_str_id, bodypart> &pr ) -> bodytemp_part_state
+{
+    return { .id = pr.first, .temp_cur = pr.second.get_temp_cur(), .temp_conv = pr.second.get_temp_conv(), .frostbite_timer = pr.second.get_frostbite_timer(), .wetness = pr.second.get_wetness() };
+}
+
+auto part_states( const Character &chr ) -> std::vector<bodytemp_part_state>
+{
+    return chr.get_body() | std::views::transform( part_state ) | std::ranges::to<std::vector>();
+}
+
+/// A call of update_bodytemp that changed no body part value, added no effect or morale and drew
+/// no random number, with the inputs it read besides the cached modifiers. While they stay equal,
+/// the next call with the same modifiers changes nothing either.
+struct bodytemp_fixed_point {
+    std::vector<bodytemp_part_state> parts;
+    enchantment enchantments;
+    bool climate_control = false;
+    int trait_generation = 0;
+    /// Fire or floor warmth gives comfort morale on the first turn of each minute.
+    bool comfortable_warmth = false;
+};
+
 /// Body temperature inputs that an activity skip reuses until the next stat update.
 struct skip_bodytemp_inputs {
     bool valid = false;
@@ -6359,15 +6391,64 @@ struct skip_bodytemp_inputs {
     time_point computed_at;
     /// Holds no clothing maps: worn items can be destroyed before the next refresh.
     BodyTemperatureModifiers mods;
+    /// Fixed point reached with @ref mods, if any.
+    std::optional<bodytemp_fixed_point> fixed_point;
 };
 
 auto skip_bodytemp_cache = skip_bodytemp_inputs {};
+auto skip_bodytemp_fixed_point_skips = 0;
+
+auto comfortable_warmth( const BodyTemperatureModifiers &body_mods ) -> units::temperature_delta
+{
+    return units::from_legacy_bodypart_temp_delta( body_mods.best_fire * 500 ) +
+           body_mods.lying_warmth;
+}
+
+// TODO: make this simpler and use time_duration/time_point
+auto is_comfort_morale_turn( const bodypart_id &bp ) -> bool
+{
+    return to_turn<int>( calendar::turn ) % to_turns<int>( 1_minutes ) == to_turns<int>
+           ( 1_minutes * bp->token ) / to_turns<int>( 1_minutes * num_bp );
+}
+
+auto blister_count( const Character &chr, const BodyTemperatureModifiers &body_mods ) -> int
+{
+    const auto count = body_mods.heat_radiation - 111 > 0 ?
+                       std::max( static_cast<int>( std::sqrt( body_mods.heat_radiation - 111 ) ), 0 ) : 0;
+    return static_cast<int>( count + chr.bonus_from_enchantments( count,
+                             enchantment_value_id( "BLISTER_COUNT" ),
+                             true ) );
+}
+
+/// True when the next call with these modifiers and the current body adds or removes no effect,
+/// adds no morale, prints nothing and draws no random number: each part is above BODYTEMP_COLD
+/// and below BODYTEMP_HOT with no frostbite timer, and no fire is hot enough for blisters or
+/// pyromania. Effects present now still count: the caller checks them before each skip.
+auto is_quiet_bodytemp( const Character &chr, const BodyTemperatureModifiers &body_mods ) -> bool
+{
+    const auto quiet_part = []( const auto & pr ) {
+        const auto &part = pr.second;
+        return !part.is_affected_by_temperature() ||
+               ( part.get_temp_cur() > BODYTEMP_COLD && part.get_temp_cur() < BODYTEMP_HOT &&
+                 part.get_temp_conv() > BODYTEMP_COLD && part.get_frostbite_timer() == 0 );
+    };
+    return std::ranges::all_of( chr.get_body(), quiet_part ) &&
+           blister_count( chr, body_mods ) <= 0 &&
+           !( body_mods.has_pyromania && body_mods.best_fire >= 1 );
+}
 
 } // namespace
+
+bool skip_bodytemp_at_fixed_point = true;
 
 auto reset_skip_bodytemp_cache() -> void
 {
     skip_bodytemp_cache = skip_bodytemp_inputs {};
+}
+
+auto skip_bodytemp_fixed_point_count() -> int
+{
+    return skip_bodytemp_fixed_point_skips;
 }
 
 std::map<bodypart_id, int> get_wind_resistance( const Character &chr,
@@ -6495,10 +6576,7 @@ void apply_comfort_morale( Character &chr, const bodypart_id &bp, const bodypart
 {
     // Morale bonus for comfiness - only if actually comfy (not too warm/cold)
     // Spread the morale bonus in time.
-    if( comfortable_warmth > 0_c_delta &&
-        // TODO: make this simpler and use time_duration/time_point
-        to_turn<int>( calendar::turn ) % to_turns<int>( 1_minutes ) == to_turns<int>
-        ( 1_minutes * bp->token ) / to_turns<int>( 1_minutes * num_bp ) &&
+    if( comfortable_warmth > 0_c_delta && is_comfort_morale_turn( bp ) &&
         chr.get_effect_int( effect_cold ) == 0 &&
         chr.get_effect_int( effect_hot ) == 0 &&
         bp_stats.get_temp_cur() > BODYTEMP_COLD && bp_stats.get_temp_cur() <= BODYTEMP_NORM ) {
@@ -6732,9 +6810,8 @@ auto adjust_bp_conv_for_bonus_warmth(
     const units::temperature_delta clothing_warmth_adjusted_bonus
 ) -> units::temperature
 {
-    const auto bonus_fire_warmth = units::from_legacy_bodypart_temp_delta( body_mods.best_fire * 500 );
-    const auto comfortable_warmth = bonus_fire_warmth + body_mods.lying_warmth;
-    const auto bonus_warmth = comfortable_warmth + body_mods.mutation_heat_bonus +
+    const auto comfort_warmth = comfortable_warmth( body_mods );
+    const auto bonus_warmth = comfort_warmth + body_mods.mutation_heat_bonus +
                               clothing_warmth_adjusted_bonus;
     if( bonus_warmth <= 0_c_delta ) {
         return bp_conv;
@@ -6760,7 +6837,7 @@ auto adjust_bp_conv_for_bonus_warmth(
         bp_conv = bp_conv + bonus_warmth;
     }
 
-    apply_comfort_morale( chr, bp, bp_stats, comfortable_warmth );
+    apply_comfort_morale( chr, bp, bp_stats, comfort_warmth );
     return bp_conv;
 }
 
@@ -6785,14 +6862,9 @@ auto adjust_bp_conv_for_insulation( units::temperature bp_conv,
 
 void apply_blisters( Character &chr, const bodypart_id &bp, BodyTemperatureModifiers &body_mods )
 {
-    int blister_count = body_mods.heat_radiation - 111 > 0 ?
-                        std::max( static_cast<int>( std::sqrt( body_mods.heat_radiation - 111 ) ), 0 ) : 0;
+    const auto blisters = blister_count( chr, body_mods );
 
-    blister_count += chr.bonus_from_enchantments( blister_count,
-                     enchantment_value_id( "BLISTER_COUNT" ),
-                     true );
-
-    if( body_mods.fire_armor_per_bp.empty() && blister_count > 0 ) {
+    if( body_mods.fire_armor_per_bp.empty() && blisters > 0 ) {
         body_mods.fire_armor_per_bp = chr.get_armor_fire( body_mods.clothing_map );
     }
     // BLISTERS : Skin gets blisters from intense heat exposure.
@@ -6801,7 +6873,7 @@ void apply_blisters( Character &chr, const bodypart_id &bp, BodyTemperatureModif
     const auto fire_it = body_mods.fire_armor_per_bp.find( bp );
     const int fire_armor = ( fire_it != body_mods.fire_armor_per_bp.end() ) ? fire_it->second : 0;
 
-    if( blister_count - fire_armor > 0 ) {
+    if( blisters - fire_armor > 0 ) {
         chr.add_effect( effect_blisters, 1_turns, bp.id() );
         if( body_mods.has_pyromania ) {
             chr.add_morale( MORALE_PYROMANIA_NEARFIRE, 10, 10, 1_hours,
@@ -6929,13 +7001,57 @@ void Character::update_bodytemp( const map &m, const weather_manager &weather )
     }
     auto &cache = skip_bodytemp_cache;
     const auto skipping = this == &g->u && g->u.in_skip_state;
+    // Records the fixed point when the call changed no part value and the next call is quiet.
+    // Skipped while the climate control check is due: in_climate_control() writes its timer then.
+    const auto record_fixed_point = [&]( const std::vector<bodytemp_part_state> &before,
+    const BodyTemperatureModifiers & body_mods ) {
+        auto after = part_states( *this );
+        cache.fixed_point.reset();
+        if( after != before || !is_quiet_bodytemp( *this, body_mods ) ||
+            calendar::turn >= next_climate_control_check ) {
+            return;
+        }
+        cache.fixed_point = bodytemp_fixed_point{
+            .parts = std::move( after ),
+            .enchantments = *enchantment_cache,
+            .climate_control = in_climate_control(),
+            .trait_generation = character_trait_generation(),
+            .comfortable_warmth = comfortable_warmth( body_mods ) > 0_c_delta,
+        };
+    };
+    // At the fixed point, the call with the cached modifiers changes nothing while every other
+    // input it reads stays equal: body part values, enchantments, mutations, climate control,
+    // the effects it removes, and the comfort morale turn.
+    const auto at_fixed_point = [&]() {
+        const auto &fp = cache.fixed_point;
+        const auto comfort_turn = [&]( const auto & pr ) {
+            return pr.second.is_affected_by_temperature() && is_comfort_morale_turn( pr.first );
+        };
+        const auto removed_effects = std::array{ effect_cold, effect_hot, effect_hot_speed, effect_frostbite, effect_frostbite_recovery };
+        return skip_bodytemp_at_fixed_point && fp &&
+               fp->trait_generation == character_trait_generation() &&
+               calendar::turn < next_climate_control_check &&
+               fp->climate_control == in_climate_control() &&
+               !( fp->comfortable_warmth && std::ranges::any_of( get_body(), comfort_turn ) ) &&
+        std::ranges::none_of( removed_effects, [&]( const efftype_id & eff ) { return has_effect( eff ); } )
+        &&
+        std::ranges::equal( get_body(), fp->parts, {}, part_state ) &&
+        *enchantment_cache == fp->enchantments;
+    };
     if( skipping && cache.valid && cache.pos == abs_pos() &&
         calendar::turn >= cache.computed_at &&
         calendar::turn < cache.computed_at + activity_skip_stat_update_ticks ) {
+        if( at_fixed_point() ) {
+            ++skip_bodytemp_fixed_point_skips;
+            return;
+        }
+        const auto before = part_states( *this );
         equalize_temperature( *this );
         update_bodytemp_bps( *this, cache.mods );
+        record_fixed_point( before, cache.mods );
         return;
     }
+    const auto before = skipping ? part_states( *this ) : std::vector<bodytemp_part_state> {};
     const auto _bub_pos = bub_pos();
     const w_point &weather_point = get_weather().get_precise();
     auto body_mods = BodyTemperatureModifiers();
@@ -6994,6 +7110,7 @@ void Character::update_bodytemp( const map &m, const weather_manager &weather )
                                 );
 
     cache.valid = skipping;
+    cache.fixed_point.reset();
     if( skipping ) {
         cache.pos = abs_pos();
         cache.computed_at = calendar::turn;
@@ -7003,6 +7120,9 @@ void Character::update_bodytemp( const map &m, const weather_manager &weather )
         cache.mods.clothing_map_bonus.clear();
     }
     update_bodytemp_bps( *this, body_mods );
+    if( skipping ) {
+        record_fixed_point( before, body_mods );
+    }
 }
 
 auto Character::get_part_temp_cur( const bodypart_id &id ) const -> units::temperature

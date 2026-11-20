@@ -2,13 +2,17 @@
 #include "activity_skip_wait_helpers.h"
 #include "activity_time_cadence.h"
 #include "avatar.h"
+#include "cata_utility.h"
 #include "catch/catch.hpp"
 #include "game.h"
 #include "morale_types.h"
 #include "rng.h"
 
+#include <algorithm>
+#include <array>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -69,6 +73,62 @@ TEST_CASE(
     };
     REQUIRE(effect_names(exact) == effect_names(coarse));
     CHECK(exact.effect_durations.at("happy:num_bp") == coarse.effect_durations.at("happy:num_bp"));
+}
+
+TEST_CASE(
+    "waiting gives the same end state with and without the body temperature fixed point skip",
+    "[activity][fixed_window][bodytemp]") {
+    const auto skip_options = skip_window_options{};
+    struct wait_result {
+        wait_end_state state;
+        /// update_bodytemp calls skipped at the fixed point.
+        int skips = 0;
+    };
+    // Waits 2 hours in the field from the same RNG seed, with the skip on or off.
+    const auto wait_in =
+        [](const bool skip, const weather_type_id& weather, const units::temperature temperature) {
+            const auto fixed_point = restore_on_out_of_scope<bool>(skip_bodytemp_at_fixed_point);
+            skip_bodytemp_at_fixed_point = skip;
+            setup_wait_scene(wait_scene::field);
+            hold_weather(weather, temperature);
+            rng_set_engine_seed(1);
+            const auto skips = skip_bodytemp_fixed_point_count();
+            const auto state = wait_through_activity(2_hours);
+            INFO(state.error_or(""));
+            REQUIRE(state.has_value());
+            return wait_result{.state = *state, .skips = skip_bodytemp_fixed_point_count() - skips};
+        };
+    // Effects that update_bodytemp adds or removes, with their durations.
+    const auto bodytemp_effects = [](const wait_end_state& s) {
+        const auto from_bodytemp = [](const auto& entry) {
+            return std::ranges::any_of(
+                std::array{"cold:", "hot:", "hot_speed:", "frostbite:", "frostbite_recovery:",
+                           "blisters:"},
+                [&](const std::string_view id) { return entry.first.starts_with(id); });
+        };
+        return s.effect_durations | std::views::filter(from_bodytemp)
+             | std::ranges::to<std::vector>();
+    };
+    // Body temperature per part, morale and the effects of update_bodytemp are equal. Two waits
+    // without the skip can end on different turns with different kcal and hourly effects, so the
+    // other fields are not compared.
+    const auto check_same_end_state =
+        [&](const weather_type_id& weather, const units::temperature temperature) {
+            const auto skipped = wait_in(true, weather, temperature);
+            const auto not_skipped = wait_in(false, weather, temperature);
+            CAPTURE(skipped.skips);
+            CHECK(not_skipped.skips == 0);
+            CHECK(skipped.state.body_temperature == not_skipped.state.body_temperature);
+            CHECK(bodytemp_effects(skipped.state) == bodytemp_effects(not_skipped.state));
+            CHECK(skipped.state.morale == not_skipped.state.morale);
+            return skipped.skips;
+        };
+
+    // The body reaches its fixed point at 18 C and in 10 C rain once soaked, so the skip is
+    // reached.
+    SECTION("mild") { CHECK(check_same_end_state(weather_type_id("clear"), 18_c) > 0); }
+    SECTION("cold") { check_same_end_state(weather_type_id("clear"), -10_c); }
+    SECTION("rain") { CHECK(check_same_end_state(weather_type_id("rain"), 10_c) > 0); }
 }
 
 /// A chicken appears at the first spawn check of a 10 minute wait. The wait still ends after

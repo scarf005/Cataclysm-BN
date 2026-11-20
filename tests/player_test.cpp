@@ -28,6 +28,8 @@
 #include <memory>
 #include <string>
 
+static const efftype_id effect_cold("cold");
+
 static weather_type_id WEATHER_CLOUDY = weather_type_id("cloudy");
 
 TEST_CASE("floor_clothing_warmth_preserves_partial_volumes", "[bodytemp]") {
@@ -684,6 +686,110 @@ TEST_CASE("skip_bodytemp_reads_new_heat_after_stat_update_interval", "[bodytemp]
         step(1_turns);
     }
     CHECK(torso_conv() > before);
+}
+
+// A lightly clothed avatar waits at 23 C in an activity skip until update_bodytemp is skipped:
+// the body reached its fixed point. Each section changes one input and checks the call that must
+// see it: inputs that the call reads each turn run the next call, cached weather, fire and
+// clothing run the call that reads them again after ACTIVITY_SKIP_STAT_UPDATE_TICKS (60 s here).
+TEST_CASE("skip_bodytemp_runs_again_when_an_input_changes", "[bodytemp][activity]") {
+    clear_all_state();
+    const auto cleanup = on_out_of_scope([]() { clear_all_state(); });
+    calendar::turn = calendar::turn_zero + 12_hours;
+    auto& you = get_avatar();
+    auto& here = get_map();
+    guarantee_neutral_weather(you, get_weather());
+    equip_clothing(you, light_clothing);
+    get_weather().temperature = 23_c;
+    get_weather().clear_temp_cache();
+    const auto skip_state = restore_on_out_of_scope<bool>(you.in_skip_state);
+    const auto interval = restore_on_out_of_scope<time_duration>(activity_skip_stat_update_ticks);
+    activity_skip_stat_update_ticks = 60_seconds;
+    you.in_skip_state = true;
+    // Returns true when the call was skipped.
+    const auto step = [&]() {
+        const auto skips = skip_bodytemp_fixed_point_count();
+        calendar::turn += 1_turns;
+        you.update_bodytemp(here, get_weather());
+        return skip_bodytemp_fixed_point_count() > skips;
+    };
+    const auto steps_until_skip = [&]() {
+        for (auto i = 1; i <= to_turns<int>(2_hours); ++i) {
+            if (step()) { return i; }
+        }
+        return 0;
+    };
+    const auto settled_after = steps_until_skip();
+    CAPTURE(settled_after);
+    REQUIRE(settled_after > 0);
+    auto& torso = you.get_body().at(body_part_torso);
+    const auto torso_conv = torso.get_temp_conv();
+    const auto torso_cur = torso.get_temp_cur();
+    const auto run_interval = [&]() {
+        for (auto i = 0; i < 60; ++i) { step(); }
+    };
+
+    SECTION("calls stay skipped while nothing changes") {
+        auto skipped = 0;
+        for (auto i = 0; i < 120; ++i) { skipped += step() ? 1 : 0; }
+        // Each minute, one call reads the cached inputs again and one checks climate control.
+        CHECK(skipped >= 116);
+        CHECK(torso.get_temp_cur() == torso_cur);
+        CHECK(torso.get_temp_conv() == torso_conv);
+    }
+
+    SECTION("a body temperature change") {
+        torso.set_temp_cur(torso_cur + 1_c_delta);
+        CHECK_FALSE(step());
+        CHECK(torso.get_temp_cur() < torso_cur + 1_c_delta);
+    }
+
+    SECTION("getting wet") {
+        torso.set_wetness(50);
+        CHECK_FALSE(step());
+    }
+
+    SECTION("a cold effect, which the call removes") {
+        you.add_effect(effect_cold, 1_turns, body_part_torso, 1);
+        CHECK_FALSE(step());
+        CHECK_FALSE(you.has_effect(effect_cold));
+    }
+
+    SECTION("a new mutation") {
+        you.set_mutation(trait_id("GOODHEARING"));
+        CHECK_FALSE(step());
+    }
+
+    SECTION("moving") {
+        you.setpos(you.bub_pos() + point(1, 0));
+        CHECK_FALSE(step());
+    }
+
+    SECTION("leaving the activity skip") {
+        you.in_skip_state = false;
+        CHECK_FALSE(step());
+    }
+
+    SECTION("a colder weather") {
+        get_weather().temperature = 10_c;
+        get_weather().clear_temp_cache();
+        run_interval();
+        CHECK(torso.get_temp_conv() < torso_conv);
+    }
+
+    SECTION("a fire 2 tiles away") {
+        // Start below BODYTEMP_NORM: adjust_bp_conv_for_bonus_warmth caps fire warmth there.
+        REQUIRE(torso_conv < BODYTEMP_NORM);
+        here.add_field(you.bub_pos() + point(2, 0), fd_fire, 3);
+        run_interval();
+        CHECK(torso.get_temp_conv() > torso_conv);
+    }
+
+    SECTION("taking all clothing off") {
+        you.worn.clear();
+        run_interval();
+        CHECK(torso.get_temp_conv() < torso_conv);
+    }
 }
 
 TEST_CASE("player_move_through_vehicle_holes") {

@@ -2754,3 +2754,10 @@ auto character_trait_generation() -> int;
 /// Forgets the body temperature inputs that activity skips reuse, so a new or loaded game
 /// calculates them again.
 auto reset_skip_bodytemp_cache() -> void;
+
+/// Lets an activity skip skip update_bodytemp while the body temperature is at its fixed point.
+/// Tests set it to false to compare a wait with and without the skip.
+extern bool skip_bodytemp_at_fixed_point;
+
+/// Number of update_bodytemp calls skipped at the fixed point since the game started.
+auto skip_bodytemp_fixed_point_count() -> int;
