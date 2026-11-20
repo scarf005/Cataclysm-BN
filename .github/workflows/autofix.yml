@@ -198,7 +198,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
-          AUTHOR: ${{ github.event.pull_request.user.login }}
+          AUTHOR: someone-else
           REVIEWER: scarf005
         run: |
           body_ai="$(gh api "repos/$REPO/pulls/$PR" --jq '(.body // "") | test("^\\s*- \\[[xX]\\] This PR used AI assistance"; "m")')"
