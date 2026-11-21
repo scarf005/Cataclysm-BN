@@ -1,0 +1,89 @@
+name: bench-tileset-load
+
+on:
+  push:
+    branches: [ci/bench-tileset-load]
+  workflow_dispatch:
+
+env:
+  LLVM_VERSION: "22"
+
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: base, ref: cf1ee0ae85e578d06cbbf5be5d459611244ef551 }
+          - { name: change, ref: perf/faster-loading-tileset-atlas }
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ matrix.ref }}", fetch-depth: 1 }
+
+      - uses: actions/checkout@v4
+        with: { path: bench-src, sparse-checkout: bench }
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libncursesw5-dev mold ripgrep gettext libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb \
+            autoconf autoconf-archive automake libtool libltdl-dev \
+            libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev \
+            libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
+            libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
+            libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev \
+            libfreetype-dev libharfbuzz-dev libtiff-dev libavif-dev libwebp-dev libjpeg-dev libjxl-dev \
+            libflac-dev libvorbis-dev libxmp-dev libmpg123-dev libwavpack-dev
+          sudo apt-get install -y linux-tools-common "linux-tools-$(uname -r)" || sudo apt-get install -y linux-tools-common linux-tools-azure
+          sudo sysctl -w kernel.perf_event_paranoid=-1 kernel.kptr_restrict=0
+
+      - uses: aminya/setup-cpp@v1
+        with:
+          compiler: llvm-${{ env.LLVM_VERSION }}
+          cmake: true
+          ninja: true
+          setup-cpp: false
+
+      - uses: denoland/setup-deno@v2
+
+      - uses: ./.github/actions/build-shadercross
+
+      - run: bash build-scripts/generate-shaders.sh
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: bench-tileset-${{ matrix.name }}
+          max-size: 2G
+
+      - name: build
+        run: |
+          cp bench-src/bench/tileset_load_bench_test.cpp tests/
+          cmake --preset ci-tiles -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF \
+            -DCMAKE_C_FLAGS=-fno-omit-frame-pointer -DCMAKE_CXX_FLAGS=-fno-omit-frame-pointer
+          cmake --build --preset ci-tiles --target cata_test-tiles -j 4
+
+      - name: bench
+        timeout-minutes: 90
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          export DISPLAY=:99 LP_NUM_THREADS=2
+          sleep 1
+          mkdir -p prof
+          t=build/tests/cata_test-tiles
+          git log -1 --format='%h %s' | tee prof/ref.txt
+          for r in software gpu opengl; do
+            BENCH_RENDERER=$r $t --gpu-backend=software -w NoTests --min-duration 0 tileset_load_bench 2>&1 | tee prof/bench-$r.log
+          done
+          BENCH_RENDERER=software perf record -F 499 -g -o prof/sw.data -- $t --gpu-backend=software -w NoTests tileset_load_bench > prof/perf-run.log 2>&1
+          perf report -i prof/sw.data --stdio --no-children --percent-limit 0.3 -g none > prof/sw.self.txt
+          perf report -i prof/sw.data --stdio --children --percent-limit 1 -g caller,0.5,callee,function,percent --max-stack 40 > prof/sw.tree.txt
+          rm prof/sw.data
+          { echo '```'; cat prof/ref.txt; rg -h '^BENCH' prof/bench-*.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-${{ matrix.name }}
+          path: prof/
