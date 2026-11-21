@@ -1181,6 +1181,8 @@ bool tileset_loader::copy_surface_to_dynamic_atlas(
         ts.texture_atlas()->get_staging_area( sprite_width, sprite_height );
 
     SDL_SetSurfaceBlendMode( surf.get(), SDL_BLENDMODE_NONE );
+    // Without a color key the staging copy would equal the sprite, so read the sheet directly.
+    const bool keyed = SDL_SurfaceHasColorKey( surf.get() );
 
     auto state = sdl_save_render_state( renderer.get() );
     for( const SDL_Rect src_rect : input_range ) {
@@ -1195,19 +1197,22 @@ bool tileset_loader::copy_surface_to_dynamic_atlas(
             this->offset + ( pos.x / sprite_width ) +
             ( pos.y / sprite_height ) * ( tile_atlas_width / sprite_width );
 
-        // The staging surface only ever grows, so stick to the part this sprite uses: after a
-        // sheet of big sprites, clearing and hashing all of it costs many times the sprite.
-        SDL_FillSurfaceRect( st_surf, &st_sub_rect,
-                             SDL_MapRGBA( SDL_GetPixelFormatDetails( st_surf->format ),
-                                          nullptr, 255, 255, 255, 0 ) );
-        SDL_BlitSurface( surf.get(), &src_rect, st_surf, &st_sub_rect );
+        if( keyed ) {
+            // The staging surface only ever grows, so stick to the part this sprite uses: after a
+            // sheet of big sprites, clearing and hashing all of it costs many times the sprite.
+            SDL_FillSurfaceRect( st_surf, &st_sub_rect,
+                                 SDL_MapRGBA( SDL_GetPixelFormatDetails( st_surf->format ),
+                                              nullptr, 255, 255, 255, 0 ) );
+            SDL_BlitSurface( surf.get(), &src_rect, st_surf, &st_sub_rect );
+        }
+        SDL_Surface *const sprite_surf = keyed ? st_surf : surf.get();
+        const SDL_Rect sprite_rect = keyed ? st_sub_rect : src_rect;
 
-        const auto surf_hash = get_surface_hash( st_surf, &st_sub_rect );
+        const auto surf_hash = get_surface_hash( sprite_surf, &sprite_rect );
 
         auto atl_tex = ts.tileset_atlas->get_or_create_sprite( sprite_width, sprite_height,
         surf_hash, [&]( SDL_Surface * dstSurf, const SDL_Rect * dstRect ) {
-            const SDL_Rect srcRect{ ( st_sub_rect.x ), ( st_sub_rect.y ), ( st_sub_rect.w ), ( st_sub_rect.h ) };
-            SDL_BlitSurface( st_surf, &srcRect, dstSurf, dstRect );
+            SDL_BlitSurface( sprite_surf, &sprite_rect, dstSurf, dstRect );
         } );
 
         const auto tex_key = tileset_lookup_key{ index, TILESET_NO_MASK, tileset_fx_type::none, TILESET_NO_COLOR, TILESET_NO_WARP, point_zero };
