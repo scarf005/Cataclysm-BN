@@ -1,0 +1,411 @@
+name: matrix
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
+  pull_request:
+    branches: [main]
+    paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+# Cancel all previous instances in favor of latest revision of a PR.
+# Allow running main builds to complete to help with ccache refreshes.
+concurrency:
+  group: matrix-build-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+env:
+  LLVM_VERSION: "22"
+
+jobs:
+  skip-duplicates:
+    continue-on-error: true
+    runs-on: ubuntu-slim
+    outputs:
+      should_skip_code: ${{ steps.skip_code_check.outputs.should_skip }}
+      should_skip_data: ${{ steps.skip_data_check.outputs.should_skip }}
+      should_skip_platform: ${{ steps.skip_platform_check.outputs.should_skip }}
+    steps:
+      - id: skip_code_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          paths_ignore: '["android/**", "docs/**", "doxygen_doc/**", "msvc-**", "tools/**", "utilities/**", "scripts/**", "data/**", "lang/**"]'
+      - id: skip_data_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          paths_ignore: '["android/**", "docs/**", "doxygen_doc/**", "msvc-**", "tools/**", "utilities/**", "scripts/**"]'
+      - id: skip_platform_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          paths_ignore: '["docs/**", "doxygen_doc/**", "lgtm/**", "utilities/**", "scripts/**", "**.md", "**.mdx"]'
+
+  shader-artifacts:
+    needs: skip-duplicates
+    name: Generate shader artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build shadercross
+        uses: ./.github/actions/build-shadercross
+
+      - name: Generate shaders
+        run: bash build-scripts/generate-shaders.sh
+
+      - name: Upload generated shaders
+        uses: actions/upload-artifact@v6
+        with:
+          name: generated-shaders-ci
+          path: data/shaders/
+          if-no-files-found: error
+
+  varied_builds:
+    needs: [skip-duplicates, shader-artifacts]
+    # actions: write lets the job delete its old ccache copy.
+    permissions: { actions: write, contents: read }
+    strategy:
+      fail-fast: ${{ github.ref_name == 'main' }}
+      matrix:
+        include:
+          - title: clang, curses
+            preset: ci-curses
+            os: ubuntu-24.04
+            tiles: 0
+            test-stage: 1
+            ccache_limit: 2G
+            ccache_key: linux-clang-curses
+            always-run: true
+
+          - title: clang, tiles, i18n
+            preset: ci-tiles
+            os: ubuntu-24.04
+            tiles: 1
+            ccache_limit: 2G
+            ccache_key: linux-clang-tiles
+            upload-artifact: true
+
+    name: ${{ matrix.title }}
+    runs-on: ${{ matrix.os }}
+    env:
+      ZSTD_CLEVEL: 3
+      CCACHE_SLOPPINESS: include_file_ctime,include_file_mtime,time_macros,pch_defines
+      TILES: ${{ matrix.tiles }}
+      TEST_STAGE: ${{ matrix.test-stage }}
+      SKIP: ${{ matrix.always-run != true && ( needs.skip-duplicates.outputs.should_skip_code == true || needs.skip-duplicates.outputs.should_skip_data == true ) }}
+
+    steps:
+      - name: checkout repository
+        if: ${{ env.SKIP == 'false' }}
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Download generated shaders
+        if: ${{ env.SKIP == 'false' }}
+        uses: actions/download-artifact@v7
+        with:
+          name: generated-shaders-ci
+          path: data/shaders
+
+      - name: install dependencies (ubuntu)
+        if: ${{ env.SKIP == 'false' }}
+        uses: ./.github/actions/linux-deps
+
+      - name: Setup LLVM build tools
+        if: ${{ env.SKIP == 'false' }}
+        uses: aminya/setup-cpp@15a6bd8cf39030f88b5da3d203a829ec4eea4955 # v1
+        with:
+          compiler: llvm-${{ env.LLVM_VERSION }}
+          cmake: true
+          ninja: true
+          setup-cpp: false
+
+      - name: Show Clang version
+        if: ${{ env.SKIP == 'false' }}
+        run: clang++ --version
+
+      # Only the tiles build runs Deno, to generate the Lua docs.
+      - name: Setup Deno
+        if: ${{ env.SKIP == 'false' && matrix.tiles == 1 }}
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
+        with: { cache: true }
+
+      #- name: Install SDL3 (ubuntu)
+      #  if: ${{ env.SKIP == 'false' }}
+      #  run: |
+      #    sudo apt-get install --ignore-missing libsdl3-dev libsdl3-ttf-dev libsdl3-image-dev libsdl3-mixer-dev
+
+      # Problem matchers are only run on the always-on validation leg to reduce error spam.
+      - name: add problem matcher
+        if: ${{ matrix.always-run == true }}
+        run: |
+          # Enable GitHub actions problem matchers
+          # (See https://github.com/actions/toolkit/blob/master/docs/problem-matchers.md)
+          echo "::add-matcher::build-scripts/problem-matchers/catch2.json"
+          echo "::add-matcher::build-scripts/problem-matchers/debugmsg.json"
+
+      - name: prepare
+        if: ${{ env.SKIP == 'false' }}
+        run: bash ./build-scripts/requirements.sh
+
+      - name: Setup ccache
+        if: ${{ env.SKIP == 'false' }}
+        uses: hendrikmuhs/ccache-action@e91f31892a1d1b8c44424b1a94c0b7f52d337168 # v1.2
+        with:
+          key: ${{ matrix.ccache_key }}-${{ github.ref_name }}
+          restore-keys: |
+            ${{ matrix.ccache_key }}-${{ github.ref_name }}
+            ${{ matrix.ccache_key }}-main
+            ${{ matrix.ccache_key }}-
+          max-size: ${{ matrix.ccache_limit }}
+          verbose: 2
+          save: ${{ github.event_name != 'pull_request' }}
+
+      - name: run JSON syntax validation (test-stage only)
+        if: ${{ env.SKIP == 'false' && env.TEST_STAGE == '1' }}
+        run: |
+          build-scripts/lint-json.sh
+
+      - name: Configure and Build with CMake
+        if: ${{ env.SKIP == 'false' }}
+        uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10
+        with:
+          configurePreset: ${{ matrix.preset }}
+          configurePresetAdditionalArgs: "['-DUSE_PREFIX_DATA_DIR=OFF', '-DCATA_FORMAT_TARGETS=OFF', '-DCMAKE_JOB_POOLS=link=1', '-DCMAKE_JOB_POOL_LINK=link']"
+          buildPreset: ${{ matrix.preset }}
+          # The largest file needs about 2.5 GB to compile, so four jobs fit in the 16 GB runner.
+          # The link pool above lets only one link run at a time.
+          buildPresetAdditionalArgs: "['-j', '4']"
+
+      - name: run JSON formatting check (test-stage only)
+        if: ${{ env.SKIP == 'false' && env.TEST_STAGE == '1' }}
+        run: |
+          build-scripts/format-json.sh
+          git diff --exit-code -- '*.json'
+          tools/dialogue_validator.py data/json/npcs/* data/json/npcs/*/* data/json/npcs/*/*/*
+
+      - name: create Linux tiles playtest package
+        if: ${{ success() && env.SKIP == 'false' && matrix.upload-artifact == true }}
+        env:
+          VERSION_LABEL: pr-${{ github.event.pull_request.number || github.run_id }}
+        run: |
+          mkdir -p lang/mo
+          cmake --install build --prefix cataclysmbn-${VERSION_LABEL}
+          tar -czvf cbn-linux-tiles-x64-${VERSION_LABEL}.tar.gz cataclysmbn-${VERSION_LABEL}
+
+      - name: upload Linux tiles playtest package
+        if: ${{ success() && env.SKIP == 'false' && matrix.upload-artifact == true }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: linux-tiles-x64-pr-${{ github.event.pull_request.number || github.run_id }}
+          path: cbn-linux-tiles-x64-pr-${{ github.event.pull_request.number || github.run_id }}.tar.gz
+          if-no-files-found: error
+
+      # The test binary has absolute RUNPATHs into build/, so keep the paths and symlinks of its shared libraries.
+      - name: pack test executable
+        if: ${{ github.ref_name != 'main' && env.SKIP == 'false' }}
+        run: |
+          mkdir -p lang/mo
+          find build -name '*.so*' > test-files
+          echo build/tests/cata_test${{ matrix.tiles == 1 && '-tiles' || '' }} >> test-files
+          tar --zstd -cf cata-test.tar.zst -T test-files lang/mo
+
+      - name: upload test executable
+        if: ${{ github.ref_name != 'main' && env.SKIP == 'false' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: cata_test-${{ matrix.tiles == 1 && 'tiles' || 'curses' }}
+          path: cata-test.tar.zst
+          if-no-files-found: error
+          compression-level: 0
+
+      # Delete the old ccache copy before the post step saves the new one.
+      # Two copies of every cache do not fit in the 10 GB limit, and GitHub then evicts other caches.
+      - name: Delete old ccache copy
+        if: ${{ env.SKIP == 'false' && github.event_name == 'push' }}
+        continue-on-error: true
+        env: {
+          GH_TOKEN: "${{ github.token }}",
+          GH_REPO: "${{ github.repository }}",
+          PREFIX: "ccache-${{ matrix.ccache_key }}-${{ github.ref_name }}-",
+        }
+        run: gh cache list --ref "$GITHUB_REF" --key "$PREFIX" --json id --jq '.[].id' | xargs -r -n1 gh cache delete
+
+  # Split Linux tests over two runners. One runner takes about 12 min for all shards.
+  linux-tests:
+    needs: [skip-duplicates, varied_builds]
+    if: ${{ !cancelled() && github.ref_name != 'main' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        tiles: [0, 1]
+        group: [1/2, 2/2]
+    name: clang, ${{ matrix.tiles == 1 && 'tiles' || 'curses' }} tests ${{ matrix.group }}
+    runs-on: ubuntu-24.04
+    env:
+      SKIP: ${{ matrix.tiles == 1 && ( needs.skip-duplicates.outputs.should_skip_code == true || needs.skip-duplicates.outputs.should_skip_data == true ) }}
+    steps:
+      - if: ${{ env.SKIP == 'false' }}
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Download generated shaders
+        if: ${{ env.SKIP == 'false' }}
+        uses: actions/download-artifact@v7
+        with:
+          name: generated-shaders-ci
+          path: data/shaders
+
+      - name: Download test executable
+        if: ${{ env.SKIP == 'false' }}
+        uses: actions/download-artifact@v7
+        with:
+          name: cata_test-${{ matrix.tiles == 1 && 'tiles' || 'curses' }}
+
+      - name: install dependencies (ubuntu)
+        if: ${{ env.SKIP == 'false' }}
+        uses: ./.github/actions/linux-deps
+        with: { for: test }
+
+      - if: ${{ env.SKIP == 'false' }}
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
+        with: { cache: true }
+
+      - name: add problem matcher
+        if: ${{ env.SKIP == 'false' && matrix.tiles == 0 }}
+        run: |
+          echo "::add-matcher::build-scripts/problem-matchers/catch2.json"
+          echo "::add-matcher::build-scripts/problem-matchers/debugmsg.json"
+
+      - name: run tests
+        if: ${{ env.SKIP == 'false' }}
+        timeout-minutes: 60
+        run: |
+          tar --zstd -xf cata-test.tar.zst
+          Xvfb :99 -screen 0 1280x1024x24 &
+          xvfb_pid=$!
+          trap 'kill "$xvfb_pid" 2>/dev/null || true' EXIT
+          export DISPLAY=:99
+          export LP_NUM_THREADS=2
+          sleep 1
+
+          test_bin="build/tests/cata_test${{ matrix.tiles == 1 && '-tiles' || '' }}"
+          build-scripts/run-linux-test-shards.ts --mode file-tags --jobs 4 --non-slow-shards 16 \
+            --shard-group "${{ matrix.group }}" "$test_bin" -- \
+            --min-duration 20 \
+            --use-colour yes \
+            --rng-seed time \
+            --error-format=github-action \
+            --gpu-backend=software
+
+          # Run test with all mods (curses only, once)
+          if [ "${{ matrix.tiles }}" = "0" ] && [ "${{ matrix.group }}" = "1/2" ]; then
+            blacklist=build-scripts/mod_test_blacklist
+            ./build-scripts/get_all_mods.py $blacklist | \
+              while read -r mods; do
+                $test_bin '~*' --user-dir=all_modded --mods="${mods}"
+              done
+          fi
+
+  # Windows has its own call so that its test jobs do not wait for the macOS and Android builds.
+  cache-warm-windows:
+    needs: [skip-duplicates, shader-artifacts]
+    permissions: { actions: write, contents: read }
+    if: ${{ github.event_name == 'push' && needs.skip-duplicates.outputs.should_skip_platform != 'true' }}
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      mode: ci
+      shader-artifact: generated-shaders-ci
+      matrix-json: |
+        [
+          { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip" }
+        ]
+      download-translations: false
+      bundle-tilesets: false
+      package-artifacts: false
+      run-tests: true
+      windows-test-groups: '["1/3", "2/3", "3/3"]'
+      upload-artifacts: false
+    secrets: inherit
+
+  cache-warm-builds:
+    needs: [skip-duplicates, shader-artifacts]
+    permissions: { actions: write, contents: read }
+    if: ${{ github.event_name == 'push' && needs.skip-duplicates.outputs.should_skip_platform != 'true' }}
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      mode: ci
+      shader-artifact: generated-shaders-ci
+      matrix-json: |
+        [
+          { "name": "macOS Curses", "platform": "macos", "artifact": "osx-curses-x64", "os": "macos-15-intel", "preset": "osx-curses-x64-dist", "tiles": false, "sound": false, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+          { "name": "macOS Tiles", "platform": "macos", "artifact": "osx-tiles-x64", "os": "macos-15-intel", "preset": "osx-tiles-x64-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+          { "name": "macOS Curses ARM", "platform": "macos", "artifact": "osx-curses-arm", "os": "macos-15", "preset": "osx-curses-arm-dist", "tiles": false, "sound": false, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+          { "name": "macOS Tiles ARM", "platform": "macos", "artifact": "osx-tiles-arm", "os": "macos-15", "preset": "osx-tiles-arm-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+          { "name": "Android ARM64", "platform": "android", "artifact": "android-x64", "os": "ubuntu-latest", "android": "arm64", "tiles": true, "sound": true, "ext": "apk", "content-type": "application/apk" }
+        ]
+      download-translations: false
+      bundle-tilesets: false
+      package-artifacts: false
+      run-tests: false # no job runs the macOS test executables
+      android-localize: false
+      upload-artifacts: false
+    secrets: inherit
+
+  windows-builds:
+    needs: [skip-duplicates, shader-artifacts]
+    if: ${{ github.event_name != 'push' && needs.skip-duplicates.outputs.should_skip_platform != 'true' }}
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      mode: ci
+      shader-artifact: generated-shaders-ci
+      artifact-label: pr-${{ github.event.pull_request.number || github.run_id }}
+      matrix-json: |
+        [
+          { "name": "Windows MSVC", "platform": "windows", "artifact": "windows-tiles-x64-msvc", "os": "windows-2022", "arch": "x64", "tiles": true, "sound": true, "ext": "zip", "content-type": "application/zip", "upload-artifact": true }
+        ]
+      download-translations: false
+      bundle-tilesets: false
+      bundle-registry-mods: false
+      package-artifacts: true
+      run-tests: true
+      windows-test-groups: '["1/3", "2/3", "3/3"]'
+      upload-artifacts: true
+    secrets: inherit
+
+  builds:
+    needs: [skip-duplicates, shader-artifacts]
+    if: ${{ github.event_name != 'push' && needs.skip-duplicates.outputs.should_skip_platform != 'true' }}
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      mode: ci
+      shader-artifact: generated-shaders-ci
+      artifact-label: pr-${{ github.event.pull_request.number || github.run_id }}
+      # PR macOS jobs waited 37-69 min for a runner. cache-warm-builds builds all 4 configs on main.
+      matrix-json: |
+        [
+          { "name": "macOS Tiles", "platform": "macos", "artifact": "osx-tiles-x64", "os": "macos-15-intel", "preset": "osx-tiles-x64-dist", "tiles": true, "sound": true, "ext": "dmg", "content-type": "application/x-apple-diskimage", "upload-artifact": true },
+          { "name": "macOS Curses ARM", "platform": "macos", "artifact": "osx-curses-arm", "os": "macos-15", "preset": "osx-curses-arm-dist", "tiles": false, "sound": false, "ext": "dmg", "content-type": "application/x-apple-diskimage" },
+          { "name": "Android ARM64", "platform": "android", "artifact": "android-x64", "os": "ubuntu-latest", "android": "arm64", "tiles": true, "sound": true, "ext": "apk", "content-type": "application/apk", "upload-artifact": true }
+        ]
+      download-translations: false
+      bundle-tilesets: false
+      bundle-registry-mods: false
+      package-artifacts: true
+      run-tests: false # no job runs the macOS test executables
+      android-localize: false
+      upload-artifacts: true
+    secrets: inherit
