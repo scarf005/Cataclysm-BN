@@ -1,0 +1,17 @@
+[
+  {
+    "id": "add_grid_connection",
+    "type": "requirement",
+    "//": "Connect two grid tiles. Cost is multiplied by number of elements in resulting grid.",
+    "components": [ [ [ "cable", 2 ] ] ],
+    "tools": [ [ [ "soldering_iron", 3 ], [ "soldering_ethanol", 30 ], [ "toolset", 1 ] ] ]
+  },
+  {
+    "id": "add_fluid_grid_connection",
+    "type": "requirement",
+    "//": "Connect two fluid grid tiles. Cost is multiplied by number of elements in resulting grid.",
+    "components": [ [ [ "pipe", 2 ] ], [ [ "hose", 1 ], [ "makeshift_hose", 1 ] ] ],
+    "qualities": [ { "id": "GLARE", "level": 2 } ],
+    "tools": [ [ [ "welder", 20 ], [ "toolset", 30 ], [ "oxy_torch", 4 ] ] ]
+  }
+]
