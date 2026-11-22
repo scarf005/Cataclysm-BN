@@ -232,7 +232,11 @@ jobs:
       - name: Delete old ccache copy
         if: ${{ env.SKIP == 'false' && github.event_name == 'push' }}
         continue-on-error: true
-        env: { GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}", PREFIX: "ccache-${{ matrix.ccache_key }}-${{ github.ref_name }}-" }
+        env: {
+          GH_TOKEN: "${{ github.token }}",
+          GH_REPO: "${{ github.repository }}",
+          PREFIX: "ccache-${{ matrix.ccache_key }}-${{ github.ref_name }}-",
+        }
         run: gh cache list --ref "$GITHUB_REF" --key "$PREFIX" --json id --jq '.[].id' | xargs -r -n1 gh cache delete
 
   # Split Linux tests over two runners. One runner takes about 12 min for all shards.
