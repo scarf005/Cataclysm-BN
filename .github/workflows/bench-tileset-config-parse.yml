@@ -1,8 +1,8 @@
-name: bench-tileset-load
+name: bench-tileset-config-parse
 
 on:
   push:
-    branches: [ci/bench-tileset-load]
+    branches: [ci/bench-tileset-config-parse]
   workflow_dispatch:
 
 env:
@@ -14,11 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: base, ref: cf1ee0ae85e578d06cbbf5be5d459611244ef551 }
-          - { name: c1-atlas, ref: 100007846deda9c14ecb7772c44554e909214494 }
-          - { name: c2-copy, ref: b0eb77adb8e3054bab0141421701d174044f335d }
-          - { name: c3-report, ref: 1f3cf1be43fc1d64ae9f51b337d0782746042a33 }
-          - { name: change, ref: ccadbd36941bdd44902ec4c6ef42756340464b18 }
+          - { name: pr-10922, ref: 70a76c210c0cfc28616121813e7da9f39decfe20 }
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
@@ -57,12 +53,12 @@ jobs:
 
       - uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: bench-tileset-${{ matrix.name }}
+          key: bench-tileset-config-${{ matrix.name }}
           max-size: 2G
 
       - name: build
         run: |
-          cp bench-src/bench/tileset_load_bench_test.cpp tests/
+          cp bench-src/bench/tileset_config_parse_bench_test.cpp tests/
           cmake --preset ci-tiles -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF \
             -DCMAKE_C_FLAGS=-fno-omit-frame-pointer -DCMAKE_CXX_FLAGS=-fno-omit-frame-pointer
           cmake --build --preset ci-tiles --target cata_test-tiles -j 4
@@ -76,13 +72,7 @@ jobs:
           mkdir -p prof
           t=build/tests/cata_test-tiles
           git log -1 --format='%h %s' | tee prof/ref.txt
-          for r in software gpu opengl; do
-            BENCH_RENDERER=$r $t --gpu-backend=software -w NoTests --min-duration 0 tileset_load_bench 2>&1 | tee prof/bench-$r.log
-          done
-          BENCH_RENDERER=software perf record -F 499 -g -o prof/sw.data -- $t --gpu-backend=software -w NoTests tileset_load_bench > prof/perf-run.log 2>&1
-          perf report -i prof/sw.data --stdio --no-children --percent-limit 0.3 -g none > prof/sw.self.txt
-          perf report -i prof/sw.data --stdio --children --percent-limit 1 -g caller,0.5,callee,function,percent --max-stack 40 > prof/sw.tree.txt
-          rm prof/sw.data
+          BENCH_RENDERER=software $t --gpu-backend=software -w NoTests --min-duration 0 tileset_config_parse_bench 2>&1 | tee prof/bench-parse.log
           { echo '```'; cat prof/ref.txt; rg -I '^BENCH' prof/bench-*.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
