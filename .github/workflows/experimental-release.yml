@@ -1,0 +1,26 @@
+name: "Experimental Release"
+
+concurrency: experimental-release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
+
+jobs:
+  metadata:
+    uses: ./.github/workflows/registry-mods-summary.yml
+
+  build-translations:
+    uses: ./.github/workflows/build-translations.yml
+    secrets:
+      TX_TOKEN: ${{ secrets.TX_TOKEN }}
+
+  builds:
+    needs: build-translations
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      upload-to-release: true
+    secrets: inherit
