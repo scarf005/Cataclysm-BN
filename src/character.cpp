@@ -103,6 +103,8 @@
 #include "ui_manager.h"
 #include "units_temperature.h"
 #include "units_utility.h"
+#include "utils/skip_bodytemp_cache.h"
+#include "utils/trait_generation.h"
 #include "value_ptr.h"
 #include "vehicle/veh_interact.h"
 #include "vehicle/veh_type.h"
@@ -6349,6 +6351,27 @@ struct BodyTemperatureModifiers {
     std::map<bodypart_id, int> wind_res_per_bp;
 };
 
+namespace
+{
+
+/// Body temperature inputs that an activity skip reuses until the next stat update.
+struct skip_bodytemp_inputs {
+    const Character *owner = nullptr;
+    tripoint_abs_ms pos;
+    time_point computed_at;
+    /// Holds no clothing maps: worn items can be destroyed before the next refresh.
+    BodyTemperatureModifiers mods;
+};
+
+auto skip_bodytemp_cache = skip_bodytemp_inputs {};
+
+} // namespace
+
+auto reset_skip_bodytemp_cache() -> void
+{
+    skip_bodytemp_cache = skip_bodytemp_inputs {};
+}
+
 std::map<bodypart_id, int> get_wind_resistance( const Character &chr,
         const std::map<bodypart_id, std::vector<const item *>> &clothing_map,
         const std::map<bodypart_id, std::vector<const item *>> &bonus_clothing_map )
@@ -6906,6 +6929,15 @@ void Character::update_bodytemp( const map &m, const weather_manager &weather )
         }
         return;
     }
+    auto &cache = skip_bodytemp_cache;
+    const auto skipping = this == &g->u && g->u.in_skip_state;
+    if( skipping && cache.owner == this && cache.pos == abs_pos() &&
+        calendar::turn >= cache.computed_at &&
+        calendar::turn < cache.computed_at + activity_skip_stat_update_ticks ) {
+        equalize_temperature( *this );
+        update_bodytemp_bps( *this, cache.mods );
+        return;
+    }
     const auto _bub_pos = bub_pos();
     const w_point &weather_point = get_weather().get_precise();
     auto body_mods = BodyTemperatureModifiers();
@@ -6963,6 +6995,15 @@ void Character::update_bodytemp( const map &m, const weather_manager &weather )
                                     body_mods.clothing_map_bonus
                                 );
 
+    cache.owner = skipping ? this : nullptr;
+    if( skipping ) {
+        cache.pos = abs_pos();
+        cache.computed_at = calendar::turn;
+        cache.mods = body_mods;
+        cache.mods.fire_armor_per_bp = get_armor_fire( body_mods.clothing_map );
+        cache.mods.clothing_map.clear();
+        cache.mods.clothing_map_bonus.clear();
+    }
     update_bodytemp_bps( *this, body_mods );
 }
 
@@ -9439,6 +9480,18 @@ mutation_category_id Character::get_highest_category() const
     return sMaxCat;
 }
 
+namespace
+{
+
+auto trait_generation = 0;
+
+} // namespace
+
+auto character_trait_generation() -> int
+{
+    return trait_generation;
+}
+
 void Character::recalculate_enchantment_cache()
 {
     const enchantment old_ench_sources = enchantment( *&*enchantment_cache );
@@ -9520,6 +9573,9 @@ void Character::recalculate_enchantment_cache()
 
     enchantment_cache->activate_effects( *this );
     enchantment_cache->deactivate_removed_effects( *this, old_ench_sources );
+    if( enchantment_cache->get_mutations() != old_ench_sources.get_mutations() ) {
+        ++trait_generation;
+    }
 
     rebuild_mutation_cache();
 
@@ -11344,6 +11400,30 @@ auto Character::bodytemp_modifier_traits_floor() const -> units::temperature_del
     return mod;
 }
 
+namespace
+{
+/// Climate control enchantment values of one body part.
+struct climate_ids {
+    enchantment_value_id cooling;
+    enchantment_value_id heating;
+};
+
+/// Builds the enchantment value ids of @p id once.
+auto climate_ids_for( const bodypart_id &id ) -> const climate_ids & // *NOPAD*
+{
+    static auto cache = std::unordered_map<bodypart_str_id, climate_ids> {};
+    auto found = cache.find( id.id() );
+    if( found == cache.end() ) {
+        const auto part = to_upper_case( id.id().str() );
+        found = cache.emplace( id.id(), climate_ids{
+            .cooling = enchantment_value_id( "CLIMATE_CONTROL_COOLING_" + part ),
+            .heating = enchantment_value_id( "CLIMATE_CONTROL_HEATING_" + part ),
+        } ).first;
+    }
+    return found->second;
+}
+} // namespace
+
 auto Character::temp_corrected_by_climate_control( units::temperature temperature,
         bodypart_id id ) ->
 units::temperature
@@ -11356,7 +11436,7 @@ units::temperature
     };
     if( temperature > BODYTEMP_NORM ) {
         temperature = temperature - enchantment_bonus( temperature,
-                      enchantment_value_id( "CLIMATE_CONTROL_COOLING_" + to_upper_case( id.id().str() ) ) );
+                      climate_ids_for( id ).cooling );
         if( in_climate_control() ) {
             temperature = temperature - units::from_legacy_bodypart_temp_delta( 1250 );
         }
@@ -11366,7 +11446,7 @@ units::temperature
             temperature = temperature + units::from_legacy_bodypart_temp_delta( 1250 );
         }
         temperature = temperature + enchantment_bonus( temperature,
-                      enchantment_value_id( "CLIMATE_CONTROL_HEATING_" + to_upper_case( id.id().str() ) ) );
+                      climate_ids_for( id ).heating );
         return std::min( BODYTEMP_NORM, temperature );
     }
     return temperature;
@@ -11827,6 +11907,7 @@ void Character::on_mutation_gain( const trait_id &mid )
     magic->on_mutation_gain( mid, *this );
     update_type_of_scent( mid );
     recalculate_enchantment_cache(); // mutations can have enchantments
+    ++trait_generation;
 }
 
 void Character::on_mutation_loss( const trait_id &mid )
@@ -11835,6 +11916,7 @@ void Character::on_mutation_loss( const trait_id &mid )
     magic->on_mutation_loss( mid );
     update_type_of_scent( mid, false );
     recalculate_enchantment_cache(); // mutations can have enchantments
+    ++trait_generation;
 }
 
 void Character::on_stat_change( const std::string &stat, int value )
