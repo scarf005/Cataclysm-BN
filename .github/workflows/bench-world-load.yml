@@ -1,0 +1,80 @@
+name: bench-world-load
+
+on:
+  push:
+    branches: [ci/bench-world-load]
+  workflow_dispatch:
+
+env:
+  LLVM_VERSION: "22"
+
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: base, ref: 43fe1b20c0264e18ae99ce0bfe81169712780a5b }
+          - { name: orig-2-3, ref: 7ec0af790a96fed51199da385d16a62ae1c8356d }
+          - { name: slim-2-3, ref: 4ef9fddd45e00d0724875317a057ba5d472672b3 }
+          - { name: pr-c3, ref: c84fcfe3d5d0476c2c80641c4a5461fa7208b50b }
+          - { name: pr-c4, ref: 015e79560b5d917883085f5aaedcf4a8ad5ae138 }
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ matrix.ref }}", fetch-depth: 1 }
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libncursesw5-dev mold ripgrep gettext libsqlite3-dev zlib1g-dev libvulkan-dev mesa-vulkan-drivers xvfb hyperfine \
+            autoconf autoconf-archive automake libtool libltdl-dev \
+            libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev \
+            libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
+            libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
+            libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev \
+            libfreetype-dev libharfbuzz-dev libtiff-dev libavif-dev libwebp-dev libjpeg-dev libjxl-dev \
+            libflac-dev libvorbis-dev libxmp-dev libmpg123-dev libwavpack-dev
+
+      - uses: aminya/setup-cpp@v1
+        with:
+          compiler: llvm-${{ env.LLVM_VERSION }}
+          cmake: true
+          ninja: true
+          setup-cpp: false
+
+      - uses: denoland/setup-deno@v2
+
+      - uses: ./.github/actions/build-shadercross
+
+      - run: bash build-scripts/generate-shaders.sh
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: bench-world-load-${{ matrix.name }}
+          max-size: 2G
+
+      - name: build
+        run: |
+          cmake --preset ci-tiles -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF
+          cmake --build --preset ci-tiles --target cata_test-tiles -j 4
+
+      - name: bench
+        timeout-minutes: 60
+        run: |
+          Xvfb :99 -screen 0 1280x1024x24 &
+          export DISPLAY=:99 LP_NUM_THREADS=2
+          sleep 1
+          mkdir -p prof
+          git log -1 --format='%h %s' | tee prof/ref.txt
+          # Load and check all game data, match no test, then exit.
+          hyperfine -i --warmup 1 --runs 9 --export-json prof/load.json \
+            'build/tests/cata_test-tiles --gpu-backend=software -w NoTests "[no_such_bench_tag]"' | tee prof/load.txt
+          { echo '```'; cat prof/ref.txt prof/load.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-${{ matrix.name }}
+          path: prof/
