@@ -14,11 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: base, ref: 43fe1b20c0264e18ae99ce0bfe81169712780a5b }
-          - { name: orig-2-3, ref: 7ec0af790a96fed51199da385d16a62ae1c8356d }
-          - { name: slim-2-3, ref: 4ef9fddd45e00d0724875317a057ba5d472672b3 }
-          - { name: pr-c3, ref: c84fcfe3d5d0476c2c80641c4a5461fa7208b50b }
-          - { name: pr-c4, ref: 015e79560b5d917883085f5aaedcf4a8ad5ae138 }
+          - { name: main, ref: b90fddd2bf0a8868dcbe2459132a943151fd06b0 }
+          - { name: refactor, ref: f27933c0456e43147faebe2735105d55e00eab9a }
+          - { name: main-2, ref: b90fddd2bf0a8868dcbe2459132a943151fd06b0 }
+          - { name: refactor-2, ref: f27933c0456e43147faebe2735105d55e00eab9a }
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
