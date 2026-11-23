@@ -1,0 +1,14 @@
+[
+  {
+    "result": "saddlebag",
+    "type": "recipe",
+    "category": "CC_ANIMALS",
+    "subcategory": "CSC_ANIMALS_EQUINE STORAGE",
+    "skill_used": "tailor",
+    "difficulty": 4,
+    "time": "120 m",
+    "autolearn": true,
+    "using": [ [ "sewing_standard", 60 ] ],
+    "components": [ [ [ "fabric_hides_any", 30, "LIST" ] ], [ [ "rope_natural_short", 1, "LIST" ] ] ]
+  }
+]
