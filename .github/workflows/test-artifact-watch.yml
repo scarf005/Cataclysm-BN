@@ -1,0 +1,41 @@
+name: test artifact watch
+
+on:
+  pull_request:
+    branches: [test/watch-base]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          for _ in $(seq 30); do
+            id=$(gh api "repos/${{ github.repository }}/actions/workflows/matrix.yml/runs?head_sha=${HEAD_SHA}" --jq '.workflow_runs[0].id // empty')
+            [ -n "$id" ] && break
+            sleep 10
+          done
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/publish-pr-artifact-body
+        with:
+          repository: ${{ github.repository }}
+          pr-number: ${{ github.event.pull_request.number }}
+          run-id: ${{ steps.run.outputs.id }}
+          run-url: https://github.com/${{ github.repository }}/actions/runs/${{ steps.run.outputs.id }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+          token: ${{ github.token }}
+          watch: "true"
+          poll-interval-seconds: "60"
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ steps.run.outputs.id }}" --jq '"matrix status at watcher exit: \(.status)"'
