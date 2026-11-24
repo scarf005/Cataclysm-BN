@@ -1,0 +1,76 @@
+name: bench compile cost
+
+on:
+  push:
+    branches: [bench/ci-compile-cost]
+
+jobs:
+  cold:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: base, flags: "-O2 -g -DNDEBUG" }
+          - { name: gline, flags: "-O2 -gline-tables-only -DNDEBUG" }
+          - { name: g0, flags: "-O2 -DNDEBUG" }
+          - { name: o1-gline, flags: "-O1 -gline-tables-only -DNDEBUG" }
+          - { name: pch, flags: "-O2 -g -DNDEBUG", pch: true }
+          - { name: trace, flags: "-O2 -g -DNDEBUG -ftime-trace" }
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with: { persist-credentials: false, fetch-depth: 1 }
+      - uses: ./.github/actions/linux-deps
+      - uses: aminya/setup-cpp@15a6bd8cf39030f88b5da3d203a829ec4eea4955 # v1
+        with: { compiler: llvm-22, cmake: true, ninja: true, setup-cpp: false }
+      - if: matrix.pch
+        run: |
+          printf '%s\n' 'if (TARGET cataclysm-bn-common)' \
+            '  target_precompile_headers(cataclysm-bn-common PRIVATE ${CMAKE_SOURCE_DIR}/pch/main-pch.hpp)' \
+            'endif ()' >> src/CMakeLists.txt
+      - name: configure
+        run: |
+          cmake --preset ci-curses -B out -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER= \
+            "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=${{ matrix.flags }}" \
+            -DCMAKE_JOB_POOLS=link=1 -DCMAKE_JOB_POOL_LINK=link
+      - name: build
+        run: |
+          start=$(date +%s)
+          ninja -C out -j 4 cataclysm-bn cata_test
+          end=$(date +%s)
+          echo "::notice title=${{ matrix.name }}::build wall $((end - start)) s"
+          python3 - <<'EOF'
+          import collections
+          last = {}
+          for line in open("out/.ninja_log"):
+              if line.startswith("#"):
+                  continue
+              s, e, _, out, _ = line.split("\t")
+              last[out] = (int(e) - int(s)) / 1000
+          groups = collections.defaultdict(float)
+          for out, t in last.items():
+              key = "tests" if out.startswith("tests/") else "src" if out.startswith("src/") else "link/other"
+              if not out.endswith(".o"):
+                  key = "link/other"
+              groups[key] += t
+          for key, t in sorted(groups.items()):
+              print(f"::notice title=${{ matrix.name }} {key}::{t / 60:.1f} job-min summed")
+          EOF
+      - name: analyze time traces
+        if: matrix.name == 'trace'
+        run: |
+          git clone --depth 1 https://github.com/aras-p/ClangBuildAnalyzer /tmp/cba
+          cmake -S /tmp/cba -B /tmp/cba/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          ninja -C /tmp/cba/build
+          /tmp/cba/build/ClangBuildAnalyzer --all out /tmp/trace.bin
+          /tmp/cba/build/ClangBuildAnalyzer --analyze /tmp/trace.bin > out/trace-report.txt
+          head -60 out/trace-report.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            out/.ninja_log
+            out/trace-report.txt
+          if-no-files-found: ignore
