@@ -1,0 +1,21 @@
+name: bench ccache share
+
+on:
+  push:
+    branches: [bench/ccache-share]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  release:
+    uses: ./.github/workflows/build.yml
+    with:
+      version-label: experimental
+      matrix-json: |
+        [{ "name": "Android ARM64", "platform": "android", "artifact": "android-x64", "os": "ubuntu-latest", "android": "arm64", "tiles": true, "sound": true, "ext": "apk", "content-type": "application/apk" }]
+      download-translations: false
+      bundle-tilesets: false
+      package-artifacts: false
+      upload-artifacts: false
