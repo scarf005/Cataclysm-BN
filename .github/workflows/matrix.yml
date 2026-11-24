@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
   pull_request:
-    branches: [main]
+    branches: [main, test/watch-base]
     paths-ignore: [docs/**, scripts/**, "**.md", "**.mdx"]
     types: [opened, reopened, synchronize]
   workflow_dispatch:

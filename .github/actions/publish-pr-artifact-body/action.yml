@@ -22,7 +22,7 @@ inputs:
     description: GitHub token with actions:read and pull-requests:write
     required: true
   watch:
-    description: Keep publishing until the workflow run completes
+    description: Keep publishing until every artifact is uploaded or the workflow run completes
     required: false
     default: "false"
   poll-interval-seconds:
@@ -97,6 +97,10 @@ runs:
           windows_url=$(artifact_url "windows-tiles-x64-msvc-${artifact_label}")
           macos_url=$(artifact_url "osx-tiles-x64-${artifact_label}")
           android_url=$(artifact_url "android-x64-${artifact_label}")
+          all_uploaded=false
+          if [ -n "$linux_url" ] && [ -n "$windows_url" ] && [ -n "$macos_url" ] && [ -n "$android_url" ]; then
+            all_uploaded=true
+          fi
 
           content=$(
             {
@@ -136,7 +140,7 @@ runs:
         publish_once
 
         if [ "$WATCH" = "true" ]; then
-          while [ "$run_status" != "completed" ]; do
+          while [ "$run_status" != "completed" ] && [ "$all_uploaded" != "true" ]; do
             sleep "$POLL_INTERVAL_SECONDS"
             publish_once
           done
