@@ -13,6 +13,7 @@
 #include "inventory.h"
 #include "item.h"
 #include "itype.h"
+#include "magic/magic.h"
 #include "make_static.h"
 #include "map_helpers.h"
 #include "material.h"
@@ -23,6 +24,7 @@
 #include "stomach.h"
 #include "string_id.h"
 #include "type_id.h"
+#include "vitamin.h"
 
 #include <cstddef>
 #include <list>
@@ -74,6 +76,7 @@ void clear_character(player& dummy, bool debug_storage) {
     // contents (needs to happen before clear_morale).
     dummy.stomach.empty();
     dummy.consumption_history->elems.clear();
+    for (const auto& vit : vitamin::all()) { dummy.vitamin_set(vit.id, 0); }
     item& food = *item::spawn_temporary("debug_nutrition");
     dummy.eat(food);
 
@@ -88,6 +91,7 @@ void clear_character(player& dummy, bool debug_storage) {
     dummy.backlog.clear();
     dummy.reset_chargen_attributes();
     dummy.set_pain(0);
+    dummy.focus_pool = 100;
     dummy.reset_bonuses();
     dummy.set_moves(-100);
 
@@ -115,6 +119,9 @@ void clear_character(player& dummy, bool debug_storage) {
     dummy.reset_bonuses();
     dummy.set_speed_base(100);
     dummy.set_speed_bonus(0);
+    // Max mana and max HP depend on the stats and skills above.
+    dummy.magic->set_mana(dummy.magic->max_mana(dummy));
+    dummy.recalc_hp();
     dummy.set_all_parts_hp_to_max();
 
     dummy.cash = 0;
@@ -126,7 +133,11 @@ void clear_character(player& dummy, bool debug_storage) {
     dummy.invalidate_crafting_inventory();
 }
 
-void clear_avatar() { clear_character(g->u); }
+void clear_avatar() {
+    clear_character(g->u);
+    // The cached body temperature inputs belong to the avatar of the previous test.
+    reset_skip_bodytemp_cache();
+}
 
 void process_activity(player& dummy) {
     do {

@@ -3,6 +3,7 @@
 #include "../src/map/map.h"
 #include "../src/map/mapdata.h"
 #include "../src/map/submap.h"
+#include "../src/overmap/overmap.h"
 #include "../src/overmap/overmapbuffer.h"
 #include "avatar.h"
 #include "calendar.h"
@@ -11,9 +12,11 @@
 #include "distribution_grid.h"
 #include "game.h"
 #include "game_constants.h"
+#include "item.h"
 #include "map/field.h"
 #include "map/mapbuffer.h"
 #include "map_iterator.h"
+#include "monster.h"
 #include "npc.h"
 #include "type_id.h"
 
@@ -22,6 +25,7 @@
 #include <iterator>
 #include <memory>
 #include <ranges>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -55,6 +59,17 @@ void wipe_map_terrain() {
 void clear_creatures() {
     // Remove any interfering monsters.
     g->clear_zombies();
+    // A monster that left the map in an earlier test waits on the overmap. It comes back when a
+    // wait loads its submap, for example an eyebot outside the cleared map. Remove them too.
+    const auto size = g->m.getmapsize() - 1;
+    auto overmaps = std::set<overmap*>{};
+    for (const auto corner :
+         {point_rel_sm(0, 0), point_rel_sm(size, 0), point_rel_sm(0, size),
+          point_rel_sm(size, size)}) {
+        const auto omt = project_to<coords::omt>(g->m.get_abs_sub() + corner);
+        overmaps.insert(ACTIVE_OVERMAP_BUFFER.get_om_global(omt).om);
+    }
+    for (auto* om : overmaps) { om->monster_map->clear(); }
 }
 
 void clear_npcs() {
@@ -140,6 +155,18 @@ void clear_map() {
     g->m.clear_traps();
     // Limit the slower item cleanup to the levels used by most tests.
     for (int z = -2; z <= 0; ++z) { clear_items(z); }
+    // Item processing also covers loaded submaps outside the cleared area, so an active item there,
+    // such as a corpse from mapgen 35 submaps away, rots during the next test. Clear those tiles.
+    auto& buffer = g->m.get_mapbuffer();
+    auto active_tiles = std::set<tripoint_abs_ms>{};
+    for (const auto& sm_pos : buffer.get_submaps_with_active_items()) {
+        auto* const sm = buffer.lookup_submap_in_memory(sm_pos);
+        if (sm == nullptr) { continue; }
+        for (const auto* it : sm->active_items.get_const()) {
+            if (it != nullptr) { active_tiles.insert(map_local_to_abs(g->m, it->bub_pos())); }
+        }
+    }
+    for (const auto& p : active_tiles) { buffer.clear_items(p); }
     // Tests that call map::load move the bubble but not its load region. Outside the region, items
     // are not processed and retained submaps of the bubble can be evicted. Cover the whole map,
     // which is larger than g_mapsize in tests. Move the region before the grid reset, so that

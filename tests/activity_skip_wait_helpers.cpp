@@ -8,6 +8,7 @@
 #include "effect.h"
 #include "game.h"
 #include "map_helpers.h"
+#include "npc.h"
 #include "player_activity.h"
 #include "state_helpers.h"
 #include "timed_event.h"
@@ -58,6 +59,10 @@ auto setup_wait_scene(const wait_scene scene) -> void {
     }
     g->m.clear_spawns();
     clear_creatures();
+    // An NPC that spawned in an earlier wait travels on the overmap and draws random numbers.
+    for (const auto& guy : ACTIVE_OVERMAP_BUFFER.get_overmap_npcs()) {
+        ACTIVE_OVERMAP_BUFFER.remove_npc(guy->getID());
+    }
     calendar::turn = calendar::turn_zero + 12_hours;
     if (scene == wait_scene::town) { build_town(); }
 
@@ -75,6 +80,9 @@ auto setup_wait_scene(const wait_scene scene) -> void {
     g->m.invalidate_map_cache(g->get_levz());
     g->m.build_map_cache(g->get_levz(), true);
     g->new_game = false;
+    // A turn tries the skip before it loads NPCs, so a scene with unloaded NPC changes would
+    // start with a normal turn.
+    g->load_npcs();
 }
 
 auto hold_weather(const weather_type_id& weather, const units::temperature temperature) -> void {
