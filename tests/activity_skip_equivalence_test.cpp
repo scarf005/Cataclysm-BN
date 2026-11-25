@@ -4,6 +4,7 @@
 #include "avatar.h"
 #include "catch/catch.hpp"
 #include "game.h"
+#include "map/field_type.h"
 #include "morale_types.h"
 #include "rng.h"
 #include "timed_event.h"
@@ -125,4 +126,22 @@ TEST_CASE(
     // Without skip windows each 10-turn tick is one do_turn call.
     if (!skip_windows) { REQUIRE(coarse.do_turn_calls == to_turns<int>(10_minutes) / 10); }
     check_same_body(exact, coarse);
+}
+
+// Issue 11046: the avatar refuels the fireplace from a firewood source, so the fire burns for the
+// whole hour. While a fire burns, the game runs every turn on its own and skips no time.
+TEST_CASE("waiting next to a refueled fireplace skips time", "[activity][fixed_window]") {
+    const auto skip_options = skip_window_options{};
+    const auto action_scale = override_option("TIME_ACTION_SCALE", "100");
+    setup_wait_scene(wait_scene::fireplace);
+    hold_weather(weather_type_id("clear"), 18_c);
+
+    const auto state = wait_through_activity(1_hours);
+    INFO(state.error_or(""));
+    REQUIRE(state.has_value());
+    CHECK(g->m.get_field(g->u.bub_pos() + fireplace_fire, fd_fire) != nullptr);
+    CHECK(g->m.i_at(g->u.bub_pos() + fireplace_pile).size() < 30);
+    const auto windows =
+        to_turns<int>(1_hours) / to_turns<int>(activity_time_cadence::fixed_window());
+    CHECK(state->do_turn_calls <= windows * 5);
 }

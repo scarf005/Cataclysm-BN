@@ -5,8 +5,10 @@
 #include "../src/overmap/overmapbuffer.h"
 #include "action_time_scale.h"
 #include "avatar.h"
+#include "clzones.h"
 #include "effect.h"
 #include "game.h"
+#include "map/field_type.h"
 #include "map_helpers.h"
 #include "player_activity.h"
 #include "state_helpers.h"
@@ -41,6 +43,20 @@ auto build_town() -> void {
     }
 }
 
+auto build_fireplace() -> void {
+    auto& here = get_map();
+    const auto fire = g->u.bub_pos() + fireplace_fire;
+    const auto pile = g->u.bub_pos() + fireplace_pile;
+    here.furn_set(fire, furn_str_id("f_fireplace"));
+    here.add_item(fire, item::spawn(itype_id("splinter")));
+    here.add_field(fire, fd_fire, 1);
+    for (auto i = 0; i < 30; ++i) { here.add_item(pile, item::spawn(itype_id("2x4"))); }
+    const auto pile_abs = bub_to_abs(pile);
+    zone_manager::get_manager()
+        .add("firewood", zone_type_id("SOURCE_FIREWOOD"), faction_id("your_followers"), false, true,
+             pile_abs, pile_abs);
+}
+
 } // namespace
 
 auto setup_wait_scene(const wait_scene scene) -> void {
@@ -57,7 +73,9 @@ auto setup_wait_scene(const wait_scene scene) -> void {
     g->m.clear_spawns();
     clear_creatures();
     calendar::turn = calendar::turn_zero + 12_hours;
+    zone_manager::reset_manager();
     if (scene == wait_scene::town) { build_town(); }
+    if (scene == wait_scene::fireplace) { build_fireplace(); }
 
     // A wait in an earlier test leaves the next skip window check at its end turn.
     g->reset_activity_fixed_window();
