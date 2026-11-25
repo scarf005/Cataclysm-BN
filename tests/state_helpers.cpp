@@ -25,21 +25,14 @@ auto clear_states(const enum_bitset<test_state>& states) -> void {
     if (normalized_states.test(state::npc)) { normalized_states.set(state::avatar); }
 
     if (normalized_states.test(state::weather)) {
+        // A fresh manager also drops the humidity and wind of the last weather update.
         auto& weather = get_weather();
+        weather = weather_manager{};
         weather.weather_id = weather_type_id("clear");
-        weather.weather_override = weather_type_id::NULL_ID();
-        weather.nextweather = calendar::before_time_starts;
-        weather.last_weather_position = tripoint_abs_ms::zero();
-        weather.temperature = 0_c;
-        weather.water_temperature = 0_c;
-        weather.lightning_active = false;
-        weather.winddirection = 0;
-        weather.windspeed = 0;
-        weather.wind_direction_override = std::nullopt;
-        weather.windspeed_override = std::nullopt;
-        weather.clear_temp_cache();
     }
 
+    // clear_avatar marks skills as last practiced at the current turn, so move the turn first.
+    if (normalized_states.test(state::time)) { calendar::turn = calendar::turn_zero; }
     if (normalized_states.test(state::avatar)) { clear_avatar(); }
 
     if (normalized_states.test(state::map)) {
