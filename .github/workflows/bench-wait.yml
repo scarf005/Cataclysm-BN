@@ -7,7 +7,7 @@ on:
 
 permissions: { contents: read }
 
-env: { LLVM_VERSION: "22", CATA_TEST_COMPUTE_ACCELERATION: cpu, BENCH_HEAD_ONLY: "1" }
+env: { LLVM_VERSION: "22", CATA_TEST_COMPUTE_ACCELERATION: cpu }
 
 jobs:
   bench:
