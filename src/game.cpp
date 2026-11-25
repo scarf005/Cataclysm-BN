@@ -2716,40 +2716,52 @@ auto game::has_activity_skip_relevant_vehicle() -> bool
     } );
 }
 
-auto game::has_activity_skip_active_fire() -> bool
+auto game::activity_skip_fire_submaps() -> std::optional<activity_skip_fire_submap_list>
 {
-    const auto submap_has_active_fire = []( const submap & sm ) {
-        if( sm.field_count == 0 ) {
-            return false;
-        }
+    // A fire on a FIRE_CONTAINER tile never spreads, so a skip window can run its submap every
+    // tick. Any other fire stops the window.
+    enum class fire_kind { none, contained, spreading };
+    const auto submap_fire = []( const submap & sm ) {
+        auto kind = fire_kind::none;
         for( const auto &local : sm.field_cache ) {
-            const auto &curfield = sm.get_field( local );
-            for( const auto &field_pair : curfield ) {
+            const auto &ter = sm.get_ter( local ).obj();
+            const auto contained = !ter.has_flag( TFLAG_NO_FLOOR ) &&
+                                   ter_furn_has_flag( ter, sm.get_furn( local ).obj(), TFLAG_FIRE_CONTAINER );
+            for( const auto &field_pair : sm.get_field( local ) ) {
                 const auto &cur = field_pair.second;
-                if( cur.is_field_alive() && cur.get_field_type().obj().has_fire ) {
-                    return true;
+                if( !cur.is_field_alive() || !cur.get_field_type().obj().has_fire ) {
+                    continue;
                 }
+                if( cur.get_field_type() != fd_fire || !contained ) {
+                    return fire_kind::spreading;
+                }
+                kind = fire_kind::contained;
             }
         }
-        return false;
+        return kind;
     };
 
-    auto has_fire = false;
+    auto fire_submaps = activity_skip_fire_submap_list{};
+    auto spreading = false;
     MAPBUFFER_REGISTRY.for_each( [&]( const dimension_id & dim, mapbuffer & mb ) {
-        if( has_fire || ( pocket_simulation_level == pocket_sim_level::off && !dim.is_empty() ) ) {
+        if( spreading || ( pocket_simulation_level == pocket_sim_level::off && !dim.is_empty() ) ) {
             return;
         }
-        mb.for_each_simulated_submap( [&]( const tripoint_abs_sm &, submap & sm ) {
-            if( has_fire ) {
+        mb.for_each_simulated_submap( [&]( const tripoint_abs_sm & pos, submap & sm ) {
+            if( spreading || sm.field_count == 0 ) {
                 return;
             }
-            if( submap_has_active_fire( sm ) ) {
-                has_fire = true;
-                return;
+            const auto kind = submap_fire( sm );
+            spreading = kind == fire_kind::spreading;
+            if( kind == fire_kind::contained ) {
+                fire_submaps.emplace_back( dim, pos );
             }
         } );
     } );
-    return has_fire;
+    if( spreading ) {
+        return std::nullopt;
+    }
+    return fire_submaps;
 }
 
 auto game::can_activity_fixed_window_skip( const time_duration &duration ) -> bool
@@ -2816,7 +2828,7 @@ auto game::can_activity_fixed_window_skip( const time_duration &duration ) -> bo
         }
         return false;
     }
-    if( has_activity_skip_active_fire() ) {
+    if( !activity_skip_fire_submaps() ) {
         if( log_activity_skip_state ) {
             add_msg( "Fire is being processed, cannot skip time" );
         }
@@ -2868,6 +2880,7 @@ auto game::execute_activity_fixed_window_skip( const time_duration &duration ) -
     const auto starting_activity = u.activity->id();
     auto activity_monsters = activity_monmove_cache {};
     const auto requested_turns = to_turns<int>( duration );
+    const auto fire_submaps = activity_skip_fire_submaps().value_or( activity_skip_fire_submap_list{} );
     // A monster or NPC that appears stops the fast-forward. Time for this turn already passed, so
     // finish the turn for the player first.
     auto window_ends = false;
@@ -2927,6 +2940,13 @@ auto game::execute_activity_fixed_window_skip( const time_duration &duration ) -
         debug_hour_timer.print_time();
         process_voluntary_act_interrupt();
         process_activity();
+        std::ranges::for_each( fire_submaps, [&]( const auto & fire_submap ) {
+            const auto &[dim, pos] = fire_submap;
+            auto &mb = MAPBUFFER_REGISTRY.get( dim );
+            if( auto *sm = mb.lookup_submap_in_memory( pos ) ) {
+                process_fields_in_submap( dim, *sm, pos, mb );
+            }
+        } );
         if( is_game_over() ) {
             if( log_activity_skip_state ) {
                 add_msg( "You died, cannot skip time" );
@@ -3020,11 +3040,12 @@ auto game::execute_activity_fixed_window_skip( const time_duration &duration ) -
         }
     }
     handle_bulk_weather_field_decay( weather.weather_id, skipped_turns );
-    run_activity_skip_batch_turns( skipped_turns );
+    run_activity_skip_batch_turns( skipped_turns, fire_submaps );
     return skipped_turns;
 }
 
-auto game::run_activity_skip_batch_turns( const int skipped_turns ) -> void
+auto game::run_activity_skip_batch_turns( const int skipped_turns,
+        const activity_skip_fire_submap_list &fire_submaps ) -> void
 {
     if( skipped_turns <= 0 ) {
         return;
@@ -3036,8 +3057,17 @@ auto game::run_activity_skip_batch_turns( const int skipped_turns ) -> void
             if( pocket_simulation_level == pocket_sim_level::off && !dim.is_empty() ) {
                 return;
             }
-            mb.for_each_simulated_submap( [&]( const tripoint_abs_sm &, submap & sm ) {
-                run_submap_batch_turns( sm, skipped_turns );
+            mb.for_each_simulated_submap( [&]( const tripoint_abs_sm & pos, submap & sm ) {
+                if( !std::ranges::contains( fire_submaps, std::pair{ dim, pos } ) ) {
+                    run_submap_batch_turns( sm, skipped_turns );
+                } else {
+                    // The window processed the fields of this submap every tick.
+                    std::ranges::for_each( sm.vehicles, []( const auto & veh ) {
+                        if( veh ) {
+                            veh->update_time( calendar::turn, true );
+                        }
+                    } );
+                }
                 sm.last_touched = calendar::turn;
             } );
         } );
