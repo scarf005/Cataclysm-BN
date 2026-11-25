@@ -3816,13 +3816,11 @@ void try_fuel_fire( player_activity &act, player &p, const bool starting_fire )
         return;
     }
 
-    auto refuel_spot = find_refuel_spot_zone( pos );
-    if( !refuel_spot ) {
-        refuel_spot = find_refuel_spot_trap( adjacent, pos );
-        if( !refuel_spot ) {
-            return;
-        }
-    }
+    // Search zones and traps only when fuel must move: most turns the fire needs no fuel.
+    const auto find_refuel_spot = [&] {
+        const auto zone_spot = find_refuel_spot_zone( pos );
+        return zone_spot ? zone_spot : find_refuel_spot_trap( adjacent, pos );
+    };
 
     // Special case: fire containers allow burning logs, so use them as fuel if fire is contained
     bool contained = here.has_flag_furn( TFLAG_FIRE_CONTAINER, *best_fire );
@@ -3839,7 +3837,9 @@ void try_fuel_fire( player_activity &act, player &p, const bool starting_fire )
             // Too much - we don't want a firestorm!
             // Move item back to refueling pile
             // Note: move_item() handles messages (they're the generic "you drop x")
-            move_item( p, *it, 0, *best_fire, *refuel_spot );
+            if( const auto refuel_spot = find_refuel_spot() ) {
+                move_item( p, *it, 0, *best_fire, *refuel_spot );
+            }
             return;
         }
     }
@@ -3847,6 +3847,11 @@ void try_fuel_fire( player_activity &act, player &p, const bool starting_fire )
     // Enough to sustain the fire
     // TODO: It's not enough in the rain
     if( !starting_fire && ( fd.fuel_produced >= 1.0f || fire_age < 10_minutes ) ) {
+        return;
+    }
+
+    const auto refuel_spot = find_refuel_spot();
+    if( !refuel_spot ) {
         return;
     }
 
