@@ -16,6 +16,12 @@ jobs:
   record:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { scene: fireplace, wait: 12h }
+          - { scene: hay, wait: 2h }
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
@@ -40,9 +46,9 @@ jobs:
         run: |
           mkdir -p out
           printf 'set -g default-terminal "xterm-256color"\n' > ~/.tmux.conf
-          export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 WAIT_FOR=12h
+          export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 WAIT_FOR=${{ matrix.wait }} SCENE=${{ matrix.scene }}
           bash .github/capture/drive.sh fire "$PWD/bins/$BEFORE/cataclysm-bn" "$RUNNER_TEMP/tree-$BEFORE" "$PWD/bins/$AFTER/cataclysm-bn" "$RUNNER_TEMP/tree-$AFTER" "$PWD/out"
 
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: capture-fire, path: out }
+        with: { name: capture-${{ matrix.scene }}, path: out }

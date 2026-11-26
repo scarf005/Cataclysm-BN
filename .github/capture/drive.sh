@@ -67,6 +67,7 @@ install_mod() {
 EOF2
   cat > "$d/preload.lua" << 'EOF2'
 local wood = ${WOOD_COUNT:-240}
+local scene = "${SCENE:-fireplace}"
 -- debug.log stays empty, so the driver reads these values from the save (lua_state.json)
 local storage = game.mod_storage[game.current_mod]
 local function fire_field() return FieldTypeId.new("fd_fire"):int_id() end
@@ -84,7 +85,24 @@ game.add_hook("on_game_load", function()
   end
   local fire = TripointBubMs.new(c.x + 1, c.y, c.z)
   local pile = TripointBubMs.new(c.x - 1, c.y, c.z)
-  if map:has_furn_flag_at("FIRE_CONTAINER", fire) then return end
+  if storage.scene then return end
+  -- a watch shows the exact time in the sidebar
+  av:wear_detached(gapi.create_item(ItypeId.new("wristwatch"), -1), false)
+  if scene == "hay" then
+    -- the hay_fire bench scene: a row of 24 hay bales 24 tiles south, lit at the 10th bale, on cleared ground
+    for dx = -9, 21 do
+      for dy = 21, 27 do
+        local p = TripointBubMs.new(c.x + dx, c.y + dy, c.z)
+        map:set_ter_at(p, TerId.new("t_dirt"):int_id())
+        map:set_furn_at(p, FurnId.new("f_null"):int_id())
+        map:clear_items_at(p)
+      end
+    end
+    for i = 0, 23 do map:set_furn_at(TripointBubMs.new(c.x - 6 + i, c.y + 24, c.z), FurnId.new("f_hay"):int_id()) end
+    map:add_field_at(TripointBubMs.new(c.x + 3, c.y + 24, c.z), fire_field(), 3, TimeDuration.from_turns(0))
+    storage.scene = "hay"
+    return
+  end
   -- the start is random: clear bare ground around the avatar so the fire has nothing else to burn
   for dx = -3, 3 do
     for dy = -3, 3 do
@@ -126,6 +144,7 @@ end)
 EOF2
   # the heredoc is quoted: substitute the wood count by hand
   sed -i "s/\${WOOD_COUNT:-240}/${WOOD_COUNT:-240}/" "$d/preload.lua"
+  sed -i "s/\${SCENE:-fireplace}/${SCENE:-fireplace}/" "$d/preload.lua"
 }
 
 # lua_val PROFILE KEY: a string the scene mod stored in the save
@@ -162,6 +181,7 @@ EOF2
   log_state "$W/create" scene
   local line; line=$(lua_val "$W/create" scene)
   log "scene line: $line"
+  [ "${SCENE:-fireplace}" = hay ] && return
   line=$(cut -d' ' -f1-3 <<< "$line")
   local sav; sav=$(ls "$wd"/*.sav | head -1)
   python3 - "${sav%.sav}.zones.json" $line << 'EOF2'
