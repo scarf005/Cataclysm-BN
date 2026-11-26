@@ -829,3 +829,65 @@ gapi.clear_omt_weather_override(center_omt, 2)
 
 Use `"thunder"` instead of `"lightning"` if you want thunderstorm weather without the stronger
 lightning-storm variant.
+
+## Computer Terminals
+
+A mapgen `"computers"` entry gives each option an action id and each failure an id. The game runs
+`game.computer_functions[id]` for an option and `game.computer_failure_functions[id]` for a
+failure. Register both in `preload.lua`, because the mapgen check runs before `main.lua`. Both
+callbacks get a `params` table with `session` (`ComputerSession`) and `user` (`Avatar`). See
+`ComputerSession` in the [Lua reference](../reference/lua.md) for all session methods.
+
+The built-in actions and failures are in `data/json/lua/computer.lua`. The Lua Computer Demo mod
+(`data/mods/lua_computer_demo`) has a terminal that you can spawn from the debug menu.
+
+### Adding a computer option
+
+This action shows the alert count. On a yes, it adds an option that runs the built-in `unlock`
+action at security level 2 and removes itself from the menu.
+
+```lua
+game.computer_functions["my_status"] = function(params)
+  local session = params.session
+  session:reset_terminal()
+  session:print_line(string.format("Alerts: %d.", session:get_alerts()))
+  if session:query_bool("Add the vault option?") then
+    session:add_option("Open vault", "unlock", 2)
+    session:remove_option("my_status")
+  end
+  session:query_any()
+end
+```
+
+### Adding a hacking failure
+
+When a hack fails, the game runs a random failure from the computer's list. If the list is empty,
+a failed login hack ends the session and a failed option hack runs `shutdown`.
+
+This failure raises the login security by 1 and adds the built-in `alarm` failure. A successful
+login hack sets the login security to 0.
+
+```lua
+game.computer_failure_functions["my_lockout"] = function(params)
+  local session = params.session
+  session:print_error("LOCKOUT: security level raised.")
+  session:set_security(session:get_security() + 1)
+  session:add_failure("alarm")
+  session:query_any()
+end
+```
+
+Use both ids in mapgen:
+
+```json
+"computers": {
+  "6": {
+    "name": "My Terminal",
+    "security": 1,
+    "options": [ { "name": "Status report", "action": "my_status" } ],
+    "failures": [ { "action": "my_lockout" } ]
+  }
+}
+```
+
+`--check-mods` reports each option or failure id that has no Lua function.

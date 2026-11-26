@@ -816,6 +816,37 @@ Places a gas pump with gasoline (or sometimes diesel) in it.
 | amount | (optional, integer or min/max array) the amount of fuel to be placed in the pump.     |
 | fuel   | (optional, string: "gasoline" or "diesel") the type of fuel to be placed in the pump. |
 
+### Place a computer terminal with "computers"
+
+Places a console (terrain `t_console`) with a computer. Lua functions run its options and
+failures. To write your own, see
+[Computer Terminals](../../../lua/guides/cookbook.md#computer-terminals).
+
+Example:
+
+```json
+"computers": {
+  "6": {
+    "name": "Consolidated Computerized Bank of the Treasury",
+    "security": 3,
+    "options": [ { "name": "Open Vault", "action": "unlock" } ],
+    "failures": [ { "action": "shutdown" }, { "action": "alarm" } ]
+  }
+}
+```
+
+| Field         | Description                                                                                                            |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| name          | (optional, string) the name of the computer, shown at login.                                                           |
+| security      | (optional, integer) the login security level. If it is above 0, the player must hack the login. Defaults to 0.         |
+| access_denied | (optional, string) the message shown when the login needs a hack. Defaults to `ERROR!  Access denied!`.                |
+| options       | (optional, array) the menu options. Each has `name`, `action` and an optional `security` that defaults to 0.           |
+| failures      | (optional, array) the failures. Each has an `action`. A failed hack runs one of them at random.                        |
+| target        | (optional, boolean) if true, and update_mapgen runs it with a mission, the computer becomes the target of the mission. |
+
+`action` in `options` is a key of `game.computer_functions`. `action` in `failures` is a key of
+`game.computer_failure_functions`. The built-in ones are in `data/json/lua/computer.lua`.
+
 ### Place items from an item group with "items"
 
 | Field  | Description                                                                                                                                                                                                                                                                                                                   |

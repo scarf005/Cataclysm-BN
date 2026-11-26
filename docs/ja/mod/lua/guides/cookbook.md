@@ -746,3 +746,67 @@ if itype_raw:slot_tool() then
     print("ツール品質: " .. tool_data.quality)
 end
 ```
+
+## コンピューター端末
+
+マップジェンの `"computers"` 項目は、メニュー項目ごとに action id を、ハッキング失敗時の効果ごとに id
+を指定します。メニュー項目を選ぶと `game.computer_functions[id]` を、ハッキングに失敗すると
+`game.computer_failure_functions[id]` を実行します。マップジェンの検査は `main.lua`
+より先に実行されるため、どちらも `preload.lua` で登録してください。どちらのコールバックも `session`
+（`ComputerSession`）と `user`（`Avatar`）を持つ `params` テーブルを受け取ります。セッションのメソッド一覧は
+[Lua リファレンス](../reference/lua.md) の `ComputerSession` を参照してください。
+
+組み込みのメニュー項目と失敗時の効果は `data/json/lua/computer.lua` にあります。Lua Computer Demo
+MOD（`data/mods/lua_computer_demo`）には、デバッグメニューから生成できる端末があります。
+
+### メニュー項目を追加する
+
+この関数は警報数を表示します。「はい」を選ぶと、組み込みの `unlock` をセキュリティレベル2で実行する項目を
+追加し、自分自身はメニューから削除します。
+
+```lua
+game.computer_functions["my_status"] = function(params)
+  local session = params.session
+  session:reset_terminal()
+  session:print_line(string.format("Alerts: %d.", session:get_alerts()))
+  if session:query_bool("Add the vault option?") then
+    session:add_option("Open vault", "unlock", 2)
+    session:remove_option("my_status")
+  end
+  session:query_any()
+end
+```
+
+### ハッキング失敗時の効果を追加する
+
+ハッキングに失敗すると、コンピューターのリストから失敗時の効果を1つランダムに実行します。リストが空の場合、
+ログインのハッキングに失敗するとセッションが終わり、メニュー項目のハッキングに失敗すると `shutdown`
+を実行します。
+
+この効果はログインのセキュリティレベルを1上げ、組み込みの `alarm` を追加します。ログインのハッキングに
+成功すると、ログインのセキュリティレベルは0になります。
+
+```lua
+game.computer_failure_functions["my_lockout"] = function(params)
+  local session = params.session
+  session:print_error("LOCKOUT: security level raised.")
+  session:set_security(session:get_security() + 1)
+  session:add_failure("alarm")
+  session:query_any()
+end
+```
+
+マップジェンで両方の id を使います。
+
+```json
+"computers": {
+  "6": {
+    "name": "My Terminal",
+    "security": 1,
+    "options": [ { "name": "Status report", "action": "my_status" } ],
+    "failures": [ { "action": "my_lockout" } ]
+  }
+}
+```
+
+`--check-mods` は、Lua 関数のないメニュー項目や失敗時の効果の id を報告します。

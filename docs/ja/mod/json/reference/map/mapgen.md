@@ -706,6 +706,36 @@ X と Y の値は、`0` から `23` までの単一の整数、または2つの�
 | amount     | （任意、整数または最小値/最大値の配列）ポンプに配置する燃料の量。        |
 | fuel       | （任意、文字列: `gasoline` または `diesel`）ポンプに配置する燃料の種類。 |
 
+### `computers` でコンピューター端末を配置する
+
+コンソール（地形 `t_console`）とコンピューターを配置します。メニュー項目とハッキング失敗時の効果は Lua 関数で実行します。
+自作する方法は [コンピューター端末](../../../lua/guides/cookbook.md#コンピューター端末) を参照してください。
+
+例:
+
+```json
+"computers": {
+  "6": {
+    "name": "Consolidated Computerized Bank of the Treasury",
+    "security": 3,
+    "options": [ { "name": "Open Vault", "action": "unlock" } ],
+    "failures": [ { "action": "shutdown" }, { "action": "alarm" } ]
+  }
+}
+```
+
+| フィールド    | 説明                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| name          | （任意、文字列）ログイン時に表示されるコンピューター名。                                                                  |
+| security      | （任意、整数）ログインのセキュリティレベル。0 より大きい場合、ログインをハッキングする必要があります。デフォルトは0です。 |
+| access_denied | （任意、文字列）ログインにハッキングが必要なときに表示されるメッセージ。デフォルトは `ERROR!  Access denied!` です。      |
+| options       | （任意、配列）メニュー項目。各項目は `name`、`action`、任意の `security`（デフォルトは0）を持ちます。                     |
+| failures      | （任意、配列）ハッキング失敗時の効果。各項目は `action` を持ちます。失敗するとその中から1つをランダムに実行します。       |
+| target        | （任意、真偽値）true で、update_mapgen がミッション付きで実行すると、このコンピューターがミッションの目標になります。     |
+
+`options` の `action` は `game.computer_functions` のキーで、`failures` の `action` は
+`game.computer_failure_functions` のキーです。組み込みの関数は `data/json/lua/computer.lua` にあります。
+
 ### `items` でアイテムグループからアイテムを配置する
 
 | フィールド | 説明                                                                                                                                                                                                                                                                                                                                       |
