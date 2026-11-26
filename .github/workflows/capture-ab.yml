@@ -8,7 +8,7 @@ permissions: { contents: read }
 
 env:
   UPSTREAM: "https://github.com/scarf005/Cataclysm-BN.git"
-  BEFORE: 9659ee28b66609b77a18e9087eb19167829444a7
+  BEFORE: 77180d94145051129e041993aa1e2d6fbf154100
   AFTER: 77180d94145051129e041993aa1e2d6fbf154100
 
 # Binaries come from the capture-bins-11046 release; nothing is built here.
@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { scene: hay, wait: 2h }
+          - { scene: npcs, wait: 6h }
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 1 }
@@ -33,7 +33,7 @@ jobs:
           sudo locale-gen en_US.UTF-8
           gh release download capture-bins-11046 -R "$GITHUB_REPOSITORY" -p capture-bins-11046.tar.gz
           tar xzf capture-bins-11046.tar.gz
-          for sha in "$AFTER" "$BEFORE"; do
+          for sha in $(printf '%s\n' "$AFTER" "$BEFORE" | sort -u); do
             LD_LIBRARY_PATH="bins/$sha" ldd "bins/$sha/cataclysm-bn" | tee "bins/$sha/ldd.txt"
             ! grep 'not found' "bins/$sha/ldd.txt"
             git fetch --depth=1 "$UPSTREAM" "$sha"
@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p out
           printf 'set -g default-terminal "xterm-256color"\n' > ~/.tmux.conf
-          export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 WAIT_FOR=${{ matrix.wait }} SCENE=${{ matrix.scene }}
+          export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 WAIT_FOR=${{ matrix.wait }} SCENE=${{ matrix.scene }} BEFORE_OPTION=ACTIVITY_SKIP_NPC_AI_CADENCE=false
           bash .github/capture/drive.sh fire "$PWD/bins/$BEFORE/cataclysm-bn" "$RUNNER_TEMP/tree-$BEFORE" "$PWD/bins/$AFTER/cataclysm-bn" "$RUNNER_TEMP/tree-$AFTER" "$PWD/out"
 
       - uses: actions/upload-artifact@v4

@@ -88,6 +88,18 @@ game.add_hook("on_game_load", function()
   if storage.scene then return end
   -- a watch shows the exact time in the sidebar
   av:wear_detached(gapi.create_item(ItypeId.new("wristwatch"), -1), false)
+  if scene == "npcs" then
+    -- the npcs bench scene: 8 calm farmers 4 to 18 tiles east and west of the avatar
+    for i = 0, 7 do
+      local dx = i % 2 == 1 and 4 + i * 2 or -4 - i * 2
+      local p = TripointBubMs.new(c.x + dx, c.y + i % 3 - 1, c.z)
+      map:set_ter_at(p, TerId.new("t_dirt"):int_id())
+      map:set_furn_at(p, FurnId.new("f_null"):int_id())
+      map:place_npc(p, "farmer")
+    end
+    storage.scene = "npcs"
+    return
+  end
   if scene == "hay" then
     -- the hay_fire bench scene in sight: a row of 24 hay bales 8 tiles south, lit at the 10th bale, on open ground
     for dx = -14, 20 do
@@ -183,7 +195,7 @@ EOF2
   log_state "$W/create" scene
   local line; line=$(lua_val "$W/create" scene)
   log "scene line: $line"
-  [ "${SCENE:-fireplace}" = hay ] && return
+  [ "${SCENE:-fireplace}" != fireplace ] && return
   line=$(cut -d' ' -f1-3 <<< "$line")
   local sav; sav=$(ls "$wd"/*.sav | head -1)
   python3 - "${sav%.sav}.zones.json" $line << 'EOF2'
@@ -211,6 +223,12 @@ create() {
   stop create "$W/create"
   [ "$mode" = fire ] && scene_setup
   cp -a "$W/create" "$W/before"; cp -a "$W/create" "$W/after"
+  # BEFORE_OPTION=NAME=value: an option only the before profile sets
+  if [ -n "$BEFORE_OPTION" ]; then
+    printf '[{"name":"COMPUTE_ACCELERATION","value":"cpu"},{"name":"%s","value":"%s"}]\n' \
+      "${BEFORE_OPTION%%=*}" "${BEFORE_OPTION#*=}" > "$W/before/config/options.json"
+    cat "$W/before/config/options.json" | tee -a "$out/drive.log"
+  fi
 }
 
 # 2. load the save: main menu, Load, world, character
