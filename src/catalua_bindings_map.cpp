@@ -600,6 +600,8 @@ void cata::detail::reg_map( sol::state &lua )
         luna::set_fx( ut, "has_ter_flag_at",
                       sol::resolve<bool( const std::string &, const tripoint_bub_ms & ) const>( &map::has_flag_ter ) );
         luna::set_fx( ut, "get_ter_at", sol::resolve<ter_id( const tripoint_bub_ms & )const>( &map::ter ) );
+        DOC( "Returns true if creatures can move onto the point." );
+        luna::set_fx( ut, "passable", &map::passable );
         luna::set_fx( ut, "set_ter_at",
                       sol::resolve<bool( const tripoint_bub_ms &, const ter_id & )>( &map::ter_set ) );
         luna::set_fx( ut, "has_furn_flag_at",

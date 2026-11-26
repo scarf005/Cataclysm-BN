@@ -9,28 +9,6 @@ class JsonIn;
 class JsonOut;
 class JsonObject;
 
-enum computer_failure_type {
-    COMPFAIL_NULL = 0,
-    COMPFAIL_ALARM,
-    COMPFAIL_AMIGARA,
-    COMPFAIL_DAMAGE,
-    COMPFAIL_DESTROY_BLOOD,
-    COMPFAIL_DESTROY_DATA,
-    COMPFAIL_MANHACKS,
-    COMPFAIL_PUMP_EXPLODE,
-    COMPFAIL_PUMP_LEAK,
-    COMPFAIL_SECUBOTS,
-    COMPFAIL_SHUTDOWN,
-    NUM_COMPUTER_FAILURES
-};
-
-template<typename E> struct enum_traits;
-
-template<>
-struct enum_traits<computer_failure_type> {
-    static constexpr computer_failure_type last = NUM_COMPUTER_FAILURES;
-};
-
 struct computer_option {
     std::string name;
     /// Key of the Lua function in `game.computer_functions`.
@@ -47,10 +25,11 @@ struct computer_option {
 };
 
 struct computer_failure {
-    computer_failure_type type;
+    /// Key of the Lua function in `game.computer_failure_functions`.
+    std::string action;
 
     computer_failure();
-    computer_failure( computer_failure_type t ) : type( t ) {
+    computer_failure( const std::string &a ) : action( a ) {
     }
     // Save to/load from saves
     void serialize( JsonOut &jout ) const;
@@ -69,7 +48,7 @@ class computer
         void add_option( const computer_option &opt );
         void add_option( const std::string &opt_name, const std::string &action, int security );
         void add_failure( const computer_failure &failure );
-        void add_failure( computer_failure_type failure );
+        void add_failure( const std::string &action );
         void set_access_denied_msg( const std::string &new_msg );
         void set_mission( int id );
         // Save/load

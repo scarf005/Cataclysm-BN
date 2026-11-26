@@ -1,6 +1,5 @@
 #pragma once
 
-#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,7 +20,8 @@ class computer_session
 
         /// Runs `game.computer_functions[action]` after the base 30 move cost.
         void activate_function( const std::string &action );
-        void activate_failure( computer_failure_type fail );
+        /// Runs `game.computer_failure_functions[action]`.
+        void activate_failure( const std::string &action );
 
         /// Terminal output for the Lua actions. Text is printed as is, without formatting.
         void reset_terminal();
@@ -45,8 +45,13 @@ class computer_session
         void set_alerts( int alerts );
         /// The mission this computer belongs to, or nullptr.
         auto get_mission() const -> mission *; // *NOPAD*
+        void add_option( const std::string &name, const std::string &action, int security );
         void remove_option( const std::string &action );
         void clear_options();
+        void add_failure( const std::string &action );
+        /// Security level of the login. 0 means no hacking is needed. Each option has its own.
+        auto get_security() const -> int;
+        void set_security( int security );
 
     private:
         computer &comp;
@@ -74,17 +79,4 @@ class computer_session
             quit,
         };
         auto query_ynq( const std::string &text ) -> ynq;
-
-        void failure_alarm();
-        void failure_amigara();
-        void failure_damage();
-        void failure_destroy_blood();
-        void failure_destroy_data();
-        void failure_manhacks();
-        void failure_pump_explode();
-        void failure_pump_leak();
-        void failure_secubots();
-        void failure_shutdown();
-        static const std::map<computer_failure_type, void( computer_session::* )()>
-        computer_failure_functions;
 };

@@ -406,6 +406,7 @@ void reg_item( sol::state &lua )
         SET_FX( is_reloadable );
         luna::set_fx( ut, "has_use", []( item & it, std::string use ) { return it.get_use( use ); } );
         SET_FX( rotten );
+        SET_FX( set_birthday );
         DOC( "Returns true if the item is in the given phase, for example liquid" );
         luna::set_fx( ut, "made_of_phase", sol::resolve<bool( phase_id ) const>( &item::made_of ) );
         SET_FX( has_vitamin );

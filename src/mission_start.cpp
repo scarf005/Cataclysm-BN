@@ -438,9 +438,9 @@ void static create_lab_consoles(
         computer *tmpcomp = compmap.add_computer( comppoint, _( comp_name ), security );
         tmpcomp->set_mission( miss->get_id() );
         tmpcomp->add_option( _( download_name ), "download_software", security );
-        tmpcomp->add_failure( COMPFAIL_ALARM );
-        tmpcomp->add_failure( COMPFAIL_DAMAGE );
-        tmpcomp->add_failure( COMPFAIL_MANHACKS );
+        tmpcomp->add_failure( "alarm" );
+        tmpcomp->add_failure( "damage" );
+        tmpcomp->add_failure( "manhacks" );
     }
 }
 

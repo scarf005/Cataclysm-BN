@@ -8,30 +8,15 @@
 #include "color.h"
 #include "debug.h"
 #include "enums.h"
-#include "event.h"
-#include "event_bus.h"
-#include "explosion.h"
-#include "flag.h"
 #include "game.h"
-#include "game_constants.h"
 #include "init.h"
 #include "input.h"
-#include "int_id.h"
-#include "item.h"
-#include "item_contents.h"
-#include "map/map.h"
-#include "map/mapdata.h"
-#include "map_iterator.h"
-#include "messages.h"
 #include "mission.h"
-#include "monster.h"
 #include "options.h"
 #include "output.h"
 #include "point.h"
 #include "rng.h"
-#include "sounds.h"
 #include "string_formatter.h"
-#include "timed_event.h"
 #include "translations.h"
 #include "type_id.h"
 #include "ui.h"
@@ -44,17 +29,35 @@
 #include <string>
 #include <utility>
 
-static const efftype_id effect_amigara( "amigara" );
-
-static const itype_id itype_usb_drive( "usb_drive" );
-static const itype_id itype_vacutainer( "vacutainer" );
-
 static const skill_id skill_computer( "computer" );
 
-static const mtype_id mon_manhack( "mon_manhack" );
-static const mtype_id mon_secubot( "mon_secubot" );
+namespace
+{
 
-static const std::string flag_CONSOLE( "CONSOLE" );
+/// Runs `game.<table>[key]` with the session and the avatar as `params`.
+/// Returns false if the table has no such function.
+auto run_lua_callback( computer_session &session, const std::string &table,
+                       const std::string &key ) -> bool
+{
+    auto &state = *DynamicDataLoader::get_instance().lua;
+    const auto func = cata::get_lua_callback( state, table, key );
+    if( !func ) {
+        debugmsg( "Computer callback '%s' is not in game.%s", key, table );
+        return false;
+    }
+    try {
+        auto params = state.lua.create_table();
+        params["session"] = &session;
+        params["user"] = &g->u;
+        auto res = func( params );
+        check_func_result( res );
+    } catch( std::runtime_error &e ) {
+        debugmsg( "Failed to run computer callback '%s' in game.%s: %s", key, table, e.what() );
+    }
+    return true;
+}
+
+} // namespace
 
 static catacurses::window init_window()
 {
@@ -209,236 +212,23 @@ void computer_session::activate_function( const std::string &action )
         return;
     }
     // Token move cost for any action, if an action takes more time than that it can be set in the action.
-    g->u.moves -= 30;
-    auto &state = *DynamicDataLoader::get_instance().lua;
-    const auto func = cata::get_lua_callback( state, "computer_functions", action );
-    if( !func ) {
-        debugmsg( "Computer action '%s' is not in game.computer_functions", action );
-        return;
-    }
-    try {
-        auto params = state.lua.create_table();
-        params["session"] = this;
-        params["user"] = &g->u;
-        auto res = func( params );
-        check_func_result( res );
-    } catch( std::runtime_error &e ) {
-        debugmsg( "Failed to run computer action '%s': %s", action, e.what() );
+    if( run_lua_callback( *this, "computer_functions", action ) ) {
+        g->u.moves -= 30;
     }
 }
 
 void computer_session::activate_random_failure()
 {
     comp.next_attempt = calendar::turn + 45_minutes;
-    static const computer_failure default_failure( COMPFAIL_SHUTDOWN );
-    const computer_failure &fail = random_entry( comp.failures, default_failure );
-    activate_failure( fail.type );
+    static const auto default_failure = computer_failure( "shutdown" );
+    activate_failure( random_entry( comp.failures, default_failure ).action );
 }
 
-const std::map<computer_failure_type, void( computer_session::* )()>
-computer_session::computer_failure_functions = {
-    { COMPFAIL_ALARM, &computer_session::failure_alarm },
-    { COMPFAIL_AMIGARA, &computer_session::failure_amigara },
-    { COMPFAIL_DAMAGE, &computer_session::failure_damage },
-    { COMPFAIL_DESTROY_BLOOD, &computer_session::failure_destroy_blood },
-    { COMPFAIL_DESTROY_DATA, &computer_session::failure_destroy_data },
-    { COMPFAIL_MANHACKS, &computer_session::failure_manhacks },
-    { COMPFAIL_PUMP_EXPLODE, &computer_session::failure_pump_explode },
-    { COMPFAIL_PUMP_LEAK, &computer_session::failure_pump_leak },
-    { COMPFAIL_SECUBOTS, &computer_session::failure_secubots },
-    { COMPFAIL_SHUTDOWN, &computer_session::failure_shutdown },
-};
-
-void computer_session::activate_failure( computer_failure_type fail )
+void computer_session::activate_failure( const std::string &action )
 {
-    const auto it = computer_failure_functions.find( fail );
-    if( it != computer_failure_functions.end() ) {
-        ( this->*( it->second ) )();
+    if( action != "null" ) {
+        run_lua_callback( *this, "computer_failure_functions", action );
     }
-}
-
-void computer_session::failure_shutdown()
-{
-    bool found_tile = false;
-    map &here = get_map();
-    for( const auto &p : here.points_in_radius( g->u.bub_pos(), 1 ) ) {
-        if( here.has_flag( flag_CONSOLE, p ) ) {
-            here.ter_set( p, t_console_broken );
-            add_msg( m_bad, _( "The console shuts down." ) );
-            found_tile = true;
-        }
-    }
-    if( found_tile ) {
-        return;
-    }
-    for( const auto &p : here.points_on_zlevel() ) {
-        if( here.has_flag( flag_CONSOLE, p ) ) {
-            here.ter_set( p, t_console_broken );
-            add_msg( m_bad, _( "The console shuts down." ) );
-        }
-    }
-}
-
-void computer_session::failure_alarm()
-{
-    g->events().send<event_type::triggers_alarm>( g->u.getID() );
-    sound_event se;
-    se.origin = g->u.bub_pos();
-    se.volume = 100;
-    se.category = sounds::sound_t::alarm;
-    se.description = _( "an alarm sound!" );
-    se.id = "environment";
-    se.variant = "alarm";
-    sounds::sound( se );
-    if( g->get_levz() > 0 && !g->timed_events.queued( TIMED_EVENT_WANTED ) ) {
-        g->timed_events.add( TIMED_EVENT_WANTED, calendar::turn + 30_minutes, 0,
-                             g->u.abs_sm_pos() );
-    }
-}
-
-void computer_session::failure_manhacks()
-{
-    int num_robots = rng( 4, 8 );
-    const tripoint_range<tripoint_bub_ms> range =
-        get_map().points_in_radius( get_player_character().bub_pos(), 3 );
-    for( int i = 0; i < num_robots; i++ ) {
-        if( g->place_critter_within( mon_manhack, range ) ) {
-            add_msg( m_warning, _( "Manhacks drop from compartments in the ceiling." ) );
-        }
-    }
-}
-
-void computer_session::failure_secubots()
-{
-    int num_robots = 1;
-    const tripoint_range<tripoint_bub_ms> range =
-        get_map().points_in_radius( get_player_character().bub_pos(), 3 );
-    for( int i = 0; i < num_robots; i++ ) {
-        if( g->place_critter_within( mon_secubot, range ) ) {
-            add_msg( m_warning, _( "Secubots emerge from compartments in the floor." ) );
-        }
-    }
-}
-
-void computer_session::failure_damage()
-{
-    add_msg( m_neutral, _( "The console shocks you." ) );
-    if( g->u.is_elec_immune() ) {
-        add_msg( m_good, _( "You're protected from electric shocks." ) );
-    } else {
-        add_msg( m_bad, _( "Your body is damaged by the electric shock!" ) );
-        g->u.hurtall( rng( 1, 10 ), nullptr );
-    }
-}
-
-void computer_session::failure_pump_explode()
-{
-    add_msg( m_warning, _( "The pump explodes!" ) );
-    map &here = get_map();
-    for( const auto &p : here.points_on_zlevel() ) {
-        if( here.ter( p ) == t_sewage_pump ) {
-            here.make_rubble( p );
-            explosion_handler::explosion( p, nullptr, 10 );
-        }
-    }
-}
-
-void computer_session::failure_pump_leak()
-{
-    add_msg( m_warning, _( "Sewage leaks!" ) );
-    map &here = get_map();
-    for( const auto &p : here.points_on_zlevel() ) {
-        if( here.ter( p ) != t_sewage_pump ) {
-            continue;
-        }
-        const int leak_size = rng( 4, 10 );
-        for( int i = 0; i < leak_size; i++ ) {
-            std::vector<tripoint_bub_ms> next_move;
-            if( here.passable( p + point_north ) ) {
-                next_move.push_back( p + point_north );
-            }
-            if( here.passable( p + point_east ) ) {
-                next_move.push_back( p + point_east );
-            }
-            if( here.passable( p + point_south ) ) {
-                next_move.push_back( p + point_south );
-            }
-            if( here.passable( p + point_west ) ) {
-                next_move.push_back( p + point_west );
-            }
-            if( next_move.empty() ) {
-                break;
-            }
-            here.ter_set( random_entry( next_move ), t_sewage );
-        }
-    }
-}
-
-void computer_session::failure_amigara()
-{
-    g->timed_events.add( TIMED_EVENT_AMIGARA, calendar::turn + 30_seconds );
-    g->u.add_effect( effect_amigara, 2_minutes );
-    explosion_handler::explosion( tripoint_bub_ms( rng( 0, g_mapsize_x ), rng( 0, g_mapsize_y ),
-                                  g->get_levz() ),
-                                  nullptr,
-                                  10,
-                                  0.7, false, 10 );
-    explosion_handler::explosion( tripoint_bub_ms( rng( 0, g_mapsize_x ), rng( 0, g_mapsize_y ),
-                                  g->get_levz() ),
-                                  nullptr,
-                                  10,
-                                  0.7, false, 10 );
-    comp.remove_option( "amigara_start" );
-}
-
-void computer_session::failure_destroy_blood()
-{
-    print_error( _( "ERROR: Disruptive Spin" ) );
-    map &here = get_map();
-    for( const auto &dest : here.points_in_radius( g->u.bub_pos(), 2 ) ) {
-        if( here.furn( dest ) == furn_str_id( "f_centrifuge" ) ) {
-            map_stack items = here.i_at( dest );
-            if( items.empty() ) {
-                print_error( _( "ERROR: Please place sample in centrifuge." ) );
-            } else if( items.size() > 1 ) {
-                print_error( _( "ERROR: Please remove all but one sample from centrifuge." ) );
-            } else if( items.only_item().typeId() != itype_vacutainer ) {
-                print_error( _( "ERROR: Please use blood-contained samples." ) );
-            } else if( items.only_item().contents.empty() ) {
-                print_error( _( "ERROR: Blood draw kit, empty." ) );
-            } else if( !items.only_item().contents.front().has_flag( flag_IS_BLOOD ) ) {
-                print_error( _( "ERROR: Please only use blood samples." ) );
-            } else {
-                print_error( _( "ERROR: Blood sample destroyed." ) );
-                here.i_clear( dest );
-            }
-        }
-    }
-    query_any();
-}
-
-void computer_session::failure_destroy_data()
-{
-    print_error( _( "ERROR: ACCESSING DATA MALFUNCTION" ) );
-    map &here = get_map();
-    for( const auto &p : here.points_in_radius( g->u.bub_pos(), 2 ) ) {
-        if( here.ter( p ) == t_floor_blue ) {
-            map_stack items = here.i_at( p );
-            if( items.empty() ) {
-                print_error( _( "ERROR: Please place memory bank in scan area." ) );
-            } else if( items.size() > 1 ) {
-                print_error( _( "ERROR: Please only scan one item at a time." ) );
-            } else if( items.only_item().typeId() != itype_usb_drive ) {
-                print_error( _( "ERROR: Memory bank destroyed or not present." ) );
-            } else if( items.only_item().contents.empty() ) {
-                print_error( _( "ERROR: Memory bank is empty." ) );
-            } else {
-                print_error( _( "ERROR: Data bank destroyed." ) );
-                here.i_clear( p );
-            }
-        }
-    }
-    query_any();
 }
 
 auto computer_session::query_bool( const std::string &text ) -> bool
@@ -479,6 +269,12 @@ auto computer_session::get_mission() const -> mission * // *NOPAD*
     return mission::find( comp.mission_id );
 }
 
+void computer_session::add_option( const std::string &name, const std::string &action,
+                                   const int security )
+{
+    comp.add_option( name, action, security );
+}
+
 void computer_session::remove_option( const std::string &action )
 {
     comp.remove_option( action );
@@ -487,6 +283,21 @@ void computer_session::remove_option( const std::string &action )
 void computer_session::clear_options()
 {
     comp.options.clear();
+}
+
+void computer_session::add_failure( const std::string &action )
+{
+    comp.add_failure( action );
+}
+
+auto computer_session::get_security() const -> int
+{
+    return comp.security;
+}
+
+void computer_session::set_security( const int security )
+{
+    comp.security = security;
 }
 
 auto computer_session::query_ynq( const std::string &text ) -> ynq

@@ -1,12 +1,9 @@
 #include "computer.h"
 
 #include <array>
-#include <cstdlib>
 #include <locale>
 #include <sstream>
 
-#include "debug.h"
-#include "enum_conversions.h"
 #include "json.h"
 #include "string_utils.h"
 #include "translations.h"
@@ -39,22 +36,21 @@ void computer_option::deserialize( JsonIn &jin )
 }
 
 computer_failure::computer_failure()
-    : type( COMPFAIL_NULL )
+    : action( "null" )
 {
 }
 
 void computer_failure::serialize( JsonOut &jout ) const
 {
     jout.start_object();
-    jout.member( "action" );
-    jout.write_as_string( type );
+    jout.member( "action", action );
     jout.end_object();
 }
 
 void computer_failure::deserialize( JsonIn &jin )
 {
     const JsonObject jo = jin.get_object();
-    type = jo.get_enum_value<computer_failure_type>( "action" );
+    action = jo.get_string( "action" );
 }
 
 computer::computer( const std::string &new_name, int new_security )
@@ -85,9 +81,9 @@ void computer::add_failure( const computer_failure &failure )
     failures.emplace_back( failure );
 }
 
-void computer::add_failure( computer_failure_type failure )
+void computer::add_failure( const std::string &action )
 {
-    add_failure( computer_failure( failure ) );
+    add_failure( computer_failure( action ) );
 }
 
 void computer::set_access_denied_msg( const std::string &new_msg )
@@ -161,9 +157,26 @@ auto computer_action_from_legacy_enum( const int val ) -> std::string
     return val >= 0 && val < static_cast<int>( names.size() ) ? names[val] : "null";
 }
 
-} // namespace
+auto computer_failure_from_legacy_enum( const int val ) -> std::string
+{
+    // Used to migrate old saves. Do not reorder!
+    static const auto names = std::array{
+        "null",
+        "shutdown",
+        "alarm",
+        "manhacks",
+        "secubots",
+        "damage",
+        "pump_explode",
+        "pump_leak",
+        "amigara",
+        "destroy_blood",
+        "destroy_data"
+    };
+    return val >= 0 && val < static_cast<int>( names.size() ) ? names[val] : "null";
+}
 
-static computer_failure_type computer_failure_type_from_legacy_enum( int val );
+} // namespace
 
 void computer::load_legacy_data( const std::string &data )
 {
@@ -203,7 +216,7 @@ void computer::load_legacy_data( const std::string &data )
     for( int n = 0; n < failsize; n++ ) {
         int tmpfail;
         dump >> tmpfail;
-        add_failure( computer_failure_type_from_legacy_enum( tmpfail ) );
+        add_failure( computer_failure_from_legacy_enum( tmpfail ) );
     }
 
     std::string tmp_access_denied;
@@ -258,54 +271,6 @@ void computer::remove_option( const std::string &action )
     }
 }
 
-static computer_failure_type computer_failure_type_from_legacy_enum( const int val )
-{
-    switch( val ) {
-        // Used to migrate old saves. Do not change the numbers!
-        // *INDENT-OFF*
-        default: return COMPFAIL_NULL;
-        case 0: return COMPFAIL_NULL;
-        case 1: return COMPFAIL_SHUTDOWN;
-        case 2: return COMPFAIL_ALARM;
-        case 3: return COMPFAIL_MANHACKS;
-        case 4: return COMPFAIL_SECUBOTS;
-        case 5: return COMPFAIL_DAMAGE;
-        case 6: return COMPFAIL_PUMP_EXPLODE;
-        case 7: return COMPFAIL_PUMP_LEAK;
-        case 8: return COMPFAIL_AMIGARA;
-        case 9: return COMPFAIL_DESTROY_BLOOD;
-        case 10: return COMPFAIL_DESTROY_DATA;
-        // *INDENT-ON*
-    }
-}
-
-namespace io
-{
-template<>
-std::string enum_to_string<computer_failure_type>( const computer_failure_type fail )
-{
-    switch( fail ) {
-        // *INDENT-OFF*
-        case COMPFAIL_NULL: return "null";
-        case COMPFAIL_ALARM: return "alarm";
-        case COMPFAIL_AMIGARA: return "amigara";
-        case COMPFAIL_DAMAGE: return "damage";
-        case COMPFAIL_DESTROY_BLOOD: return "destroy_blood";
-        case COMPFAIL_DESTROY_DATA: return "destroy_data";
-        case COMPFAIL_MANHACKS: return "manhacks";
-        case COMPFAIL_PUMP_EXPLODE: return "pump_explode";
-        case COMPFAIL_PUMP_LEAK: return "pump_leak";
-        case COMPFAIL_SECUBOTS: return "secubots";
-        case COMPFAIL_SHUTDOWN: return "shutdown";
-        // *INDENT-ON*
-        case NUM_COMPUTER_FAILURES:
-            break;
-    }
-    debugmsg( "Invalid computer_failure_type" );
-    abort();
-}
-} // namespace io
-
 computer_option computer_option::from_json( const JsonObject &jo )
 {
     translation name;
@@ -317,6 +282,5 @@ computer_option computer_option::from_json( const JsonObject &jo )
 
 computer_failure computer_failure::from_json( const JsonObject &jo )
 {
-    const computer_failure_type type = jo.get_enum_value<computer_failure_type>( "action" );
-    return computer_failure( type );
+    return computer_failure( jo.get_string( "action" ) );
 }

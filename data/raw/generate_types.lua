@@ -644,6 +644,7 @@ doc_gen_func.impl = function()
 ---@field mapgen_functions table<string, MapgenFunction>
 ---@field examine_functions table<string, fun(params: { user: Character, pos: TripointBubMs })>
 ---@field computer_functions table<string, fun(params: ComputerParams)>
+---@field computer_failure_functions table<string, fun(params: ComputerParams)>
 ---@field activity_functions table<string, LuaActivityFinishFunction>
 ---@field hooks hooks
 ---@field current_mod string

@@ -2615,13 +2615,15 @@ public:
     }
     void check(const std::string& oter_name, const mapgen_parameters&) const override {
         auto& state = *DynamicDataLoader::get_instance().lua;
-        for (const auto& opt : options) {
-            if (opt.action != "null"
-                && cata::get_lua_callback(state, "computer_functions", opt.action) == sol::lua_nil) {
-                debugmsg("mapgen '%s' uses computer action '%s' that is not in "
-                         "game.computer_functions",
-                         oter_name, opt.action);
+        const auto check_callback = [&](const std::string& table, const std::string& action) {
+            if (action != "null" && cata::get_lua_callback(state, table, action) == sol::lua_nil) {
+                debugmsg("mapgen '%s' uses computer action '%s' that is not in game.%s", oter_name,
+                         action, table);
             }
+        };
+        for (const auto& opt : options) { check_callback("computer_functions", opt.action); }
+        for (const auto& fail : failures) {
+            check_callback("computer_failure_functions", fail.action);
         }
     }
     auto has_vehicle_collision(const mapgendata& dat, const point_rel_ms& p) const

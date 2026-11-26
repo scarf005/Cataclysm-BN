@@ -4,7 +4,6 @@
 #include "catalua_luna_doc.h"
 #include "computer.h"
 #include "computer_session.h"
-#include "enum_conversions.h"
 #include "mission.h"
 
 auto cata::detail::reg_computer(sol::state& lua) -> void {
@@ -36,12 +35,17 @@ auto cata::detail::reg_computer(sol::state& lua) -> void {
     luna::set_fx(ut, "set_alerts", &computer_session::set_alerts);
     DOC("The mission this computer belongs to, or nil.");
     luna::set_fx(ut, "get_mission", &computer_session::get_mission);
+    DOC("Adds a menu option with a name, an action from `game.computer_functions` and a security level.");
+    luna::set_fx(ut, "add_option", &computer_session::add_option);
     DOC("Removes the first option that runs the given action.");
     luna::set_fx(ut, "remove_option", &computer_session::remove_option);
     DOC("Removes all options, which disables the terminal.");
     luna::set_fx(ut, "clear_options", &computer_session::clear_options);
-    DOC("Runs a computer failure by id, for example `shutdown`.");
-    luna::set_fx(ut, "activate_failure", [](computer_session& s, const std::string& id) {
-        s.activate_failure(io::string_to_enum<computer_failure_type>(id));
-    });
+    DOC("Adds a failure from `game.computer_failure_functions`. A failed hack runs a random failure.");
+    luna::set_fx(ut, "add_failure", &computer_session::add_failure);
+    DOC("Runs a failure from `game.computer_failure_functions`, for example `shutdown`.");
+    luna::set_fx(ut, "activate_failure", &computer_session::activate_failure);
+    DOC("Security level of the login. 0 means no hacking is needed. A successful login hack sets it to 0.");
+    luna::set_fx(ut, "get_security", &computer_session::get_security);
+    luna::set_fx(ut, "set_security", &computer_session::set_security);
 }

@@ -1,9 +1,11 @@
 #include "avatar.h"
 #include "calendar.h"
+#include "cata_variant.h"
 #include "catalua_bindings_game_internal.h"
 #include "catalua_bindings_utils.h"
 #include "catalua_impl.h"
 #include "catalua_luna_doc.h"
+#include "character_id.h"
 #include "debug.h"
 #include "enum_conversions.h"
 #include "event.h"
@@ -12,13 +14,16 @@
 #include "game.h"
 #include "game_inventory.h"
 #include "item.h"
+#include "map/map.h"
 #include "monster.h"
 #include "output.h"
 #include "sounds.h"
 #include "text_snippets.h"
 #include "timed_event.h"
 
+#include <optional>
 #include <stdexcept>
+#include <string>
 
 template <> struct enum_traits<timed_event_type> {
     static constexpr auto last = NUM_TIMED_EVENT_TYPES;
@@ -78,29 +83,78 @@ auto reg_game_api_effects(luna::userlib& lib) -> void {
     DOC("* `power` (number)  ");
     DOC("* `source` (Creature, optional): Who caused it.  ");
     DOC("* `factor` (number, optional): Defaults to 0.8.  ");
-    DOC("* `fire` (boolean, optional): Defaults to false.");
+    DOC("* `fire` (boolean, optional): Defaults to false.  ");
+    DOC("* `casing_mass` (integer, optional): Mass of the shrapnel casing. Defaults to 0, no shrapnel.");
     luna::set_fx(lib, "explosion", [](const sol::table& opts) -> void {
         explosion_handler::explosion(
             opts.get<tripoint_bub_ms>("pos"), opts.get_or<Creature*>("source", nullptr),
-            opts.get<float>("power"), opts.get_or("factor", 0.8f), opts.get_or("fire", false));
+            opts.get<float>("power"), opts.get_or("factor", 0.8f), opts.get_or("fire", false),
+            opts.get_or("casing_mass", 0));
     });
 
     DOC("Starts a resonance cascade at a position.");
     luna::set_fx(lib, "resonance_cascade", &explosion_handler::resonance_cascade);
 
     DOC("Schedules a timed event by id, for example `amigara`.");
-    luna::set_fx(lib, "add_timed_event", [](const std::string& id, const time_point& when) -> void {
-        g->timed_events.add(io::string_to_enum<timed_event_type>(id), when);
+    DOC("`wanted` takes a faction id as `strength` (0 for none) and the target submap as `where`.");
+    luna::set_fx(
+        lib, "add_timed_event",
+        [](const std::string& id, const time_point& when, sol::optional<int> strength,
+           sol::optional<tripoint_abs_sm> where) -> void {
+            const auto type = io::string_to_enum<timed_event_type>(id);
+            if (where) {
+                g->timed_events.add(type, when, strength.value_or(-1), *where);
+            } else {
+                g->timed_events.add(type, when, strength.value_or(-1));
+            }
+        });
+
+    DOC("Returns true if a timed event of this id is queued.");
+    luna::set_fx(lib, "timed_event_queued", [](const std::string& id) -> bool {
+        return g->timed_events.queued(io::string_to_enum<timed_event_type>(id));
     });
 
-    DOC("Sends a game event that has no data fields, for example `opens_portal`.");
-    luna::set_fx(lib, "send_event", [](const std::string& id) -> void {
-        const auto type = io::string_to_enum<event_type>(id);
-        if (!cata::event::get_fields(type).empty()) {
-            throw std::runtime_error("send_event only takes events without data fields: " + id);
-        }
-        g->events().send(cata::event(type, calendar::turn, {}));
-    });
+    DOC("Sends a game event, for example `opens_portal`.");
+    DOC("Events with data fields take a table of them: `gapi.send_event(\"triggers_alarm\", { character = id })`.");
+    DOC("Each field is a CharacterId, a string, an integer or a boolean. Pass string ids as strings.");
+    luna::set_fx(
+        lib, "send_event", [](const std::string& id, sol::optional<sol::table> data) -> void {
+            const auto type = io::string_to_enum<event_type>(id);
+            auto fields = cata::event::data_type{};
+            for (const auto& [name, field_type] : cata::event::get_fields(type)) {
+                const auto value = data ? (*data)[name].get<sol::object>() : sol::object{};
+                const auto text = [&]() -> std::optional<std::string> {
+                    switch (value.get_type()) {
+                        case sol::type::string:
+                            return value.as<std::string>();
+                        case sol::type::number:
+                            return std::to_string(value.as<int>());
+                        case sol::type::boolean:
+                            return value.as<bool>() ? "true" : "false";
+                        default:
+                            if (value.is<character_id>()) {
+                                return std::to_string(value.as<character_id>().get_value());
+                            }
+                            return std::nullopt;
+                    }
+                }();
+                if (!text) {
+                    throw std::runtime_error("send_event '" + id + "' needs field '" + name + "'");
+                }
+                fields.emplace(name, cata_variant::from_string(field_type, std::string(*text)));
+            }
+            g->events().send(cata::event(type, calendar::turn, std::move(fields)));
+        });
+
+    DOC("Asks a yes or no question in a popup. No is selected first. Returns true for yes.");
+    luna::set_fx(lib, "query_yn", [](const std::string& text) -> bool { return query_yn(text); });
+
+    DOC("Places a monster on a random free point within `radius` of `center`. Returns it or nil.");
+    luna::set_fx(
+        lib, "place_monster_within",
+        [](const mtype_id& id, const tripoint_bub_ms& center, int radius) -> monster* {
+            return g->place_critter_within(id, get_map().points_in_radius(center, radius));
+        });
 
     DOC("Returns a random translated snippet from a category, or nil if the category is empty.");
     DOC("With a seed, the same seed gives the same snippet in one game session.");

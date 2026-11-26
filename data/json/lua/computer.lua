@@ -45,14 +45,6 @@ local function level_offsets(user)
   return origin.x, origin.y, user:get_pos_ms().z
 end
 
----@param text string
----@return boolean
-local function query_yn(text)
-  local popup = QueryPopup.new()
-  popup:message(text)
-  return popup:query_yn() == "YES"
-end
-
 ---@return Item?
 local function pick_usb()
   ---@param it Item
@@ -91,7 +83,9 @@ end
 local function download_to(usb, software)
   usb:clear_contents()
   usb:put_in(Item.spawn(software, -1))
-  return usb:get_contents()[1] --[[@as Item]]
+  local downloaded = usb:get_contents()[1] --[[@as Item]]
+  downloaded:set_birthday(gapi.start_of_cataclysm())
+  return downloaded
 end
 
 ---@param session ComputerSession
@@ -225,7 +219,7 @@ function computer.terminate(params)
   local z = params.user:get_pos_ms().z
   for _, mon in ipairs(gapi.get_all_monsters()) do
     local p = mon:get_pos_ms()
-    if p.z == z then
+    if p.z == z and not mon:is_hallucination() then
       local north = here:get_ter_at(TripointBubMs.new(p.x, p.y + -1, p.z))
       local south = here:get_ter_at(TripointBubMs.new(p.x, p.y + 1, p.z))
       if (north == glass and south == wall) or (south == glass and north == wall) then mon:die(params.user) end
@@ -373,7 +367,7 @@ end
 
 ---@param params ComputerParams
 function computer.miss_disarm(params)
-  if not query_yn(locale.gettext("Disarm missile.")) then
+  if not gapi.query_yn(locale.gettext("Disarm missile.")) then
     gapi.add_msg(MsgType.neutral, locale.gettext("Nuclear missile remains active."))
     return
   end
@@ -987,7 +981,7 @@ end
 function computer.extract_rad_source(params)
   local session = params.session
   local user = params.user
-  if not query_yn(locale.gettext("Operation irreversible.  Extract radioactive material?")) then return end
+  if not gapi.query_yn(locale.gettext("Operation irreversible.  Extract radioactive material?")) then return end
   user:mod_moves(-300)
   local here = gapi.get_map()
   local platform = find_rad_platform(here, user:get_pos_ms())
@@ -1077,4 +1071,187 @@ end
 
 for action, fn in pairs(computer) do
   game.computer_functions[action] = fn
+end
+
+-- Failures run when a hack attempt fails. Each computer picks one at random from its list.
+local failure = {}
+
+-- Breaks the consoles next to the user. If there are none, breaks every console on the z-level.
+---@param params ComputerParams
+function failure.shutdown(params)
+  local here = gapi.get_map()
+  local broken = ter("t_console_broken")
+  ---@param points TripointBubMs[]
+  ---@return boolean
+  local function break_consoles(points)
+    local found = false
+    for _, p in ipairs(points) do
+      if here:has_flag_at("CONSOLE", p) then
+        here:set_ter_at(p, broken)
+        gapi.add_msg(MsgType.bad, locale.gettext("The console shuts down."))
+        found = true
+      end
+    end
+    return found
+  end
+  if not break_consoles(here:points_in_radius(params.user:get_pos_ms(), 1)) then
+    break_consoles(here:points_on_zlevel())
+  end
+end
+
+-- Above ground, the alarm also calls the police in 30 minutes.
+---@param params ComputerParams
+function failure.alarm(params)
+  local user = params.user
+  gapi.send_event("triggers_alarm", { character = user:getID() })
+  local pos = user:get_pos_ms()
+  alarm(pos, 100)
+  if pos.z > 0 and not gapi.timed_event_queued("wanted") then
+    gapi.add_timed_event("wanted", gapi.current_turn() + TimeDuration.from_minutes(30), 0, user:global_sm_location())
+  end
+end
+
+---@param params ComputerParams
+function failure.manhacks(params)
+  local manhack = MonsterTypeId.new("mon_manhack")
+  for _ = 1, gapi.rng(4, 8) do
+    if gapi.place_monster_within(manhack, params.user:get_pos_ms(), 3) --[[@as Monster?]] then
+      gapi.add_msg(MsgType.warning, locale.gettext("Manhacks drop from compartments in the ceiling."))
+    end
+  end
+end
+
+---@param params ComputerParams
+function failure.secubots(params)
+  local secubot = MonsterTypeId.new("mon_secubot")
+  if gapi.place_monster_within(secubot, params.user:get_pos_ms(), 3) --[[@as Monster?]] then
+    gapi.add_msg(MsgType.warning, locale.gettext("Secubots emerge from compartments in the floor."))
+  end
+end
+
+---@param params ComputerParams
+function failure.damage(params)
+  local user = params.user
+  gapi.add_msg(MsgType.neutral, locale.gettext("The console shocks you."))
+  if user:is_elec_immune() then
+    gapi.add_msg(MsgType.good, locale.gettext("You're protected from electric shocks."))
+  else
+    gapi.add_msg(MsgType.bad, locale.gettext("Your body is damaged by the electric shock!"))
+    user:hurtall(gapi.rng(1, 10), nil --[[@as Creature]], true)
+  end
+end
+
+---@param _params ComputerParams
+function failure.pump_explode(_params)
+  gapi.add_msg(MsgType.warning, locale.gettext("The pump explodes!"))
+  local here = gapi.get_map()
+  local pump = ter("t_sewage_pump")
+  for _, p in ipairs(here:points_on_zlevel()) do
+    if here:get_ter_at(p) == pump then
+      here:make_rubble(p, furn("f_rubble"), ter("t_dirt"))
+      gapi.explosion({ pos = p, power = 10 })
+    end
+  end
+end
+
+-- Floods 4 to 10 random passable tiles next to each sewage pump.
+---@param _params ComputerParams
+function failure.pump_leak(_params)
+  gapi.add_msg(MsgType.warning, locale.gettext("Sewage leaks!"))
+  local here = gapi.get_map()
+  local pump = ter("t_sewage_pump")
+  local sewage = ter("t_sewage")
+  for _, p in ipairs(here:points_on_zlevel()) do
+    if here:get_ter_at(p) == pump then
+      for _ = 1, gapi.rng(4, 10) do
+        ---@type TripointBubMs[]
+        local next_move = {}
+        for _, d in ipairs({ { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }) do
+          local n = TripointBubMs.new(p.x + d[1], p.y + d[2], p.z)
+          if here:passable(n) then table.insert(next_move, n) end
+        end
+        if #next_move == 0 then break end
+        here:set_ter_at(next_move[gapi.rng(1, #next_move)] --[[@as TripointBubMs]], sewage)
+      end
+    end
+  end
+end
+
+---@param params ComputerParams
+function failure.amigara(params)
+  local user = params.user
+  gapi.add_timed_event("amigara", gapi.current_turn() + TimeDuration.from_seconds(30))
+  user:add_effect(EffectTypeId.new("amigara"), TimeDuration.from_minutes(2))
+  local size = gapi.get_map():get_map_size()
+  local z = user:get_pos_ms().z
+  for _ = 1, 2 do
+    local pos = TripointBubMs.new(gapi.rng(0, size), gapi.rng(0, size), z)
+    gapi.explosion({ pos = pos, power = 10, factor = 0.7, casing_mass = 10 })
+  end
+  params.session:remove_option("amigara_start")
+end
+
+---@param params ComputerParams
+function failure.destroy_blood(params)
+  local session = params.session
+  session:print_error(locale.gettext("ERROR: Disruptive Spin"))
+  local here = gapi.get_map()
+  local centrifuge = furn("f_centrifuge")
+  local is_blood = JsonFlagId.new("IS_BLOOD")
+  for _, dest in ipairs(here:points_in_radius(params.user:get_pos_ms(), 2)) do
+    if here:get_furn_at(dest) == centrifuge then
+      local items = here:get_items_at(dest):as_item_stack():items()
+      local first = items[1]
+      local kind = first and first:get_type():str()
+      local sample = first and first:get_contents()[1]
+      if #items == 0 then
+        session:print_error(locale.gettext("ERROR: Please place sample in centrifuge."))
+      elseif #items > 1 then
+        session:print_error(locale.gettext("ERROR: Please remove all but one sample from centrifuge."))
+      elseif kind ~= "vacutainer" then
+        session:print_error(locale.gettext("ERROR: Please use blood-contained samples."))
+      elseif not sample then
+        session:print_error(locale.gettext("ERROR: Blood draw kit, empty."))
+      elseif not (sample and sample:has_flag(is_blood)) then
+        session:print_error(locale.gettext("ERROR: Please only use blood samples."))
+      else
+        session:print_error(locale.gettext("ERROR: Blood sample destroyed."))
+        here:clear_items_at(dest)
+      end
+    end
+  end
+  session:query_any()
+end
+
+---@param params ComputerParams
+function failure.destroy_data(params)
+  local session = params.session
+  session:print_error(locale.gettext("ERROR: ACCESSING DATA MALFUNCTION"))
+  local here = gapi.get_map()
+  local scan_floor = ter("t_floor_blue")
+  for _, dest in ipairs(here:points_in_radius(params.user:get_pos_ms(), 2)) do
+    if here:get_ter_at(dest) == scan_floor then
+      local items = here:get_items_at(dest):as_item_stack():items()
+      local first = items[1]
+      local kind = first and first:get_type():str()
+      local contents = first and first:get_contents() or {}
+      if #items == 0 then
+        session:print_error(locale.gettext("ERROR: Please place memory bank in scan area."))
+      elseif #items > 1 then
+        session:print_error(locale.gettext("ERROR: Please only scan one item at a time."))
+      elseif kind ~= "usb_drive" then
+        session:print_error(locale.gettext("ERROR: Memory bank destroyed or not present."))
+      elseif #contents == 0 then
+        session:print_error(locale.gettext("ERROR: Memory bank is empty."))
+      else
+        session:print_error(locale.gettext("ERROR: Data bank destroyed."))
+        here:clear_items_at(dest)
+      end
+    end
+  end
+  session:query_any()
+end
+
+for name, fn in pairs(failure) do
+  game.computer_failure_functions[name] = fn
 end
