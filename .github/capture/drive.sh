@@ -36,6 +36,9 @@ settle_re() {
 # start SESSION BIN TREE PROFILE LIMIT CAST
 start() {
   tmux kill-session -t "$1" 2> /dev/null
+  # CPU compute everywhere: a CI runner has no GPU, so a local GPU run would not match it.
+  mkdir -p "$4/config"
+  [ -f "$4/config/options.json" ] || echo '[{"name":"COMPUTE_ACCELERATION","value":"cpu"}]' > "$4/config/options.json"
   tmux new-session -d -s "$1" -x 100 -y 32 -c "$3" \
     "asciinema rec -q --stdin --overwrite -c 'env LD_LIBRARY_PATH=$(dirname $2) timeout --foreground -k 10s $5 $2 --userdir $4/ --configdir $4/config/' $6; sleep 2"
   log "started $1"
@@ -64,6 +67,8 @@ install_mod() {
 EOF2
   cat > "$d/preload.lua" << 'EOF2'
 local wood = ${WOOD_COUNT:-240}
+-- debug.log stays empty, so the driver reads these values from the save (lua_state.json)
+local storage = game.mod_storage[game.current_mod]
 local function fire_field() return FieldTypeId.new("fd_fire"):int_id() end
 
 local function usable(map, p)
@@ -83,10 +88,17 @@ game.add_hook("on_game_load", function()
   local av = gapi.get_avatar()
   local map = gapi.get_map()
   local c = av:get_pos_ms()
+  -- monsters in the reality bubble would interrupt the wait
+  for dx = -60, 60 do
+    for dy = -60, 60 do
+      local m = gapi.get_monster_at(TripointBubMs.new(c.x + dx, c.y + dy, c.z))
+      if m then m:set_hp(0) end
+    end
+  end
   local spots = pick(map, c, true)
   if #spots < 2 then spots = pick(map, c, false) end
   if #spots < 2 then
-    gdebug.log_warn("CAPTURE_SCENE_FAIL no free tiles")
+    storage.scene = "fail no free tiles"
     return
   end
   local fire, pile = spots[1], spots[2]
@@ -96,7 +108,7 @@ game.add_hook("on_game_load", function()
   map:add_field_at(fire, fire_field(), 1, TimeDuration.from_turns(0))
   for _ = 1, wood do map:create_item_at(pile, ItypeId.new("2x4"), -1) end
   local a = av:abs_pos()
-  gdebug.log_warn(string.format("CAPTURE_SCENE %d %d %d fire=%d,%d pile=%d,%d", a.x + pile.x - c.x, a.y + pile.y - c.y,
+  storage.scene = (string.format("%d %d %d fire=%d,%d pile=%d,%d", a.x + pile.x - c.x, a.y + pile.y - c.y,
     a.z, fire.x - c.x, fire.y - c.y, pile.x - c.x, pile.y - c.y))
 end)
 
@@ -104,27 +116,35 @@ game.add_hook("on_game_save", function()
   local av = gapi.get_avatar()
   local map = gapi.get_map()
   local c = av:get_pos_ms()
+  local state = {}
   for dx = -2, 2 do
     for dy = -2, 2 do
       local p = TripointBubMs.new(c.x + dx, c.y + dy, c.z)
       if map:has_furn_flag_at("FIRE_CONTAINER", p) then
-        gdebug.log_warn(string.format("CAPTURE_STATE fire=%d fuel_on_fire=%d", map:get_field_int_at(p, fire_field()),
+        state[#state + 1] = (string.format("fire=%d fuel_on_fire=%d", map:get_field_int_at(p, fire_field()),
           map:get_items_at(p):count()))
       elseif map:has_items_at(p) then
-        gdebug.log_warn(string.format("CAPTURE_STATE items_at=%d,%d count=%d", dx, dy, map:get_items_at(p):count()))
+        state[#state + 1] = (string.format("items_at=%d,%d count=%d", dx, dy, map:get_items_at(p):count()))
       end
     end
   end
+  storage.state = table.concat(state, " ")
 end)
 EOF2
   # the heredoc is quoted: substitute the wood count by hand
   sed -i "s/\${WOOD_COUNT:-240}/${WOOD_COUNT:-240}/" "$d/preload.lua"
 }
 
-log_state() {
-  grep -E 'CAPTURE_(SCENE|STATE)' "$1/config/debug.log" 2> /dev/null | tail -n 6 | while read -r l; do log "$2: $l"; done
-  cp "$1/config/debug.log" "$out/debug-$2.log" 2> /dev/null
+# lua_val PROFILE KEY: a string the scene mod stored in the save
+lua_val() {
+  python3 - "$(ls "$1"/save/*/lua_state.json | head -1)" "$2" << 'EOF2'
+import json, sys
+e = json.load(open(sys.argv[1])).get("capture_scene", {}).get("entries", [])
+vals = {e[i]["data"]: e[i + 1]["data"] for i in range(0, len(e) - 1, 2)}
+print(vals.get(sys.argv[2], ""))
+EOF2
 }
+log_state() { log "$2: scene=$(lua_val "$1" scene) state=$(lua_val "$1" state)"; }
 
 scene_setup() {
   install_mod "$atree"; install_mod "$btree"
@@ -147,9 +167,9 @@ EOF2
   quit_clean scene
   stop scene "$W/create"
   log_state "$W/create" scene
-  local line; line=$(grep 'CAPTURE_SCENE ' "$W/create/config/debug.log" | tail -n 1)
+  local line; line=$(lua_val "$W/create" scene)
   log "scene line: $line"
-  line=$(sed -E 's/.*CAPTURE_SCENE ([-0-9]+) ([-0-9]+) ([-0-9]+).*/\1 \2 \3/' <<< "$line")
+  line=$(cut -d' ' -f1-3 <<< "$line")
   local sav; sav=$(ls "$wd"/*.sav | head -1)
   python3 - "${sav%.sav}.zones.json" $line << 'EOF2'
 import json, sys
@@ -196,12 +216,13 @@ run_wait() {
   key "$s" c; sleep 1; lit "$s" "${WAIT_FOR:-10h}"; sleep 1; snap "$s" "$s-waitinput"
   d0=$(pane "$s" | grep -Eo 'Date *: .*day [0-9]+' | head -1)
   log "$s: wait start"; key "$s" Enter
-  waitfor "$s" 'Stop waiting' 30 && { key "$s" I; sleep 1; log "$s: ignore distractions"; }
-  snap "$s" "$s-waiting"
-  sleep 2
+  sleep 1; snap "$s" "$s-waiting"
   local d1 i
+  local scr
   for ((i = 0; i < 1200; i++)); do
-    pane "$s" | grep -q 'waiting…' || break
+    scr=$(pane "$s")
+    grep -q 'Stop waiting' <<< "$scr" && { key "$s" I; log "$s: ignore distractions"; sleep 0.5; continue; }
+    grep -q 'waiting…' <<< "$scr" || break
     sleep 0.25
   done
   d1=$(pane "$s" | grep -E 'Date|Time :' | tr -s ' ' | tr '\n' ' ')
