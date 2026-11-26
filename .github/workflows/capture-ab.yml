@@ -1,0 +1,94 @@
+name: capture-ab
+
+on:
+  push:
+    branches: ["bench/**"]
+  workflow_dispatch:
+
+permissions: { contents: read }
+
+env: { LLVM_VERSION: "22", UPSTREAM: "https://github.com/cataclysmbn/Cataclysm-BN.git" }
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: load1, before: a5e09163c1fb4f045eef98fa53c1a0b5e6d647ca, after: f559ba39d69981f4b84ab517b206d60c8ae7009c }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+
+      - name: install dependencies
+        run: |
+          sudo apt-get -o Acquire::Retries=5 update
+          sudo apt-get -o Acquire::Retries=5 install -y libncursesw5-dev mold gettext parallel libsqlite3-dev zlib1g-dev autoconf autoconf-archive automake libtool libltdl-dev tmux asciinema
+          sudo apt-get -o Acquire::Retries=5 install -y libasound2-dev libpulse-dev libaudio-dev libjack-dev libsndio-dev libx11-dev \
+            libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
+            libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
+            libibus-1.0-dev libudev-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev \
+            libfreetype-dev libharfbuzz-dev libvulkan-dev
+          sudo locale-gen en_US.UTF-8
+
+      - uses: aminya/setup-cpp@v1
+        with:
+          compiler: llvm-${{ env.LLVM_VERSION }}
+          cmake: true
+          ninja: true
+          setup-cpp: false
+
+      - run: bash ./build-scripts/requirements.sh
+
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: capture-curses-${{ github.ref_name }}
+          restore-keys: |
+            capture-curses-${{ github.ref_name }}
+            capture-curses-
+          max-size: 2G
+
+      - name: keep driver
+        run: cp .github/capture/drive.sh /tmp/drive.sh
+
+      - uses: actions/cache@v4
+        id: bins
+        with:
+          path: bins
+          key: capture-bins-${{ matrix.before }}-${{ matrix.after }}
+
+      - name: build before and after
+        if: steps.bins.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p bins
+          for sha in ${{ matrix.after }} ${{ matrix.before }}; do
+            git fetch --depth=1 "$UPSTREAM" "$sha"
+            git checkout --detach "$sha"
+            cmake --preset ci-curses -DUSE_PREFIX_DATA_DIR=OFF -DCATA_FORMAT_TARGETS=OFF -DTESTS=OFF
+            cmake --build build --target cataclysm-bn -j 4
+            cp "$(find build -name cataclysm-bn -type f | head -n1)" "bins/$sha"
+          done
+
+      - name: data directories
+        run: |
+          for sha in ${{ matrix.after }} ${{ matrix.before }}; do
+            git fetch --depth=1 "$UPSTREAM" "$sha"
+            git worktree add --detach "$RUNNER_TEMP/tree-$sha" "$sha"
+          done
+          nproc; lscpu | sed -n 1,20p
+
+      - name: record
+        continue-on-error: true
+        run: |
+          mkdir -p out
+          printf 'set -g default-terminal "xterm-256color"\n' > ~/.tmux.conf
+          export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+          bash /tmp/drive.sh "${{ matrix.name }}" "$PWD/bins/${{ matrix.before }}" "$RUNNER_TEMP/tree-${{ matrix.before }}" "$PWD/bins/${{ matrix.after }}" "$RUNNER_TEMP/tree-${{ matrix.after }}" "$PWD/out"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capture-${{ matrix.name }}
+          path: out
