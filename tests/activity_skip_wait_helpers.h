@@ -22,6 +22,8 @@ enum class wait_scene : int {
     /// Field with a row of 24 hay bales 24 tiles south of the avatar. The first 12 bales lie in one
     /// submap and the other 12 in the next one. The 10th bale burns.
     hay_fire,
+    /// Field with 8 calm farmer NPCs 4 to 18 tiles from the avatar.
+    npcs,
 };
 
 /// Fire tile and firewood pile of the fireplace scene, relative to the avatar.

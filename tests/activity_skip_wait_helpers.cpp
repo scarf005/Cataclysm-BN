@@ -10,7 +10,9 @@
 #include "game.h"
 #include "map/field_type.h"
 #include "map_helpers.h"
+#include "npc.h"
 #include "player_activity.h"
+#include "player_helpers.h"
 #include "state_helpers.h"
 #include "timed_event.h"
 #include "weather/weather.h"
@@ -66,6 +68,13 @@ auto build_hay_fire() -> void {
     here.add_field(start + point(9, 0), fd_fire, 3);
 }
 
+auto build_npcs() -> void {
+    for (auto i = 0; i < 8; ++i) {
+        const auto offset = point(i % 2 ? 4 + i * 2 : -4 - i * 2, i % 3 - 1);
+        spawn_npc(g->u.bub_pos() + offset, "farmer").set_attitude(NPCATT_NULL);
+    }
+}
+
 } // namespace
 
 auto setup_wait_scene(const wait_scene scene) -> void {
@@ -86,6 +95,7 @@ auto setup_wait_scene(const wait_scene scene) -> void {
     if (scene == wait_scene::town) { build_town(); }
     if (scene == wait_scene::fireplace) { build_fireplace(); }
     if (scene == wait_scene::hay_fire) { build_hay_fire(); }
+    if (scene == wait_scene::npcs) { build_npcs(); }
 
     // A wait in an earlier test leaves the next skip window check at its end turn.
     g->reset_activity_fixed_window();
