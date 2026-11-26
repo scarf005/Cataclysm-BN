@@ -24,7 +24,7 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           sudo apt-get -o Acquire::Retries=5 update
-          sudo apt-get -o Acquire::Retries=5 install -y libncursesw5 libsqlite3-0 tmux asciinema
+          sudo apt-get -o Acquire::Retries=5 install -y libncursesw6 libsqlite3-0 tmux asciinema
           sudo locale-gen en_US.UTF-8
           gh release download capture-bins-11046 -R "$GITHUB_REPOSITORY" -p capture-bins-11046.tar.gz
           tar xzf capture-bins-11046.tar.gz
