@@ -258,7 +258,7 @@ void mission_start::place_npc_software( mission *miss )
     computer *tmpcomp = compmap.add_computer( comppoint, string_format( _( "%s's Terminal" ),
                         dev->name ), 0 );
     tmpcomp->set_mission( miss->get_id() );
-    tmpcomp->add_option( _( "Download Software" ), COMPACT_DOWNLOAD_SOFTWARE, 0 );
+    tmpcomp->add_option( _( "Download Software" ), "download_software", 0 );
 }
 
 void mission_start::place_priest_diary( mission *miss )
@@ -437,7 +437,7 @@ void static create_lab_consoles(
 
         computer *tmpcomp = compmap.add_computer( comppoint, _( comp_name ), security );
         tmpcomp->set_mission( miss->get_id() );
-        tmpcomp->add_option( _( download_name ), COMPACT_DOWNLOAD_SOFTWARE, security );
+        tmpcomp->add_option( _( download_name ), "download_software", security );
         tmpcomp->add_failure( COMPFAIL_ALARM );
         tmpcomp->add_failure( COMPFAIL_DAMAGE );
         tmpcomp->add_failure( COMPFAIL_MANHACKS );
@@ -544,7 +544,7 @@ void mission_start::reveal_lab_train_depot( mission *miss )
 
     computer *tmpcomp = compmap.computer_at( *comppoint );
     tmpcomp->set_mission( miss->get_id() );
-    tmpcomp->add_option( _( "Download Routing Software" ), COMPACT_DOWNLOAD_SOFTWARE, 0 );
+    tmpcomp->add_option( _( "Download Routing Software" ), "download_software", 0 );
 
     // Target the lab entrance.
     const tripoint_abs_omt target = mission_util::target_closest_lab_entrance( place, 2, miss );

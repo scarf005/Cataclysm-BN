@@ -347,6 +347,7 @@ void init_global_state_tables( lua_state &state, const std::vector<mod_id> &modl
     gt["iranged_functions"] = lua.create_table();
     gt["itrap_functions"] = lua.create_table();
     gt["examine_functions"] = lua.create_table();
+    gt["computer_functions"] = lua.create_table();
     gt["activity_functions"] = lua.create_table();
 
     gt["recipe_functions"] = lua.create_table();

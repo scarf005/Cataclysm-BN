@@ -205,6 +205,7 @@ void cata::detail::reg_mission_type( sol::state &lua )
             mission_type_id( std::string )
             > ()
         );
+        SET_FX( str );
     }
 #undef UT_CLASS
 };

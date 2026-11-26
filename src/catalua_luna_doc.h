@@ -46,6 +46,7 @@ class avatar;
 class Character;
 class character_id;
 class Creature;
+class computer_session;
 struct power_stat;
 class distribution_grid;
 class distribution_grid_tracker;
@@ -222,6 +223,7 @@ LUNA_VAL( player, "Player" );
 LUNA_VAL( point, "Point" );
 LUNA_VAL( string_input_popup, "PopupInputStr" );
 LUNA_VAL( query_popup, "QueryPopup" );
+LUNA_VAL( computer_session, "ComputerSession" );
 LUNA_VAL( SkillLevelMap, "SkillLevelMap" );
 LUNA_VAL( SkillLevel, "SkillLevel" );
 LUNA_VAL( fake_spell, "SpellSimple" )

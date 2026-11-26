@@ -26,6 +26,7 @@
 #include "game_constants.h"
 #include "generic_factory.h"
 #include "hsv_color.h"
+#include "init.h"
 #include "input.h"
 #include "int_id.h"
 #include "item.h"
@@ -2611,6 +2612,17 @@ public:
 
         // The default access denied message is defined in computer's constructor
         if (!access_denied.empty()) { cpu->set_access_denied_msg(access_denied.translated()); }
+    }
+    void check(const std::string& oter_name, const mapgen_parameters&) const override {
+        auto& state = *DynamicDataLoader::get_instance().lua;
+        for (const auto& opt : options) {
+            if (opt.action != "null"
+                && cata::get_lua_callback(state, "computer_functions", opt.action) == sol::lua_nil) {
+                debugmsg("mapgen '%s' uses computer action '%s' that is not in "
+                         "game.computer_functions",
+                         oter_name, opt.action);
+            }
+        }
     }
     auto has_vehicle_collision(const mapgendata& dat, const point_rel_ms& p) const
         -> bool override {

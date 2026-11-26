@@ -721,6 +721,29 @@ void cata::detail::reg_map( sol::state &lua )
         luna::set_fx( ut, "make_rubble", []( map & m, tripoint_bub_ms point, furn_id & fid, ter_id & tid ) { m.make_rubble( point, fid, tid ); } );
         luna::set_fx( ut, "destroy", []( map & m, tripoint_bub_ms point ) { m.destroy( point ); } );
         luna::set_fx( ut, "set_temperature", []( map & m, tripoint_bub_ms point, int temp ) { m.set_temperature( point, temp ); } );
+
+        DOC( "Changes terrain `from` to `to` within `radius` of `center`. With `same_submap`, only on the submap of `center`. With `toggle`, also changes `to` back to `from`." );
+        luna::set_fx( ut, "translate_radius", []( map & m, const ter_id & from, const ter_id & to,
+                      float radius,
+        const tripoint_bub_ms & center, sol::optional<bool> same_submap, sol::optional<bool> toggle ) {
+            m.translate_radius( from, to, radius, center, same_submap.value_or( false ),
+                                toggle.value_or( false ) );
+        } );
+        DOC( "Returns all points on a z-level. `z` defaults to the current z-level." );
+        luna::set_fx( ut, "points_on_zlevel", []( const map & m,
+        sol::optional<int> z ) -> std::vector<tripoint_bub_ms> {
+            auto points = std::vector<tripoint_bub_ms>{};
+            std::ranges::copy( z ? m.points_on_zlevel( *z ) : m.points_on_zlevel(), std::back_inserter( points ) );
+            return points;
+        } );
+        luna::set_fx( ut, "get_radiation_at", &map::get_radiation );
+        luna::set_fx( ut, "adjust_radiation_at", &map::adjust_radiation );
+        DOC( "Spreads `amount` of a field from `center`. `max_intensity` 0 means no limit." );
+        luna::set_fx( ut, "propagate_field", []( map & m, const tripoint_bub_ms & center,
+                      const field_type_id & type,
+        int amount, sol::optional<int> max_intensity ) { m.propagate_field( center, type, amount, max_intensity.value_or( 0 ) ); } );
+        DOC( "Returns true if the player can see the point within `max_range`." );
+        luna::set_fx( ut, "pl_sees", &map::pl_sees );
     }
 
     // Register mapgen constructor surface to be used in Lua mapgen hooks.

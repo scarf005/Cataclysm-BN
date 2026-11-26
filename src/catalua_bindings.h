@@ -17,6 +17,7 @@ void reg_bionics( sol::state &lua );
 void mod_bionic_data( sol::state &lua );
 void reg_character( sol::state &lua );
 void reg_colors( sol::state &lua );
+auto reg_computer( sol::state &lua ) -> void;
 void reg_constants( sol::state &lua );
 void reg_coords_library( sol::state &lua );
 void reg_creature_family( sol::state &lua );

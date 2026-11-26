@@ -8,6 +8,7 @@ mod.storage = storage
 -- itrap_functions must be registered during preload: reg_lua_icallback_actors
 -- runs before main.lua and trap JSON resolves lua callbacks at load time.
 require("lua/traps")
+require("lua/computer")
 
 game.iuse_functions["VOLTMETER"] = function(...) return mod.voltmeter.menu(...) end
 game.iuse_functions["sonar_scan"] = function(...) return mod.sonar_scan(...) end

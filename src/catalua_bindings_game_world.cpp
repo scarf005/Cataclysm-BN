@@ -52,6 +52,9 @@ auto reg_game_api_world_helpers( luna::userlib &lib ) -> void
     DOC( "Get direction name from direction enum" );
     luna::set_fx( lib, "direction_name", []( direction dir ) -> std::string { return direction_name( dir ); } );
 
+    DOC( "Get short direction name from direction enum, for example NE" );
+    luna::set_fx( lib, "direction_name_short", []( direction dir ) -> std::string { return direction_name_short( dir ); } );
+
     DOC( "Get the six cardinal overmap-terrain direction offsets (N, S, E, W, Up, Down)." );
     luna::set_fx( lib, "six_cardinal_directions", &overmap_terrain_cardinal_directions );
 }
