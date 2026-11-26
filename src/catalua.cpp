@@ -703,16 +703,8 @@ auto run_hooks( std::string_view hook_name,
     auto &state = opts.state ? *opts.state : *DynamicDataLoader::get_instance().lua;
     auto &lua = state.lua;
 
-    auto params = lua.create_table();
     auto results = lua.create_table();
     results["allowed"] = true;
-
-    params["results"] = results;
-    params["prev"] = sol::lua_nil;
-
-    if( init ) {
-        init( params );
-    }
 
     const auto maybe_hooks = lua.globals()["game"]["hooks"][hook_name].get<sol::optional<sol::table>>();
     if( !maybe_hooks ) {
@@ -721,6 +713,17 @@ auto run_hooks( std::string_view hook_name,
 
     const auto &hooks = *maybe_hooks;
     const auto &entries = get_hook_entries( lua, hook_name, hooks );
+    if( entries.empty() ) {
+        return results;
+    }
+
+    auto params = lua.create_table();
+    params["results"] = results;
+    params["prev"] = sol::lua_nil;
+
+    if( init ) {
+        init( params );
+    }
 
     auto out_idx = 1;
     auto i = size_t{ 0 };

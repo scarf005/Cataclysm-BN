@@ -3216,6 +3216,27 @@ TEST_CASE("lua_has_hooks_tracks_registered_entries", "[lua]") {
     CHECK(cata::has_hooks("on_creature_do_turn", {.state = &state}));
 }
 
+TEST_CASE("lua_run_hooks_builds_params_only_for_registered_hooks", "[lua]") {
+    cata::lua_state state;
+    init_test_lua_hook_state(state);
+    auto& lua = state.lua;
+
+    auto hook_list = lua.create_table();
+    lua.globals()["game"]["hooks"]["on_creature_do_turn"] = hook_list;
+    auto init_calls = 0;
+    const auto run = [&] {
+        return cata::
+            run_hooks("on_creature_do_turn", [&](sol::table&) { ++init_calls; }, {.state = &state});
+    };
+
+    CHECK(run().get_or("allowed", false));
+    CHECK(init_calls == 0);
+
+    hook_list[1] = [](sol::table) { return false; };
+    CHECK_FALSE(run().get_or("allowed", true));
+    CHECK(init_calls == 1);
+}
+
 TEST_CASE("lua_hooks_order_and_chaining", "[lua]") {
     cata::lua_state state;
     init_test_lua_hook_state(state);
