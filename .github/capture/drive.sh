@@ -89,13 +89,20 @@ game.add_hook("on_game_load", function()
   -- a watch shows the exact time in the sidebar
   av:wear_detached(gapi.create_item(ItypeId.new("wristwatch"), -1), false)
   if scene == "npcs" then
-    -- the npcs bench scene: 8 calm farmers 4 to 18 tiles east and west of the avatar
+    -- the npcs bench scene in sight: open ground around the avatar, 8 calm farmers 4 to 18 tiles east and west
+    for z = c.z, c.z + 1 do
+      for dx = -26, 26 do
+        for dy = -14, 14 do
+          local p = TripointBubMs.new(c.x + dx, c.y + dy, z)
+          map:set_ter_at(p, TerId.new(z > c.z and "t_open_air" or "t_dirt"):int_id())
+          map:set_furn_at(p, FurnId.new("f_null"):int_id())
+          map:clear_items_at(p)
+        end
+      end
+    end
     for i = 0, 7 do
       local dx = i % 2 == 1 and 4 + i * 2 or -4 - i * 2
-      local p = TripointBubMs.new(c.x + dx, c.y + i % 3 - 1, c.z)
-      map:set_ter_at(p, TerId.new("t_dirt"):int_id())
-      map:set_furn_at(p, FurnId.new("f_null"):int_id())
-      map:place_npc(p, "farmer")
+      map:place_npc(TripointBubMs.new(c.x + dx, c.y + i % 3 - 1, c.z), "farmer")
     end
     storage.scene = "npcs"
     return
