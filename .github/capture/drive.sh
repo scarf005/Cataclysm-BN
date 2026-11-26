@@ -71,19 +71,6 @@ local wood = ${WOOD_COUNT:-240}
 local storage = game.mod_storage[game.current_mod]
 local function fire_field() return FieldTypeId.new("fd_fire"):int_id() end
 
-local function usable(map, p)
-  return map:has_ter_flag_at("FLAT", p) and not map:has_ter_flag_at("NO_FLOOR", p)
-end
-
-local function pick(map, c, outside)
-  local picked = {}
-  for _, d in ipairs({ { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } }) do
-    local p = TripointBubMs.new(c.x + d[1], c.y + d[2], c.z)
-    if usable(map, p) and (not outside or map:is_outside(p)) then picked[#picked + 1] = p end
-  end
-  return picked
-end
-
 game.add_hook("on_game_load", function()
   local av = gapi.get_avatar()
   local map = gapi.get_map()
@@ -95,14 +82,20 @@ game.add_hook("on_game_load", function()
       if m then m:set_hp(0) end
     end
   end
-  local spots = pick(map, c, true)
-  if #spots < 2 then spots = pick(map, c, false) end
-  if #spots < 2 then
-    storage.scene = "fail no free tiles"
-    return
-  end
-  local fire, pile = spots[1], spots[2]
+  local fire = TripointBubMs.new(c.x + 1, c.y, c.z)
+  local pile = TripointBubMs.new(c.x - 1, c.y, c.z)
   if map:has_furn_flag_at("FIRE_CONTAINER", fire) then return end
+  -- the start is random: clear bare ground around the avatar so the fire has nothing else to burn
+  for dx = -3, 3 do
+    for dy = -3, 3 do
+      local p = TripointBubMs.new(c.x + dx, c.y + dy, c.z)
+      if dx ~= 0 or dy ~= 0 then
+        map:set_ter_at(p, TerId.new("t_dirt"):int_id())
+        map:set_furn_at(p, FurnId.new("f_null"):int_id())
+        map:clear_items_at(p)
+      end
+    end
+  end
   map:set_furn_at(fire, FurnId.new("f_fireplace"):int_id())
   map:create_item_at(fire, ItypeId.new("splinter"), -1)
   map:add_field_at(fire, fire_field(), 1, TimeDuration.from_turns(0))
