@@ -20,7 +20,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { scene: fireplace, wait: 12h }
           - { scene: hay, wait: 2h }
     steps:
       - uses: actions/checkout@v4

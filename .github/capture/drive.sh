@@ -89,17 +89,19 @@ game.add_hook("on_game_load", function()
   -- a watch shows the exact time in the sidebar
   av:wear_detached(gapi.create_item(ItypeId.new("wristwatch"), -1), false)
   if scene == "hay" then
-    -- the hay_fire bench scene: a row of 24 hay bales 24 tiles south, lit at the 10th bale, on cleared ground
-    for dx = -9, 21 do
-      for dy = 21, 27 do
+    -- the hay_fire bench scene in sight: a row of 24 hay bales 8 tiles south, lit at the 10th bale, on open ground
+    for dx = -14, 20 do
+      for dy = -4, 12 do
         local p = TripointBubMs.new(c.x + dx, c.y + dy, c.z)
-        map:set_ter_at(p, TerId.new("t_dirt"):int_id())
-        map:set_furn_at(p, FurnId.new("f_null"):int_id())
-        map:clear_items_at(p)
+        if dx ~= 0 or dy ~= 0 then
+          map:set_ter_at(p, TerId.new("t_dirt"):int_id())
+          map:set_furn_at(p, FurnId.new("f_null"):int_id())
+          map:clear_items_at(p)
+        end
       end
     end
-    for i = 0, 23 do map:set_furn_at(TripointBubMs.new(c.x - 6 + i, c.y + 24, c.z), FurnId.new("f_hay"):int_id()) end
-    map:add_field_at(TripointBubMs.new(c.x + 3, c.y + 24, c.z), fire_field(), 3, TimeDuration.from_turns(0))
+    for i = 0, 23 do map:set_furn_at(TripointBubMs.new(c.x - 6 + i, c.y + 8, c.z), FurnId.new("f_hay"):int_id()) end
+    map:add_field_at(TripointBubMs.new(c.x + 3, c.y + 8, c.z), fire_field(), 3, TimeDuration.from_turns(0))
     storage.scene = "hay"
     return
   end
