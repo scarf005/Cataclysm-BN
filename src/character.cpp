@@ -8164,7 +8164,9 @@ float calc_mutation_value_multiplicative( const std::vector<const mutation_branc
     return ret;
 }
 
-static const std::map<std::string, std::function <float( std::vector<const mutation_branch *> )>>
+namespace
+{
+const std::map<std::string, float( * )( const std::vector<const mutation_branch *> & ), std::less<>>
 mutation_value_map = {
     { "pain_recovery", calc_mutation_value<&mutation_branch::pain_recovery> },
     { "healing_awake", calc_mutation_value<&mutation_branch::healing_awake> },
@@ -8209,14 +8211,15 @@ mutation_value_map = {
     { "reading_speed_multiplier", calc_mutation_value_multiplicative<&mutation_branch::reading_speed_multiplier> },
     { "skill_rust_multiplier", calc_mutation_value_multiplicative<&mutation_branch::skill_rust_multiplier> }
 };
+} // namespace
 
-float Character::mutation_value( const std::string &val ) const
+auto Character::mutation_value( std::string_view val ) const -> float
 {
     // Syntax similar to tuple get<n>()
     const auto found = mutation_value_map.find( val );
 
     if( found == mutation_value_map.end() ) {
-        debugmsg( "Invalid mutation value name %s", val );
+        debugmsg( "Invalid mutation value name %s", std::string( val ) );
         return 0.0f;
     } else {
         return found->second( cached_mutations );

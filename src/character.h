@@ -1723,7 +1723,7 @@ class Character : public Creature, public location_visitable<Character>
          * Goes over all mutations, gets min and max of a value with given name
          * @return min( 0, lowest ) + max( 0, highest )
          */
-        float mutation_value( const std::string &val ) const;
+        auto mutation_value( std::string_view val ) const -> float;
 
         /**
          * Goes over all mutations, returning the sum of the social modifiers

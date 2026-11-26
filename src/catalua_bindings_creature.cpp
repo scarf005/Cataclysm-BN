@@ -1120,7 +1120,7 @@ void cata::detail::reg_character( sol::state &lua )
 
         SET_FX_T( healing_rate_medicine, float( float, const bodypart_id & ) const );
 
-        SET_FX_T( mutation_value, float( const std::string & ) const );
+        SET_FX_T( mutation_value, float( std::string_view ) const );
 
         SET_FX_T( get_base_traits, std::vector<trait_id>() const );
 
