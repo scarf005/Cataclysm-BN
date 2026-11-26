@@ -43,6 +43,7 @@
 #include "game_constants.h"
 #include "int_id.h"
 #include "item_contents.h"
+#include "item_factory.h"
 #include "item_hauling.h"
 #include "itype.h"
 #include "iuse.h"
@@ -4020,6 +4021,9 @@ void Character::drop_invalid_inventory()
 
 bool Character::has_artifact_with( const art_effect_passive effect ) const
 {
+    if( !item_controller->has_passive_artifact_effect( effect ) ) {
+        return false;
+    }
     for( const item *weapon : wielded_items() ) {
         if( weapon->has_effect_when_wielded( effect ) ) {
             return true;

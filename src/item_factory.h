@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bitset>
 #include <functional>
 #include <list>
 #include <map>
@@ -216,6 +217,11 @@ class Item_factory
          */
         void add_item_type( const itype &def );
 
+        /// Whether any item type carries @p effect when wielded, worn or carried.
+        auto has_passive_artifact_effect( art_effect_passive effect ) const -> bool {
+            return passive_artifact_effects.test( effect );
+        }
+
         /**
          * Check if an iuse is known to the Item_factory.
          * @param type Iuse type id.
@@ -248,6 +254,8 @@ class Item_factory
     private:
         /** Set at finalization and prevents alterations to the static item templates */
         bool frozen = false;
+
+        std::bitset<NUM_AEPS> passive_artifact_effects;
 
         std::map<itype_id, itype> m_abstracts;
 

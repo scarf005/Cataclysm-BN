@@ -708,6 +708,14 @@ void Item_factory::register_cached_uses( const itype &obj )
 
 void Item_factory::finalize_post( itype &obj )
 {
+    if( obj.artifact ) {
+        const auto &art = *obj.artifact;
+        for( const auto *effects : { &art.effects_wielded, &art.effects_worn, &art.effects_carried } ) {
+            for( const auto effect : *effects ) {
+                passive_artifact_effects.set( effect );
+            }
+        }
+    }
     erase_if( obj.item_tags, [&]( const flag_id & f ) {
         if( !f.is_valid() ) {
             debugmsg( "itype '%s' uses undefined flag '%s'. Please add corresponding 'json_flag' entry to json.",
@@ -3227,6 +3235,7 @@ void Item_factory::clear()
     m_runtimes.clear();
     m_template_groups.clear();
     m_templates.clear();
+    passive_artifact_effects.reset();
 
     gun_tools.clear();
     repair_actions.clear();
