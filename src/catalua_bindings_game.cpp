@@ -557,6 +557,7 @@ void cata::detail::reg_game_api( sol::state &lua )
     luna::set_fx( lib, "trait_generation", &character_trait_generation );
     luna::set_fx( lib, "current_turn", []() -> time_point { return calendar::turn; } );
     luna::set_fx( lib, "turn_zero", []() -> time_point { return calendar::turn_zero; } );
+    luna::set_fx( lib, "start_of_cataclysm", []() -> time_point { return calendar::start_of_cataclysm; } );
     luna::set_fx( lib, "before_time_starts", []() -> time_point { return calendar::before_time_starts; } );
     luna::set_fx( lib, "bodytemp_cold",
                   []() -> int { return units::to_legacy_bodypart_temp( BODYTEMP_COLD ); } );
@@ -565,6 +566,8 @@ void cata::detail::reg_game_api( sol::state &lua )
     luna::set_fx( lib, "bodytemp_hot",
                   []() -> int { return units::to_legacy_bodypart_temp( BODYTEMP_HOT ); } );
     luna::set_fx( lib, "rng", sol::resolve<int( int, int )>( &rng ) );
+    DOC( "Random float in [lo, hi)." );
+    luna::set_fx( lib, "rng_float", sol::resolve<double( double, double )>( &rng_float ) );
     DOC( "Override weather for all OMTs in a radius around center. Radius is in OMT tiles.  Optionally expires at a given time_point." );
     luna::set_fx( lib, "set_omt_weather_override",
                   []( const tripoint_abs_omt & center, const int radius,
@@ -960,6 +963,7 @@ void cata::detail::reg_game_api( sol::state &lua )
 
     reg_game_api_creature_queries( lib );
     reg_game_api_world_helpers( lib );
+    reg_game_api_effects( lib );
 
     luna::finalize_lib( lib );
 }

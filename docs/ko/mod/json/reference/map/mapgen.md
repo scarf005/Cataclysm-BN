@@ -791,6 +791,36 @@ Terrain/furniture/traps는 JSON 객체 대신 단일 문자열로도 지정할 �
 | amount | (선택, integer 또는 min/max 배열) 주유기에 넣을 연료의 양 |
 | fuel   | (선택, string: "gasoline" 또는 "diesel") 넣을 연료 종류   |
 
+### `computers`로 컴퓨터 단말기 배치
+
+콘솔(지형 `t_console`)과 컴퓨터를 배치합니다. 메뉴 항목과 해킹 실패 효과는 Lua 함수로 실행합니다.
+직접 만드는 방법은 [컴퓨터 단말기](../../../lua/guides/cookbook.md#컴퓨터-단말기)를 참고하세요.
+
+예시:
+
+```json
+"computers": {
+  "6": {
+    "name": "Consolidated Computerized Bank of the Treasury",
+    "security": 3,
+    "options": [ { "name": "Open Vault", "action": "unlock" } ],
+    "failures": [ { "action": "shutdown" }, { "action": "alarm" } ]
+  }
+}
+```
+
+| Field         | Description                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| name          | (선택, string) 로그인할 때 보이는 컴퓨터 이름                                              |
+| security      | (선택, integer) 로그인 보안 등급. 0보다 크면 로그인을 해킹해야 함. 기본 0                  |
+| access_denied | (선택, string) 로그인에 해킹이 필요할 때 보이는 메시지. 기본 `ERROR!  Access denied!`      |
+| options       | (선택, 배열) 메뉴 항목. 각 항목에 `name`, `action`, 선택 `security`(기본 0)                |
+| failures      | (선택, 배열) 해킹 실패 효과. 각 항목에 `action`. 해킹에 실패하면 그중 하나를 무작위로 실행 |
+| target        | (선택, boolean) true이고 update_mapgen이 미션과 함께 실행하면 이 컴퓨터가 미션 목표가 됨   |
+
+`options`의 `action`은 `game.computer_functions`의 키이고, `failures`의 `action`은
+`game.computer_failure_functions`의 키입니다. 기본 제공 함수는 `data/json/lua/computer.lua`에 있습니다.
+
 ### `items`로 아이템 그룹 배치
 
 | Field  | Description                                                                                                                                                                                                                     |

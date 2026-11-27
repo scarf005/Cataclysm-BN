@@ -551,6 +551,7 @@ void cata::detail::reg_enums( sol::state &lua )
     reg_enum<art_effect_passive>( lua );
     reg_enum<vitamin_type>( lua );
     reg_enum<moon_phase>( lua );
+    reg_enum<phase_id>( lua );
 }
 
 static const auto lowercase = []( std::string t )
@@ -1236,6 +1237,7 @@ void cata::reg_all_bindings( sol::state &lua )
     reg_map( lua );
     reg_distribution_grid( lua );
     reg_ui_elements( lua );
+    reg_computer( lua );
     reg_colors( lua );
     reg_enums( lua );
     reg_game_ids( lua );

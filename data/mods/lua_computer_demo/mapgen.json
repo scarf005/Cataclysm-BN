@@ -1,0 +1,19 @@
+[
+  {
+    "type": "mapgen",
+    "method": "json",
+    "nested_mapgen_id": "lua_computer_demo_terminal",
+    "object": {
+      "mapgensize": [ 1, 1 ],
+      "rows": [ "6" ],
+      "computers": {
+        "6": {
+          "name": "Lua Demo Terminal",
+          "security": 1,
+          "options": [ { "name": "Status report", "action": "demo_status" } ],
+          "failures": [ { "action": "demo_lockout" } ]
+        }
+      }
+    }
+  }
+]

@@ -763,9 +763,7 @@ TEST_CASE(
 
 TEST_CASE("lua_activity_bindings", "[lua]") {
     clear_all_state();
-    auto& state = *DynamicDataLoader::get_instance().lua;
-    cata::init_global_state_tables(state, {});
-    sol::state& lua = state.lua;
+    auto& lua = DynamicDataLoader::get_instance().lua->lua;
 
     auto test_data = lua.create_table();
     lua.globals()["test_data"] = test_data;

@@ -745,3 +745,64 @@ if itype_raw:slot_tool() then
     print("도구 품질: " .. tool_data.quality)
 end
 ```
+
+## 컴퓨터 단말기
+
+맵젠의 `"computers"` 항목은 메뉴 항목마다 action id를, 해킹 실패 효과마다 id를 지정합니다. 메뉴
+항목을 고르면 `game.computer_functions[id]`를, 해킹에 실패하면 `game.computer_failure_functions[id]`를
+실행합니다. 맵젠 검사가 `main.lua`보다 먼저 실행되므로 두 콜백은 `preload.lua`에 등록하세요. 두
+콜백 모두 `session`(`ComputerSession`)과 `user`(`Avatar`)가 든 `params` 테이블을 받습니다. 세션 메서드 전체는 [Lua 레퍼런스](../reference/lua.md)의 `ComputerSession`을 참고하세요.
+
+기본 제공 메뉴 항목과 실패 효과는 `data/json/lua/computer.lua`에 있습니다. Lua Computer Demo 모드
+(`data/mods/lua_computer_demo`)에는 디버그 메뉴로 생성할 수 있는 단말기가 있습니다.
+
+### 메뉴 항목 추가
+
+이 함수는 경보 수를 보여줍니다. 예를 고르면 기본 제공 `unlock`을 보안 등급 2로 실행하는 항목을 추가하고,
+자기 자신은 메뉴에서 지웁니다.
+
+```lua
+game.computer_functions["my_status"] = function(params)
+  local session = params.session
+  session:reset_terminal()
+  session:print_line(string.format("Alerts: %d.", session:get_alerts()))
+  if session:query_bool("Add the vault option?") then
+    session:add_option("Open vault", "unlock", 2)
+    session:remove_option("my_status")
+  end
+  session:query_any()
+end
+```
+
+### 해킹 실패 효과 추가
+
+해킹에 실패하면 컴퓨터 목록에서 실패 효과 하나를 무작위로 실행합니다. 목록이 비어 있으면 로그인 해킹
+실패 시 세션이 끝나고, 메뉴 항목 해킹 실패 시 `shutdown`을 실행합니다.
+
+이 실패 효과는 로그인 보안 등급을 1 올리고 기본 제공 `alarm` 실패 효과를 추가합니다. 로그인 해킹에
+성공하면 로그인 보안 등급은 0이 됩니다.
+
+```lua
+game.computer_failure_functions["my_lockout"] = function(params)
+  local session = params.session
+  session:print_error("LOCKOUT: security level raised.")
+  session:set_security(session:get_security() + 1)
+  session:add_failure("alarm")
+  session:query_any()
+end
+```
+
+맵젠에서 두 id를 씁니다.
+
+```json
+"computers": {
+  "6": {
+    "name": "My Terminal",
+    "security": 1,
+    "options": [ { "name": "Status report", "action": "my_status" } ],
+    "failures": [ { "action": "my_lockout" } ]
+  }
+}
+```
+
+`--check-mods`는 Lua 함수가 없는 메뉴 항목이나 실패 효과 id를 보고합니다.

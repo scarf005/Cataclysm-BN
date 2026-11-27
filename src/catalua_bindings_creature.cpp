@@ -422,6 +422,9 @@ void cata::detail::reg_creature( sol::state &lua )
         SET_FX_T( has_grab_break_tec, bool() const );
 
         luna::set_fx( ut, "get_weight_capacity", []( UT_CLASS & cr ) -> std::int64_t { return cr.weight_capacity().value(); } );
+
+        DOC( "Kills the creature. `killer` gets credit for the kill." );
+        luna::set_fx( ut, "die", []( UT_CLASS & cr, sol::optional<Creature *> killer ) { cr.die( killer.value_or( nullptr ) ); } );
     }
 #undef UT_CLASS // #define UT_CLASS Creature
 }
@@ -1432,6 +1435,10 @@ void cata::detail::reg_character( sol::state &lua )
             return c.use_charges( what, qty, [&filter]( const item & it ) { return filter( it ); } );
         } ) );
         SET_FX( use_charges_if_avail );
+        DOC( "Returns true if the character carries at least `quantity` items of a type" );
+        luna::set_fx( ut, "has_amount", []( const UT_CLASS & c, const itype_id & what, int quantity ) { return c.has_amount( what, quantity ); } );
+        DOC( "Removes `quantity` items of a type from the character and returns them" );
+        luna::set_fx( ut, "use_amount", []( UT_CLASS & c, const itype_id & what, int quantity ) -> std::vector<detached_ptr<item>> { return c.use_amount( what, quantity ); } );
 
         DOC( "Returns the crafting inventory for this character (includes nearby items)" );
         luna::set_fx( ut, "crafting_inventory", []( UT_CLASS & ch ) -> const inventory & {
